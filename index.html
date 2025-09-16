@@ -1,13 +1,13 @@
 <!doctype html>
-<html lang="ru" data-theme="light">
+<html lang="ru" data-theme="light" class="h-dvh overflow-hidden">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="/src/style.css" />
     <title>3D </title>
   </head>
-  <body class="min-h-dvh flex flex-col bg-base-100 text-base-content">
-    <div class="navbar bg-neutral text-neutral-content">
+  <body class="h-full flex flex-col overflow-hidden bg-base-100 text-base-content">
+    <div class="navbar bg-neutral text-neutral-content shrink-0">
       <div class="navbar-start">
         <div class="dropdown">
           <div tabindex="0" role="button" class="btn btn-ghost lg:hidden" aria-label="Открыть меню">
@@ -31,7 +31,7 @@
       </div>      
     </div>
     
-    <div id="app" class="w-full flex-1 relative">
+    <div id="app" class="w-full flex-1 relative min-h-0 overflow-hidden">
       <div id="preloader" class="absolute inset-0 z-20 flex items-center justify-center bg-base-100/80 backdrop-blur-sm">
         <span class="loading loading-spinner loading-lg text-primary"></span>
       </div>
