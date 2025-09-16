@@ -1,11 +1,34 @@
 <!doctype html>
-<html lang="ru">
+<html lang="ru" data-theme="light">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>3D</title>
+    <title>3D </title>
   </head>
   <body class="min-h-screen bg-base-100 text-base-content">
+    <div class="navbar bg-neutral text-neutral-content">
+      <div class="navbar-start">
+        <div class="dropdown">
+          <div tabindex="0" role="button" class="btn btn-ghost lg:hidden" aria-label="Открыть меню">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+          </div>
+          <ul tabindex="0" class="menu menu-sm dropdown-content bg-base-200 rounded-box z-10 mt-3 w-52 p-2 shadow">
+            <li><a>Главная</a></li>
+            <li><a>О нас</a></li>
+            <li><a>Контакты</a></li>
+          </ul>
+        </div>
+        <a class="btn btn-ghost text-xl">3D Viewer</a>
+      </div>
+      <div class="navbar-end hidden lg:flex">
+        <ul class="menu menu-horizontal px-1">
+          <li><a>Главная</a></li>
+          <li><a>О нас</a></li>
+          <li><a>Контакты</a></li>
+        </ul>
+      </div>      
+    </div>
+    
     <div id="app"></div>
     <script type="module" src="/src/main.js"></script>
   </body>
