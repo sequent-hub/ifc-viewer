@@ -16,6 +16,7 @@
     "vite": "^7.1.2"
   },
   "dependencies": {
-    "daisyui": "^5.1.12"
+    "daisyui": "^5.1.12",
+    "three": "^0.180.0"
   }
 }
