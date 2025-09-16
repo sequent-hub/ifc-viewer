@@ -9,6 +9,10 @@ export default defineConfig({
       'three/examples/jsm/utils/BufferGeometryUtils': fileURLToPath(new URL('./src/compat/three-buffer-geometry-utils.js', import.meta.url)),
     },
   },
+  optimizeDeps: {
+    // Не оптимизировать emscripten-модули, чтобы не ломать загрузку wasm
+    exclude: ['web-ifc', 'web-ifc-three'],
+  },
 });
 
 

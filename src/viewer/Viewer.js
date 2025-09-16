@@ -17,6 +17,9 @@ export class Viewer {
     this.zoomListeners = new Set();
     this.lastZoomPercent = null;
     this.resizeObserver = null;
+    this.demoCube = null;
+    this.activeModel = null;
+    this.autoRotateDemo = true;
 
     this.handleResize = this.handleResize.bind(this);
     this.animate = this.animate.bind(this);
@@ -65,6 +68,7 @@ export class Viewer {
     const cube = new THREE.Mesh(geometry, material);
     cube.name = "demo-cube";
     this.scene.add(cube);
+    this.demoCube = cube;
 
     // Добавим метод фокусировки объекта
     this.focusObject = (object3D, padding = 1.2) => {
@@ -115,10 +119,9 @@ export class Viewer {
   }
 
   animate() {
-    const cube = this.scene && this.scene.getObjectByName("demo-cube");
-    if (cube) {
-      cube.rotation.y += 0.01;
-      cube.rotation.x += 0.005;
+    if (this.autoRotateDemo && this.demoCube) {
+      this.demoCube.rotation.y += 0.01;
+      this.demoCube.rotation.x += 0.005;
     }
 
     if (this.controls) this.controls.update();
@@ -240,6 +243,37 @@ export class Viewer {
     try {
       this.container.dispatchEvent(new CustomEvent("viewer:ready", { bubbles: true }));
     } catch (_) {}
+  }
+
+  // Заменяет демо-куб на реальную модель и отключает автоповорот
+  replaceWithModel(object3D) {
+    if (!object3D) return;
+    // Удалить предыдущую модель
+    if (this.activeModel) {
+      this.scene.remove(this.activeModel);
+      this.#disposeObject(this.activeModel);
+      this.activeModel = null;
+    }
+    // Удалить демо-куб
+    if (this.demoCube) {
+      this.scene.remove(this.demoCube);
+      this.#disposeObject(this.demoCube);
+      this.demoCube = null;
+    }
+    this.autoRotateDemo = false;
+    this.activeModel = object3D;
+    this.scene.add(object3D);
+  }
+
+  #disposeObject(obj) {
+    obj.traverse?.((node) => {
+      if (node.isMesh) {
+        node.geometry && node.geometry.dispose && node.geometry.dispose();
+        const m = node.material;
+        if (Array.isArray(m)) m.forEach((mi) => mi && mi.dispose && mi.dispose());
+        else if (m && m.dispose) m.dispose();
+      }
+    });
   }
 }
 

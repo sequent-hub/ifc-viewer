@@ -24,12 +24,26 @@ export class IfcService {
    */
   async loadFile(file) {
     if (!this.loader) this.init();
+    // Проверка расширения: поддерживаются .ifc и .ifczip
+    const name = (file?.name || "").toLowerCase();
+    const isIFC = name.endsWith(".ifc");
+    const isIFS = name.endsWith(".ifs");
+    const isZIP = name.endsWith(".ifczip") || name.endsWith(".zip");
+    if (!isIFC && !isIFS && !isZIP) {
+      alert("Формат не поддерживается. Используйте .ifc, .ifs или .ifczip");
+      return null;
+    }
     const url = URL.createObjectURL(file);
     try {
       const model = await this.loader.loadAsync(url);
-      this.viewer.scene.add(model);
+      // Показать модель вместо демо-куба
+      if (this.viewer.replaceWithModel) this.viewer.replaceWithModel(model);
       if (this.viewer.focusObject) this.viewer.focusObject(model);
       return model;
+    } catch (err) {
+      console.error("IFC load error:", err);
+      alert("Ошибка загрузки IFC: " + (err?.message || err));
+      return null;
     } finally {
       URL.revokeObjectURL(url);
     }
