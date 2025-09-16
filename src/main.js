@@ -7,6 +7,16 @@ if (app) {
   const viewer = new Viewer(app);
   viewer.init();
 
+  // Прелоадер: скрыть, когда Viewer готов, или через фолбэк 1с
+  const preloader = document.getElementById("preloader");
+  const zoomPanel = document.getElementById("zoomPanel");
+  const hidePreloader = () => {
+    if (preloader) preloader.style.display = "none";
+    if (zoomPanel) zoomPanel.classList.remove("invisible");
+  };
+  app.addEventListener("viewer:ready", hidePreloader, { once: true });
+  setTimeout(hidePreloader, 1000);
+
   // Панель зума
   const zoomValue = document.getElementById("zoomValue");
   const zoomInBtn = document.getElementById("zoomIn");

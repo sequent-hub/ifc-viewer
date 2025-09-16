@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/src/style.css" />
     <title>3D </title>
   </head>
   <body class="min-h-dvh flex flex-col bg-base-100 text-base-content">
@@ -22,15 +23,19 @@
       </div>
       <div class="navbar-end hidden lg:flex">
         <ul class="menu menu-horizontal px-1">
-          <li><a>Главная</a></li>
+          <!-- <li><a>Главная</a></li>
           <li><a>О нас</a></li>
-          <li><a>Контакты</a></li>
+          <li><a>Контакты</a></li> -->
+          <button class="btn bg-white text-black">Загрузить модель</button>
         </ul>
       </div>      
     </div>
     
     <div id="app" class="w-full flex-1 relative">
-      <div id="zoomPanel" class="absolute bottom-4 right-4 join">
+      <div id="preloader" class="absolute inset-0 z-20 flex items-center justify-center bg-base-100/80 backdrop-blur-sm">
+        <span class="loading loading-spinner loading-lg text-primary"></span>
+      </div>
+      <div id="zoomPanel" class="absolute bottom-4 right-4 join invisible">
         <button id="zoomOut" class="btn join-item">-</button>
         <div id="zoomValue" class="btn join-item btn-ghost select-none">100%</div>
         <button id="zoomIn" class="btn join-item">+</button>

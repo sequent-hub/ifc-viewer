@@ -16,6 +16,7 @@ export class Viewer {
     this.controls = null;
     this.zoomListeners = new Set();
     this.lastZoomPercent = null;
+    this.resizeObserver = null;
 
     this.handleResize = this.handleResize.bind(this);
     this.animate = this.animate.bind(this);
@@ -27,7 +28,11 @@ export class Viewer {
     // Рендерер
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    this.renderer.setSize(this.container.clientWidth || 300, this.container.clientHeight || 150);
+    // Спрячем канвас до первого корректного измерения
+    this.renderer.domElement.style.visibility = "hidden";
+    this.renderer.domElement.style.display = "block";
+    this.renderer.domElement.style.width = "100%";
+    this.renderer.domElement.style.height = "100%";
     this.container.appendChild(this.renderer.domElement);
 
     // Сцена
@@ -61,23 +66,36 @@ export class Viewer {
     cube.name = "demo-cube";
     this.scene.add(cube);
 
-    // Обработчик ресайза
+    // Обработчики изменения размеров
     window.addEventListener("resize", this.handleResize);
-
-    // Начальная подгонка размеров контейнера
-    this.handleResize();
+    this.resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const cr = entry.contentRect;
+        const w = Math.max(1, Math.floor(cr.width));
+        const h = Math.max(1, Math.floor(cr.height));
+        this._updateSize(w, h);
+        // После первого валидного измерения показываем канвас
+        this.renderer.domElement.style.visibility = "visible";
+      }
+    });
+    this.resizeObserver.observe(this.container);
+    // Первичная попытка подгонки
+    const { width: initW, height: initH } = this._getContainerSize();
+    this._updateSize(Math.max(1, initW), Math.max(1, initH));
 
     // Старт цикла
     this.animate();
+
+    // Сигнал о готовности после первого кадра
+    requestAnimationFrame(() => {
+      this._dispatchReady();
+    });
   }
 
   handleResize() {
     if (!this.container || !this.camera || !this.renderer) return;
-    const width = this.container.clientWidth || window.innerWidth;
-    const height = this.container.clientHeight || window.innerHeight;
-    this.camera.aspect = width / height;
-    this.camera.updateProjectionMatrix();
-    this.renderer.setSize(width, height);
+    const { width, height } = this._getContainerSize();
+    this._updateSize(Math.max(1, width), Math.max(1, height));
   }
 
   animate() {
@@ -103,6 +121,10 @@ export class Viewer {
       this.renderer.dispose();
       const el = this.renderer.domElement;
       if (el && el.parentNode) el.parentNode.removeChild(el);
+    }
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
     }
 
     if (this.controls) {
@@ -181,6 +203,27 @@ export class Viewer {
         try { fn(rounded); } catch (_) {}
       });
     }
+  }
+
+  _getContainerSize() {
+    const rect = this.container.getBoundingClientRect();
+    const width = rect.width || this.container.clientWidth || 1;
+    const height = rect.height || this.container.clientHeight || 1;
+    return { width, height };
+  }
+
+  _updateSize(width, height) {
+    if (!this.camera || !this.renderer) return;
+    this.camera.aspect = width / height;
+    this.camera.updateProjectionMatrix();
+    // Третий аргумент false — не менять стилевые размеры, только буфер
+    this.renderer.setSize(width, height, false);
+  }
+
+  _dispatchReady() {
+    try {
+      this.container.dispatchEvent(new CustomEvent("viewer:ready", { bubbles: true }));
+    } catch (_) {}
   }
 }
 
