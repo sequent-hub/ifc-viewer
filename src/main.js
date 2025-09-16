@@ -7,6 +7,19 @@ if (app) {
   const viewer = new Viewer(app);
   viewer.init();
 
+  // Панель зума
+  const zoomValue = document.getElementById("zoomValue");
+  const zoomInBtn = document.getElementById("zoomIn");
+  const zoomOutBtn = document.getElementById("zoomOut");
+  if (zoomValue && zoomInBtn && zoomOutBtn) {
+    const update = (p) => { zoomValue.textContent = `${p}%`; };
+    viewer.addZoomListener(update);
+    update(Math.round(viewer.getZoomPercent()));
+
+    zoomInBtn.addEventListener("click", () => viewer.zoomIn());
+    zoomOutBtn.addEventListener("click", () => viewer.zoomOut());
+  }
+
   // Очистка при HMR (vite)
   if (import.meta.hot) {
     import.meta.hot.dispose(() => viewer.dispose());

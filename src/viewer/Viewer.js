@@ -2,6 +2,7 @@
 // Чистый JS, без фреймворков. Комментарии на русском.
 
 import * as THREE from "three";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
 export class Viewer {
   constructor(containerElement) {
@@ -12,6 +13,9 @@ export class Viewer {
     this.scene = null;
     this.camera = null;
     this.animationId = null;
+    this.controls = null;
+    this.zoomListeners = new Set();
+    this.lastZoomPercent = null;
 
     this.handleResize = this.handleResize.bind(this);
     this.animate = this.animate.bind(this);
@@ -36,6 +40,13 @@ export class Viewer {
     this.camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 1000);
     this.camera.position.set(0, 2, 3);
     this.camera.lookAt(0, 0, 0);
+
+    // OrbitControls
+    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+    this.controls.enableDamping = true;
+    this.controls.target.set(0, 0, 0);
+    this.controls.minDistance = 1;
+    this.controls.maxDistance = 20;
 
     // Свет
     this.scene.add(new THREE.AmbientLight(0xffffff, 0.6));
@@ -76,6 +87,8 @@ export class Viewer {
       cube.rotation.x += 0.005;
     }
 
+    if (this.controls) this.controls.update();
+    this._notifyZoomIfChanged();
     if (this.renderer && this.camera && this.scene) {
       this.renderer.render(this.scene, this.camera);
     }
@@ -92,6 +105,10 @@ export class Viewer {
       if (el && el.parentNode) el.parentNode.removeChild(el);
     }
 
+    if (this.controls) {
+      this.controls.dispose();
+      this.controls = null;
+    }
     if (this.scene) {
       this.scene.traverse((obj) => {
         if (obj.isMesh) {
@@ -106,6 +123,64 @@ export class Viewer {
     this.renderer = null;
     this.scene = null;
     this.camera = null;
+  }
+
+  // --- Zoom API ---
+  getDistance() {
+    if (!this.camera || !this.controls) return 0;
+    return this.camera.position.distanceTo(this.controls.target);
+  }
+
+  getZoomPercent() {
+    if (!this.controls) return 0;
+    const d = this.getDistance();
+    const minD = this.controls.minDistance || 1;
+    const maxD = this.controls.maxDistance || 20;
+    const clamped = Math.min(Math.max(d, minD), maxD);
+    const t = (maxD - clamped) / (maxD - minD); // 0..1
+    return t * 100; // 0%..100%
+  }
+
+  zoomIn(factor = 0.9) {
+    if (!this.camera || !this.controls) return;
+    this.#moveAlongView(factor);
+  }
+
+  zoomOut(factor = 1.1) {
+    if (!this.camera || !this.controls) return;
+    this.#moveAlongView(factor);
+  }
+
+  #moveAlongView(scale) {
+    const target = this.controls.target;
+    const position = this.camera.position.clone();
+    const dir = position.sub(target).normalize();
+    let dist = this.getDistance() * scale;
+    dist = Math.min(Math.max(dist, this.controls.minDistance), this.controls.maxDistance);
+    const newPos = target.clone().add(dir.multiplyScalar(dist));
+    this.camera.position.copy(newPos);
+    this.camera.updateProjectionMatrix();
+    if (this.controls) this.controls.update();
+    this._notifyZoomIfChanged(true);
+  }
+
+  addZoomListener(listener) {
+    this.zoomListeners.add(listener);
+  }
+
+  removeZoomListener(listener) {
+    this.zoomListeners.delete(listener);
+  }
+
+  _notifyZoomIfChanged(force = false) {
+    const p = this.getZoomPercent();
+    const rounded = Math.round(p);
+    if (force || this.lastZoomPercent !== rounded) {
+      this.lastZoomPercent = rounded;
+      this.zoomListeners.forEach((fn) => {
+        try { fn(rounded); } catch (_) {}
+      });
+    }
   }
 }
 
