@@ -20,6 +20,9 @@ export class Viewer {
     this.demoCube = null;
     this.activeModel = null;
     this.autoRotateDemo = true;
+    this.edgesVisible = true;
+    this.flatShading = true;
+    this.quality = 'medium'; // low | medium | high
 
     this.handleResize = this.handleResize.bind(this);
     this.animate = this.animate.bind(this);
@@ -69,6 +72,9 @@ export class Viewer {
     cube.name = "demo-cube";
     this.scene.add(cube);
     this.demoCube = cube;
+    // Сделаем грани куба более читаемыми как пример
+    this.#applyPolygonOffsetToMesh(cube, this.flatShading);
+    this.#attachEdgesToMesh(cube, this.edgesVisible);
 
     // Добавим метод фокусировки объекта
     this.focusObject = (object3D, padding = 1.2) => {
@@ -263,17 +269,117 @@ export class Viewer {
     this.autoRotateDemo = false;
     this.activeModel = object3D;
     this.scene.add(object3D);
+
+    // Подчеркнуть грани: полигон оффсет + контуры
+    object3D.traverse?.((node) => {
+      if (node.isMesh) {
+        this.#applyPolygonOffsetToMesh(node, this.flatShading);
+        this.#attachEdgesToMesh(node, this.edgesVisible);
+      }
+    });
   }
 
   #disposeObject(obj) {
     obj.traverse?.((node) => {
       if (node.isMesh) {
+        // Удалить и освободить дочерние линии-контуры, если есть
+        const toRemove = [];
+        node.children?.forEach((c) => {
+          if (c.isLineSegments || c.isLine) toRemove.push(c);
+        });
+        toRemove.forEach((c) => {
+          if (c.geometry?.dispose) c.geometry.dispose();
+          if (c.material?.dispose) c.material.dispose();
+          node.remove(c);
+        });
+
+        // Геометрия/материалы самого меша
         node.geometry && node.geometry.dispose && node.geometry.dispose();
         const m = node.material;
         if (Array.isArray(m)) m.forEach((mi) => mi && mi.dispose && mi.dispose());
         else if (m && m.dispose) m.dispose();
       }
+      if (node.isLineSegments || node.isLine) {
+        node.geometry && node.geometry.dispose && node.geometry.dispose();
+        node.material && node.material.dispose && node.material.dispose();
+      }
     });
+  }
+
+  #applyPolygonOffsetToMesh(mesh, flat) {
+    const apply = (mat) => {
+      if (!mat) return;
+      mat.polygonOffset = true;
+      mat.polygonOffsetFactor = 1;
+      mat.polygonOffsetUnits = 1;
+      // Улучшим читаемость плоскостей
+      if ("flatShading" in mat) {
+        mat.flatShading = !!flat;
+        mat.needsUpdate = true;
+      }
+    };
+    if (Array.isArray(mesh.material)) mesh.material.forEach(apply);
+    else apply(mesh.material);
+  }
+
+  #attachEdgesToMesh(mesh, visible) {
+    if (!mesh.geometry) return;
+    // Не дублировать
+    if (mesh.userData.__edgesAttached) return;
+    const geom = new THREE.EdgesGeometry(mesh.geometry, 30); // thresholdAngle=30°
+    const mat = new THREE.LineBasicMaterial({ color: 0x111111, depthTest: true });
+    const lines = new THREE.LineSegments(geom, mat);
+    lines.name = "edges-overlay";
+    lines.renderOrder = 999;
+    mesh.add(lines);
+    mesh.userData.__edgesAttached = true;
+    lines.visible = !!visible;
+  }
+
+  // Публичные методы управления качеством и стилем
+  setEdgesVisible(visible) {
+    this.edgesVisible = !!visible;
+    const apply = (obj) => {
+      obj.traverse?.((node) => {
+        if (node.isMesh) {
+          node.children?.forEach((c) => {
+            if (c.name === 'edges-overlay') c.visible = !!visible;
+          });
+        }
+      });
+    };
+    if (this.activeModel) apply(this.activeModel);
+    if (this.demoCube) apply(this.demoCube);
+  }
+
+  setFlatShading(enabled) {
+    this.flatShading = !!enabled;
+    const apply = (obj) => {
+      obj.traverse?.((node) => {
+        if (node.isMesh) this.#applyPolygonOffsetToMesh(node, this.flatShading);
+      });
+    };
+    if (this.activeModel) apply(this.activeModel);
+    if (this.demoCube) apply(this.demoCube);
+  }
+
+  setQuality(preset) {
+    this.quality = preset; // 'low' | 'medium' | 'high'
+    // Настройки рендера
+    if (preset === 'low') {
+      this.renderer.setPixelRatio(1);
+      this.renderer.shadowMap.enabled = false;
+      this.controls.enableDamping = false;
+    } else if (preset === 'high') {
+      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      this.renderer.shadowMap.enabled = false;
+      this.controls.enableDamping = true;
+    } else {
+      // medium
+      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+      this.renderer.shadowMap.enabled = false;
+      this.controls.enableDamping = true;
+    }
   }
 }
 

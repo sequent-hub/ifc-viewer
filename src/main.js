@@ -23,6 +23,26 @@ if (app) {
     });
   }
 
+  // Кнопки качества и стиля
+  const qualLow = document.getElementById("qualLow");
+  const qualMed = document.getElementById("qualMed");
+  const qualHigh = document.getElementById("qualHigh");
+  const toggleEdges = document.getElementById("toggleEdges");
+  const toggleShading = document.getElementById("toggleShading");
+
+  const setActive = (btn) => {
+    [qualLow, qualMed, qualHigh].forEach((b) => b && b.classList.remove("btn-active"));
+    btn && btn.classList.add("btn-active");
+  };
+  qualLow?.addEventListener("click", () => { viewer.setQuality('low'); setActive(qualLow); });
+  qualMed?.addEventListener("click", () => { viewer.setQuality('medium'); setActive(qualMed); });
+  qualHigh?.addEventListener("click", () => { viewer.setQuality('high'); setActive(qualHigh); });
+
+  let edgesOn = true;
+  toggleEdges?.addEventListener("click", () => { edgesOn = !edgesOn; viewer.setEdgesVisible(edgesOn); });
+  let flatOn = true;
+  toggleShading?.addEventListener("click", () => { flatOn = !flatOn; viewer.setFlatShading(flatOn); });
+
   // Прелоадер: скрыть, когда Viewer готов, или через фолбэк 1с
   const preloader = document.getElementById("preloader");
   const zoomPanel = document.getElementById("zoomPanel");
