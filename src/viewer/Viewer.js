@@ -66,6 +66,22 @@ export class Viewer {
     cube.name = "demo-cube";
     this.scene.add(cube);
 
+    // Добавим метод фокусировки объекта
+    this.focusObject = (object3D, padding = 1.2) => {
+      if (!object3D || !this.camera || !this.controls) return;
+      const box = new THREE.Box3().setFromObject(object3D);
+      const size = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
+      const maxSize = Math.max(size.x, size.y, size.z) || 1;
+      const fov = (this.camera.fov * Math.PI) / 180;
+      const dist = (maxSize / Math.tan(fov / 2)) * padding;
+      const dir = this.camera.position.clone().sub(this.controls.target).normalize();
+      this.controls.target.copy(center);
+      this.camera.position.copy(center.clone().add(dir.multiplyScalar(dist)));
+      this.camera.updateProjectionMatrix();
+      this.controls.update();
+    };
+
     // Обработчики изменения размеров
     window.addEventListener("resize", this.handleResize);
     this.resizeObserver = new ResizeObserver((entries) => {
