@@ -74,20 +74,28 @@ if (app) {
   let flatOn = true;
   toggleShading?.addEventListener("click", () => { flatOn = !flatOn; viewer.setFlatShading(flatOn); });
 
-  // Простые переключатели секущих плоскостей (позиция = 0)
+  // Переключатели секущих плоскостей: одиночный выбор без изменения логики Viewer
   let clipX = false, clipY = false, clipZ = false;
-  clipXBtn?.addEventListener('click', () => {
-    clipX = !clipX; viewer.setSection('x', clipX, 0);
-    clipXBtn.classList.toggle('btn-active', clipX);
-  });
-  clipYBtn?.addEventListener('click', () => {
-    clipY = !clipY; viewer.setSection('y', clipY, 0);
-    clipYBtn.classList.toggle('btn-active', clipY);
-  });
-  clipZBtn?.addEventListener('click', () => {
-    clipZ = !clipZ; viewer.setSection('z', clipZ, 0);
-    clipZBtn.classList.toggle('btn-active', clipZ);
-  });
+  let clipActive = null; // 'x' | 'y' | 'z' | null
+  function setClipAxis(axis, enable) {
+    // Сбросим предыдущую активную
+    if (clipActive && clipActive !== axis) {
+      viewer.setSection(clipActive, false, 0);
+      if (clipActive === 'x') { clipX = false; clipXBtn?.classList.remove('btn-active'); }
+      if (clipActive === 'y') { clipY = false; clipYBtn?.classList.remove('btn-active'); }
+      if (clipActive === 'z') { clipZ = false; clipZBtn?.classList.remove('btn-active'); }
+      clipActive = null;
+    }
+    // Применим новую ось
+    viewer.setSection(axis, enable, 0);
+    if (axis === 'x') { clipX = enable; clipXBtn?.classList.toggle('btn-active', enable); }
+    if (axis === 'y') { clipY = enable; clipYBtn?.classList.toggle('btn-active', enable); }
+    if (axis === 'z') { clipZ = enable; clipZBtn?.classList.toggle('btn-active', enable); }
+    clipActive = enable ? axis : null;
+  }
+  clipXBtn?.addEventListener('click', () => setClipAxis('x', !clipX));
+  clipYBtn?.addEventListener('click', () => setClipAxis('y', !clipY));
+  clipZBtn?.addEventListener('click', () => setClipAxis('z', !clipZ));
 
   // Слайдеры позиции плоскостей: значение [0..1] маппим на габариты модели
   clipXRange?.addEventListener('input', (e) => {
