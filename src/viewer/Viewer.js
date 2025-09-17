@@ -3,6 +3,7 @@
 
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { NavCube } from "./NavCube.js";
 
 export class Viewer {
   constructor(containerElement) {
@@ -23,6 +24,7 @@ export class Viewer {
     this.edgesVisible = true;
     this.flatShading = true;
     this.quality = 'medium'; // low | medium | high
+    this.navCube = null;
 
     this.handleResize = this.handleResize.bind(this);
     this.animate = this.animate.bind(this);
@@ -92,6 +94,13 @@ export class Viewer {
       this.controls.update();
     };
 
+    // Навигационный куб (интерактивный overlay в правом верхнем углу)
+    this.navCube = new NavCube(this.renderer, this.camera, this.controls, this.container, {
+      sizePx: 96,
+      marginPx: 10,
+      opacity: 0.6,
+    });
+
     // Обработчики изменения размеров
     window.addEventListener("resize", this.handleResize);
     this.resizeObserver = new ResizeObserver((entries) => {
@@ -125,6 +134,8 @@ export class Viewer {
     // Обновим пределы зума под текущий объект без переразмещения камеры
     const subject = this.activeModel || this.demoCube;
     if (subject) this.applyAdaptiveZoomLimits(subject, { recenter: false });
+    // Обновим вспомогательные overlay-виджеты
+    if (this.navCube) this.navCube.onResize();
   }
 
   animate() {
@@ -138,6 +149,8 @@ export class Viewer {
     if (this.renderer && this.camera && this.scene) {
       this.renderer.render(this.scene, this.camera);
     }
+    // Рендер навигационного куба поверх основной сцены
+    if (this.navCube) this.navCube.renderOverlay();
     this.animationId = requestAnimationFrame(this.animate);
   }
 
@@ -158,6 +171,10 @@ export class Viewer {
     if (this.controls) {
       this.controls.dispose();
       this.controls = null;
+    }
+    if (this.navCube) {
+      this.navCube.dispose();
+      this.navCube = null;
     }
     if (this.scene) {
       this.scene.traverse((obj) => {
