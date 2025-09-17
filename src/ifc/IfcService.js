@@ -19,6 +19,27 @@ export class IfcService {
   }
 
   /**
+   * Возвращает пространственную структуру IFC (иерархия) для активной модели
+   * Структура: { expressID, type, children: [...] }
+   */
+  async getSpatialStructure(modelID) {
+    if (!this.loader) this.init();
+    const mgr = this.loader.ifcManager;
+    if (!mgr) return null;
+    try {
+      // Если ID не указан, возьмём первый доступный
+      const all = mgr.ifcModels || [];
+      const mdl = modelID != null ? all.find(m => m.modelID === modelID) : all[0];
+      if (!mdl) return null;
+      const structure = await mgr.getSpatialStructure(mdl.modelID, true);
+      return structure;
+    } catch (e) {
+      console.error("getSpatialStructure error", e);
+      return null;
+    }
+  }
+
+  /**
    * Загружает файл IFC/IFCZIP из File и добавляет в сцену
    * @param {File} file
    */

@@ -1,6 +1,7 @@
 import "./style.css";
 import { Viewer } from "./viewer/Viewer.js";
 import { IfcService } from "./ifc/IfcService.js";
+import { IfcTreeView } from "./ifc/IfcTreeView.js";
 
 // Инициализация three.js Viewer в контейнере #app
 const app = document.getElementById("app");
@@ -10,6 +11,8 @@ if (app) {
   // IFC загрузка
   const ifc = new IfcService(viewer);
   ifc.init();
+  const ifcTreeEl = document.getElementById("ifcTree");
+  const ifcTree = ifcTreeEl ? new IfcTreeView(ifcTreeEl) : null;
 
   const uploadBtn = document.getElementById("uploadBtn");
   const ifcInput = document.getElementById("ifcInput");
@@ -20,6 +23,11 @@ if (app) {
       if (!file) return;
       await ifc.loadFile(file);
       ifcInput.value = "";
+      // Обновим дерево IFC
+      if (ifcTree) {
+        const struct = await ifc.getSpatialStructure();
+        ifcTree.render(struct);
+      }
     });
   }
 
@@ -52,6 +60,25 @@ if (app) {
   };
   app.addEventListener("viewer:ready", hidePreloader, { once: true });
   setTimeout(hidePreloader, 1000);
+
+  // ЛЕВАЯ ПАНЕЛЬ: показать/скрыть
+  const sidebar = document.getElementById("ifcSidebar");
+  const sidebarToggle = document.getElementById("sidebarToggle");
+  const sidebarClose = document.getElementById("sidebarClose");
+  const setSidebarVisible = (visible) => {
+    if (!sidebar) return;
+    if (visible) {
+      sidebar.classList.remove("-translate-x-full");
+      sidebar.classList.add("translate-x-0");
+      sidebar.classList.remove("pointer-events-none");
+    } else {
+      sidebar.classList.add("-translate-x-full");
+      sidebar.classList.remove("translate-x-0");
+      sidebar.classList.add("pointer-events-none");
+    }
+  };
+  sidebarToggle?.addEventListener("click", () => setSidebarVisible(true));
+  sidebarClose?.addEventListener("click", () => setSidebarVisible(false));
 
   // Панель зума
   const zoomValue = document.getElementById("zoomValue");

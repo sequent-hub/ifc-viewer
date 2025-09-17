@@ -36,6 +36,19 @@
     </div>
     
     <div id="app" class="w-full flex-1 relative min-h-0 overflow-hidden">
+      <!-- Кнопка открытия левой панели -->
+      <button id="sidebarToggle" class="btn btn-square btn-sm absolute left-3 top-3 z-30">☰</button>
+
+      <!-- ЛЕВАЯ ПАНЕЛЬ IFC -->
+      <div id="ifcSidebar" class="absolute inset-y-0 left-0 z-30 w-80 max-w-[80%] -translate-x-full transition-transform duration-300 ease-in-out pointer-events-none">
+        <div class="h-full bg-base-200/95 backdrop-blur-md shadow-xl border-r border-base-300 flex flex-col">
+          <div class="p-3 flex items-center justify-between border-b border-base-300">
+            <div class="font-semibold">IFC Structure</div>
+            <button id="sidebarClose" class="btn btn-ghost btn-sm">✕</button>
+          </div>
+          <div id="ifcTree" class="flex-1 overflow-auto p-2"></div>
+        </div>
+      </div>
       <div id="preloader" class="absolute inset-0 z-20 flex items-center justify-center bg-base-100/80 backdrop-blur-sm">
         <span class="loading loading-spinner loading-lg text-primary"></span>
       </div>
