@@ -75,16 +75,16 @@ export class Viewer {
     // Сделаем грани куба более читаемыми как пример
     this.#applyPolygonOffsetToMesh(cube, this.flatShading);
     this.#attachEdgesToMesh(cube, this.edgesVisible);
-
+    // Настроим адаптивные пределы зума под демо-объект
+    this.applyAdaptiveZoomLimits(cube, { padding: 1.2, slack: 2.5, minRatio: 0.05, recenter: true });
     // Добавим метод фокусировки объекта
     this.focusObject = (object3D, padding = 1.2) => {
       if (!object3D || !this.camera || !this.controls) return;
       const box = new THREE.Box3().setFromObject(object3D);
       const size = box.getSize(new THREE.Vector3());
       const center = box.getCenter(new THREE.Vector3());
-      const maxSize = Math.max(size.x, size.y, size.z) || 1;
-      const fov = (this.camera.fov * Math.PI) / 180;
-      const dist = (maxSize / Math.tan(fov / 2)) * padding;
+      // Вычисляем дистанцию вписывания с учётом аспекта
+      const dist = this.#computeFitDistanceForSize(size, padding);
       const dir = this.camera.position.clone().sub(this.controls.target).normalize();
       this.controls.target.copy(center);
       this.camera.position.copy(center.clone().add(dir.multiplyScalar(dist)));
@@ -122,6 +122,9 @@ export class Viewer {
     if (!this.container || !this.camera || !this.renderer) return;
     const { width, height } = this._getContainerSize();
     this._updateSize(Math.max(1, width), Math.max(1, height));
+    // Обновим пределы зума под текущий объект без переразмещения камеры
+    const subject = this.activeModel || this.demoCube;
+    if (subject) this.applyAdaptiveZoomLimits(subject, { recenter: false });
   }
 
   animate() {
@@ -211,6 +214,54 @@ export class Viewer {
     this._notifyZoomIfChanged(true);
   }
 
+  // Адаптивная настройка пределов зума под габариты объекта
+  applyAdaptiveZoomLimits(object3D, options = {}) {
+    if (!object3D || !this.camera || !this.controls) return;
+    const padding = options.padding ?? 1.2;      // запас на краях кадра
+    const slack = options.slack ?? 2.5;          // во сколько раз можно отъехать дальше «вписанной» дистанции
+    const minRatio = options.minRatio ?? 0.05;   // минимальная дистанция как доля от «вписанной»
+    const recenter = options.recenter ?? false;  // перемещать ли камеру на «вписанную» дистанцию
+
+    const box = new THREE.Box3().setFromObject(object3D);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+
+    const fitDist = this.#computeFitDistanceForSize(size, padding);
+
+    const newMin = Math.max(0.01, fitDist * Math.max(0.0, minRatio));
+    const newMax = Math.max(newMin * 1.5, fitDist * Math.max(1.0, slack));
+    this.controls.minDistance = newMin;
+    this.controls.maxDistance = newMax;
+
+    // Расширим дальнюю плоскость, чтобы исключить клиппинг при большом отъезде
+    const desiredFar = Math.max(this.camera.far, newMax * 4);
+    if (desiredFar !== this.camera.far) {
+      this.camera.far = desiredFar;
+      this.camera.updateProjectionMatrix();
+    }
+
+    if (recenter) {
+      const dir = this.camera.position.clone().sub(this.controls.target).normalize();
+      this.controls.target.copy(center);
+      this.camera.position.copy(center.clone().add(dir.multiplyScalar(fitDist)));
+      this.camera.updateProjectionMatrix();
+      this.controls.update();
+    }
+  }
+
+  // Вычисляет дистанцию до объекта, при которой он полностью помещается в кадр
+  #computeFitDistanceForSize(size, padding = 1.2) {
+    // Защита от нулевых размеров
+    const safeSizeX = Math.max(1e-6, size.x);
+    const safeSizeY = Math.max(1e-6, size.y);
+    const aspect = this.camera.aspect || 1;
+    const vFov = (this.camera.fov * Math.PI) / 180; // вертикальный FOV в радианах
+    // Требуемая «высота» кадра: максимум между реальной высотой и шириной, приведённой к высоте через аспект
+    const fitHeight = Math.max(safeSizeY, safeSizeX / aspect);
+    const dist = (fitHeight * padding) / (2 * Math.tan(vFov / 2));
+    return Math.max(0.01, dist);
+  }
+
   addZoomListener(listener) {
     this.zoomListeners.add(listener);
   }
@@ -277,6 +328,8 @@ export class Viewer {
         this.#attachEdgesToMesh(node, this.edgesVisible);
       }
     });
+    // Настроим пределы зума и сфокусируемся на новой модели
+    this.applyAdaptiveZoomLimits(object3D, { padding: 1.2, slack: 2.5, minRatio: 0.05, recenter: true });
   }
 
   #disposeObject(obj) {

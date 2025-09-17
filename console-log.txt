@@ -1,0 +1,1924 @@
+INFO:  Parsing Model using IFC2X3 Schema
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+4web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaLoop in findLoop ... how ironic 
+web-ifc.wasm:0x8f130 Loop in findLoop ... how ironic 
+web-ifc.wasm:0x8f130 incident line!incident line!incident line!incident line!Loop in findLoop ... how ironic 
+web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+4web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+5web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areaNo new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Double contour edges!
+18web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Double contour edges!
+40web-ifc.wasm:0x8f130 Looping while finding contour!
+11web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areaDouble contour edges!
+12web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double contour edges!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+2web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+34web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areaincident line!Double contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areaDouble contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+56web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+3web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+100web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 small areasmall areaLooping while finding contour!
+22web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+6web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areaLooping while finding contour!
+14web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+3web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areaLooping while finding contour!
+22web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Double point match!Double point match!Looping while finding contour!
+22web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+9web-ifc.wasm:0x8f130 Double contour edges!
+3web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 small areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areaDouble contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 incident line!incident line!small areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+4web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areaFound vert without neighbours
+5web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+13web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areaDouble contour edges!
+34web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double contour edges!
+2web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 small areaDouble contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double contour edges!
+2web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 small areaDouble contour edges!
+45web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+45web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+45web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areaDouble contour edges!
+110web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Loop in findLoop ... how ironic 
+4web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 small areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areaDouble contour edges!
+2web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areaDouble contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Double contour edges!
+3web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Loop in findLoop ... how ironic 
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+4web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+4web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 incident line!incident line!incident line!Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Loop in findLoop ... how ironic 
+web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 incident line!incident line!small areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areaFound vert without neighbours
+15web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 zero tri
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+4web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+15web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+27web-ifc.wasm:0x8f130 Looping while finding contour!
+3web-ifc.wasm:0x8f130 Double contour edges!
+15web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Loop in findLoop ... how ironic 
+10web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+133web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 incident line!incident line!Loop in findLoop ... how ironic 
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 incident line!Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areaincident line!incident line!small areasmall areasmall areaFound vert without neighbours
+3web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+6web-ifc.wasm:0x8f130 Found vert without neighbours
+3web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+13web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areaDouble contour edges!
+2web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Double contour edges!
+4web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 small areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+4web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+67web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+45web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 incident line!Double contour edges!
+17web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+4web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+68web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Loop in findLoop ... how ironic 
+web-ifc.wasm:0x8f130 small areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areaincident line!incident line!small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaFound vert without neighbours
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+34web-ifc.wasm:0x8f130 Looping while finding contour!
+5web-ifc.wasm:0x8f130 Found vert without neighbours
+11web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+12web-ifc.wasm:0x8f130 Double contour edges!
+4web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areaERROR: bool aborted due to empty source or target
+web-ifc.wasm:0x8f130 incident line!incident line!Loop in findLoop ... how ironic 
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+13web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double point match!Double point match!small areasmall areaDouble contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 incident line!incident line!Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+81web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+58web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+34web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 incident line!Double contour edges!
+2web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+15web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaFound vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areaFound vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+34web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+34web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 incident line!small areasmall areasmall areasmall areasmall areasmall areasmall areazero tri
+web-ifc.wasm:0x8f130 zero tri
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+26web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+5web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 incident line!BAD LOOPFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 small areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+15web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 small areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+4web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+45web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+45web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+45web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+34web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+24web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+4web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaLooping while finding contour!
+18web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areaLooping while finding contour!
+22web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double contour edges!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+3web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+24web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areaDouble contour edges!
+46web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+24web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+3web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 incident line!incident line!incident line!incident line!incident line!Loop in findLoop ... how ironic 
+web-ifc.wasm:0x8f130 Loop in findLoop ... how ironic 
+web-ifc.wasm:0x8f130 incident line!incident line!incident line!Loop in findLoop ... how ironic 
+web-ifc.wasm:0x8f130 Loop in findLoop ... how ironic 
+13web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+35web-ifc.wasm:0x8f130 Looping while finding contour!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+16web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Loop in findLoop ... how ironic 
+web-ifc.wasm:0x8f130 small areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 small areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 small areaDouble contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areaFound vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areazero tri
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 small areaNo new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 incident line!Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areaFound vert without neighbours
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areaFound vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areaDouble contour edges!
+web-ifc.wasm:0x8f130 incident line!incident line!incident line!incident line!Found vert without neighbours
+3web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 incident line!incident line!small areasmall areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+5web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+26web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+6web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+3web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaincident line!incident line!incident line!incident line!Loop in findLoop ... how ironic 
+web-ifc.wasm:0x8f130 small areasmall areaDouble contour edges!
+2web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areazero tri
+web-ifc.wasm:0x8f130 small areasmall areasmall areaincident line!incident line!Found vert without neighbours
+web-ifc.wasm:0x8f130 Loop in findLoop ... how ironic 
+web-ifc.wasm:0x8f130 small areaFound vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Loop in findLoop ... how ironic 
+web-ifc.wasm:0x8f130 small areasmall areasmall areaLooping while finding contour!
+22web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 small areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 incident line!incident line!Double contour edges!
+web-ifc.wasm:0x8f130 incident line!incident line!Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+3web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areaDouble contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 incident line!Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 ERROR: bool aborted due to empty source or target
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 incident line!incident line!Found vert without neighbours
+19web-ifc.wasm:0x8f130 Found vert without neighbours
+20web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+4web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Loop in findLoop ... how ironic 
+web-ifc.wasm:0x8f130 Loop in findLoop ... how ironic 
+web-ifc.wasm:0x8f130 small areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+9web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaLoop in findLoop ... how ironic 
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areaLoop in findLoop ... how ironic 
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 small areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+3web-ifc.wasm:0x8f130 Double contour edges!
+4web-ifc.wasm:0x8f130 Found vert without neighbours
+11web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areaDouble contour edges!
+6web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areaDouble contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+6web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Double contour edges!
+37web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+34web-ifc.wasm:0x8f130 Looping while finding contour!
+24web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!incident line!Double point match!Double point match!Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+24web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 incident line!incident line!incident line!incident line!incident line!incident line!incident line!incident line!incident line!incident line!incident line!incident line!incident line!incident line!incident line!incident line!Found vert without neighbours
+5web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areaLoop in findLoop ... how ironic 
+web-ifc.wasm:0x8f130 Loop in findLoop ... how ironic 
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Loop in findLoop ... how ironic 
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+4web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areaFound vert without neighbours
+8web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+34web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+3web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+34web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 incident line!Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Loop in findLoop ... how ironic 
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 incident line!incident line!Looping while finding contour!
+22web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+24web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+13web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+22web-ifc.wasm:0x8f130 Looping while finding contour!
+4web-ifc.wasm:0x8f130 Double contour edges!
+12web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Double contour edges!
+13web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+35web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areaLooping while finding contour!
+12web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+14web-ifc.wasm:0x8f130 Looping while finding contour!
+3web-ifc.wasm:0x8f130 Double contour edges!
+24web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+13web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!incident line!Double point match!Double point match!Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areaERROR: bool aborted due to empty source or target
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaincident line!incident line!incident line!incident line!small areasmall areasmall areasmall areaLoop in findLoop ... how ironic 
+3web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 zero tri
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areaFound vert without neighbours
+2web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 incident line!small areaLoop in findLoop ... how ironic 
+web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+2web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areaFound vert without neighbours
+3web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areaDouble contour edges!
+17web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areaDouble contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areaDouble contour edges!
+25web-ifc.wasm:0x8f130 Looping while finding contour!
+7web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Double contour edges!
+33web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 small areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaFound vert without neighbours
+2web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+8web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areazero tri
+web-ifc.wasm:0x8f130 zero tri
+12web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areazero tri
+3web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+11web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 small areasmall areaFound vert without neighbours
+5web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+12web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+11web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+17web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areaLooping while finding contour!
+22web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areaLooping while finding contour!
+22web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Loop in findLoop ... how ironic 
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areaFound vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Loop in findLoop ... how ironic 
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Loop in findLoop ... how ironic 
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double point match!Double point match!Double point match!No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaFound vert without neighbours
+3web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areaDouble contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 incident line!Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaLooping while finding contour!
+22web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Double point match!Double point match!Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+21web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 incident line!incident line!Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areaDouble point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaLooping while finding contour!
+22web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areaincident line!incident line!Loop in findLoop ... how ironic 
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+34web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaFound vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areaFound vert without neighbours
+3web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Loop in findLoop ... how ironic 
+2web-ifc.wasm:0x8f130 small areaLoop in findLoop ... how ironic 
+web-ifc.wasm:0x8f130 small areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areaDouble contour edges!
+11web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+3web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+8web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 small areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 small areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areaDouble contour edges!
+13web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areaDouble point match!small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areaFound vert without neighbours
+4web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaFound vert without neighbours
+9web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaFound vert without neighbours
+3web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 small areaincident line!Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+8web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Loop in findLoop ... how ironic 
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Loop in findLoop ... how ironic 
+4web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 incident line!Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 incident line!Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areazero tri
+2web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areaincident line!incident line!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 incident line!incident line!small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaLoop in findLoop ... how ironic 
+web-ifc.wasm:0x8f130 small areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double contour edges!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double point match!Double point match!Double point match!Double point match!Double point match!Looping while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areaDouble point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double contour edges!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double point match!Double contour edges!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areaFound vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areaDouble contour edges!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+8web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 incident line!incident line!incident line!incident line!incident line!incident line!Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areazero tri
+web-ifc.wasm:0x8f130 zero tri
+web-ifc.wasm:0x8f130 zero tri
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 zero tri
+4web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areazero tri
+3web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areazero tri
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areaDouble contour edges!
+10web-ifc.wasm:0x8f130 Looping while finding contour!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+10web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 zero tri
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+10web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 ERROR: No basis found for brep!
+web-ifc.wasm:0x8f130 Double contour edges!
+10web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+10web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Loop in findLoop ... how ironic 
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+12web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaFound vert without neighbours
+3web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaDouble contour edges!
+10web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Loop in findLoop ... how ironic 
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areazero tri
+web-ifc.wasm:0x8f130 zero tri
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+128web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+8web-ifc.wasm:0x8f130 zero tri
+2web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areaDouble contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 BAD LOOPBAD LOOPFound vert without neighbours
+9web-ifc.wasm:0x8f130 Found vert without neighbours
+13web-ifc.wasm:0x8f130 Found vert without neighbours
+4web-ifc.wasm:0x8f130 zero tri
+2web-ifc.wasm:0x8f130 Double contour edges!
+6web-ifc.wasm:0x8f130 zero tri
+web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 zero tri
+2web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 zero tri
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areazero tri
+web-ifc.wasm:0x8f130 zero tri
+web-ifc.wasm:0x8f130 Double contour edges!
+201web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 zero tri
+web-ifc.wasm:0x8f130 Double contour edges!
+78web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 zero tri
+2web-ifc.wasm:0x8f130 zero tri
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 No new edge while finding contour!
+web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areazero tri
+web-ifc.wasm:0x8f130 zero tri
+web-ifc.wasm:0x8f130 Double contour edges!
+13web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 zero tri
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areaBAD LOOPFound vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+4web-ifc.wasm:0x8f130 zero tri
+2web-ifc.wasm:0x8f130 zero tri
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 zero tri
+48web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Double contour edges!
+4web-ifc.wasm:0x8f130 zero tri
+2web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 zero tri
+103web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+4web-ifc.wasm:0x8f130 zero tri
+2web-ifc.wasm:0x8f130 zero tri
+21web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 zero tri
+2web-ifc.wasm:0x8f130 zero tri
+2web-ifc.wasm:0x8f130 zero tri
+web-ifc.wasm:0x8f130 Double contour edges!
+10web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Double contour edges!
+4web-ifc.wasm:0x8f130 zero tri
+web-ifc.wasm:0x8f130 Double contour edges!
+22web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+10web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areaFound vert without neighbours
+2web-ifc.wasm:0x8f130 zero tri
+web-ifc.wasm:0x8f130 Found vert without neighbours
+8web-ifc.wasm:0x8f130 Found vert without neighbours
+28web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+7web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+4web-ifc.wasm:0x8f130 zero tri
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Loop in findLoop ... how ironic 
+10web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+15web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 zero tri
+2web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 zero tri
+2web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 zero tri
+2web-ifc.wasm:0x8f130 zero tri
+57web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 zero tri
+web-ifc.wasm:0x8f130 Double contour edges!
+190web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 zero tri
+6web-ifc.wasm:0x8f130 zero tri
+2web-ifc.wasm:0x8f130 Double contour edges!
+16web-ifc.wasm:0x8f130 zero tri
+web-ifc.wasm:0x8f130 Double contour edges!
+21web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areaFound vert without neighbours
+6web-ifc.wasm:0x8f130 zero tri
+27web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 zero tri
+2web-ifc.wasm:0x8f130 zero tri
+4web-ifc.wasm:0x8f130 zero tri
+21web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 zero tri
+web-ifc.wasm:0x8f130 Double contour edges!
+10web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 small areasmall areasmall areasmall areaFound vert without neighbours
+3web-ifc.wasm:0x8f130 Found vert without neighbours
+4web-ifc.wasm:0x8f130 zero tri
+2web-ifc.wasm:0x8f130 zero tri
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+21web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 zero tri
+4web-ifc.wasm:0x8f130 zero tri
+web-ifc.wasm:0x8f130 zero tri
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 small areasmall areaFound vert without neighbours
+web-ifc.wasm:0x8f130 Found vert without neighbours
+3web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+10web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+19web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+124web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+57web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+10web-ifc.wasm:0x8f130 Looping while finding contour!
+23web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+web-ifc.wasm:0x8f130 Double contour edges!
+10web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+43web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+10web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areaDouble contour edges!
+2web-ifc.wasm:0x8f130 Double contour edges!
+32web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+10web-ifc.wasm:0x8f130 Looping while finding contour!
+27web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+8web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+4web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 Double contour edges!
+13web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+13web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 zero tri
+web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 Loop in findLoop ... how ironic 
+12web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 zero tri
+2web-ifc.wasm:0x8f130 Double contour edges!
+29web-ifc.wasm:0x8f130 Looping while finding contour!
+3web-ifc.wasm:0x8f130 Double contour edges!
+10web-ifc.wasm:0x8f130 zero tri
+web-ifc.wasm:0x8f130 Double contour edges!
+10web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 zero tri
+web-ifc.wasm:0x8f130 Double contour edges!
+3web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areasmall areaDouble contour edges!
+38web-ifc.wasm:0x8f130 Looping while finding contour!
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+2web-ifc.wasm:0x8f130 zero tri
+6web-ifc.wasm:0x8f130 zero tri
+web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areazero tri
+3web-ifc.wasm:0x8f130 zero tri
+2web-ifc.wasm:0x8f130 zero tri
+web-ifc.wasm:0x8f130 small areasmall areazero tri
+11web-ifc.wasm:0x8f130 zero tri
+16web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 zero tri
+2web-ifc.wasm:0x8f130 zero tri
+2web-ifc.wasm:0x8f130 Found vert without neighbours
+web-ifc.wasm:0x8f130 small areasmall areazero tri
+5web-ifc.wasm:0x8f130 zero tri
+13web-ifc.wasm:0x8f130 Looping while finding contour!
+web-ifc.wasm:0x8f130 Double contour edges!
+2web-ifc.wasm:0x8f130 zero tri
+web-ifc.wasm:0x8f130 Double contour edges!
+13web-ifc.wasm:0x8f130 Looping while finding contour!

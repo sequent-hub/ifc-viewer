@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fragments Viewer (That Open)</title>
+    <style>
+      html, body { height: 100%; margin: 0; }
+      #app { height: 100%; display: flex; }
+      /* simple fallback layout */
+      .fallback { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; padding: 16px; }
+    </style>
+    <!-- Опционально: свои стили. CSS пакета опустим, чтобы избежать 404 с CDN. -->
+  </head>
+  <body>
+    <div id="app">
+      <!-- Если компоненты не подхватятся, пользователь увидит fallback -->
+      <div class="fallback">
+        <h3>Загрузка компонентов...</h3>
+        <p>Если интерфейс не появился, проверьте доступность CDN и перезагрузите страницу.</p>
+      </div>
+    </div>
+
+    <script type="module">
+      // Подключаем бандл через esm.sh с согласованной версией three (>=0.175)
+      import 'https://esm.sh/@thatopen/components@3.1.3?bundle&deps=three@0.176.0';
+      const app = document.querySelector('#app');
+      app.innerHTML = `
+        <to-app style="width:100%;height:100%">
+          <to-toolbar slot="toolbar"></to-toolbar>
+          <to-scene slot="main" id="scene"></to-scene>
+          <to-panels-right slot="right">
+            <to-panel-properties></to-panel-properties>
+            <to-panel-sections></to-panel-sections>
+            <to-panel-measure></to-panel-measure>
+          </to-panels-right>
+          <to-panels-left slot="left">
+            <to-panel-loader></to-panel-loader>
+          </to-panels-left>
+        </to-app>
+      `;
+    </script>
+  </body>
+  </html>
+
+
