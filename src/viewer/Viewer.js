@@ -67,18 +67,8 @@ export class Viewer {
     dir.position.set(5, 5, 5);
     this.scene.add(dir);
 
-    // Демонстрационный объект (куб)
-    const geometry = new THREE.BoxGeometry(1, 1, 1);
-    const material = new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.4, metalness: 0.1 });
-    const cube = new THREE.Mesh(geometry, material);
-    cube.name = "demo-cube";
-    this.scene.add(cube);
-    this.demoCube = cube;
-    // Сделаем грани куба более читаемыми как пример
-    this.#applyPolygonOffsetToMesh(cube, this.flatShading);
-    this.#attachEdgesToMesh(cube, this.edgesVisible);
-    // Настроим адаптивные пределы зума под демо-объект
-    this.applyAdaptiveZoomLimits(cube, { padding: 1.2, slack: 2.5, minRatio: 0.05, recenter: true });
+    // Демонстрационный куб отключён для чистого прелоадера
+    // Оставим сцену пустой до загрузки модели
     // Добавим метод фокусировки объекта
     this.focusObject = (object3D, padding = 1.2) => {
       if (!object3D || !this.camera || !this.controls) return;

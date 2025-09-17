@@ -56,8 +56,33 @@
           <div id="ifcTree" class="flex-1 overflow-auto p-2"></div>
         </div>
       </div>
-      <div id="preloader" class="absolute inset-0 z-20 flex items-center justify-center bg-base-100/80 backdrop-blur-sm">
-        <span class="loading loading-spinner loading-lg text-primary"></span>
+      <div id="preloader" class="fixed inset-0 z-50 bg-black text-white opacity-100 transition-opacity duration-500 will-change-[opacity]">
+        <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[150px] h-[150px]">
+          <svg viewBox="0 0 100 100" class="w-full h-full">
+            <g fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="6">
+              <path d="M 21 40 V 59">
+                <animateTransform attributeName="transform" attributeType="XML" type="rotate" values="0 21 59; 180 21 59" dur="2s" repeatCount="indefinite" />
+              </path>
+              <path d="M 79 40 V 59">
+                <animateTransform attributeName="transform" attributeType="XML" type="rotate" values="0 79 59; -180 79 59" dur="2s" repeatCount="indefinite" />
+              </path>
+              <path d="M 50 21 V 40">
+                <animate attributeName="d" values="M 50 21 V 40; M 50 59 V 40" dur="2s" repeatCount="indefinite" />
+              </path>
+              <path d="M 50 60 V 79">
+                <animate attributeName="d" values="M 50 60 V 79; M 50 98 V 79" dur="2s" repeatCount="indefinite" />
+              </path>
+              <path d="M 50 21 L 79 40 L 50 60 L 21 40 Z">
+                <animate attributeName="stroke" values="rgba(255,255,255,1); rgba(100,100,100,0)" dur="2s" repeatCount="indefinite" />
+              </path>
+              <path d="M 50 40 L 79 59 L 50 79 L 21 59 Z"/>
+              <path d="M 50 59 L 79 78 L 50 98 L 21 78 Z">
+                <animate attributeName="stroke" values="rgba(100,100,100,0); rgba(255,255,255,1)" dur="2s" repeatCount="indefinite" />
+              </path>
+              <animateTransform attributeName="transform" attributeType="XML" type="translate" values="0 0; 0 -19" dur="2s" repeatCount="indefinite" />
+            </g>
+          </svg>
+        </div>
       </div>
       <input id="ifcInput" type="file" accept=".ifc,.ifczip,.ifs" class="hidden" />
       <div id="zoomPanel" class="absolute bottom-4 right-4 join invisible">

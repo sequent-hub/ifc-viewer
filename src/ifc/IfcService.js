@@ -2,6 +2,12 @@
 // Требует three@^0.149 и web-ifc-three совместимой версии
 
 import { IFCLoader } from "web-ifc-three/IFCLoader";
+// Абсолютный URL до wasm-асета из папки public (Vite подставит корректный путь)
+import WEBIFC_WASM_URL from '/wasm/web-ifc.wasm?url';
+// URL собранного воркера через Vite (даёт корректный путь для useWebWorkers)
+// Важно: используем ?url, чтобы получить сырой URL ассета и создать классический Worker,
+// т.к. web-ifc-three создаёт воркер без { type: 'module' }
+import IFCWorkerUrl from 'web-ifc-three/IFCWorker.js?url';
 
 export class IfcService {
   /**
@@ -19,8 +25,27 @@ export class IfcService {
 
   init() {
     this.loader = new IFCLoader();
+    // Отключаем Web Worker: временно парсим в главном потоке для стабильности
+    try { this.loader.ifcManager.useWebWorkers?.(false); } catch(_) {}
     // Путь к wasm файлу (скопируйте web-ifc.wasm в public/wasm)
-    this.loader.ifcManager.setWasmPath("/wasm/");
+    try {
+      // Преобразуем URL файла wasm в URL каталога и передадим в воркер
+      const wasmDir = new URL('.', WEBIFC_WASM_URL).href;
+      this.loader.ifcManager.setWasmPath(wasmDir);
+      // Дополнительно подстрахуемся передачей полного файла, если версия это поддерживает
+      try { this.loader.ifcManager.setWasmPath(WEBIFC_WASM_URL); } catch(_) {}
+    } catch (_) {
+      this.loader.ifcManager.setWasmPath('/wasm/');
+    }
+    try {
+      this.loader.ifcManager.applyWebIfcConfig?.({
+        COORDINATE_TO_ORIGIN: true,
+        USE_FAST_BOOLS: true,
+        // Порог игнорирования очень мелких полигонов (уменьшаем шум)
+        // Некоторые сборки поддерживают SMALL_TRIANGLE_THRESHOLD
+        SMALL_TRIANGLE_THRESHOLD: 1e-9,
+      });
+    } catch(_) {}
   }
 
   /**
@@ -112,6 +137,8 @@ export class IfcService {
       if (this.viewer.focusObject) this.viewer.focusObject(model);
       this.lastModel = model;
       this.lastFileName = file?.name || null;
+      // Сообщим, что модель загружена
+      try { document.dispatchEvent(new CustomEvent('ifc:model-loaded', { detail: { modelID: model.modelID } })); } catch(_) {}
       return model;
     } catch (err) {
       console.error("IFC load error:", err);
@@ -130,7 +157,9 @@ export class IfcService {
     if (!this.loader) this.init();
     if (!url) return null;
     try {
+      // Защитим загрузку: перехватим возможные исключения на уровне воркера
       const model = await this.loader.loadAsync(url);
+      if (!model || !model.geometry) throw new Error('IFC model returned without geometry');
       if (this.viewer.replaceWithModel) this.viewer.replaceWithModel(model);
       if (this.viewer.focusObject) this.viewer.focusObject(model);
       this.lastModel = model;
@@ -141,6 +170,8 @@ export class IfcService {
       } catch (_) {
         this.lastFileName = url;
       }
+      // Сообщим, что модель загружена
+      try { document.dispatchEvent(new CustomEvent('ifc:model-loaded', { detail: { modelID: model.modelID } })); } catch(_) {}
       return model;
     } catch (err) {
       console.error("IFC loadUrl error:", err);

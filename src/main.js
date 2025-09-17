@@ -42,6 +42,7 @@ if (app) {
       }
       // Авто-открытие панели
       setSidebarVisible(true);
+      hidePreloader();
     });
   }
 
@@ -71,11 +72,15 @@ if (app) {
   const preloader = document.getElementById("preloader");
   const zoomPanel = document.getElementById("zoomPanel");
   const hidePreloader = () => {
-    if (preloader) preloader.style.display = "none";
+    if (preloader) {
+      preloader.style.transition = "opacity 400ms ease";
+      preloader.style.willChange = "opacity";
+      preloader.style.opacity = "0";
+      // удалим из DOM после анимации
+      setTimeout(() => { preloader.parentNode && preloader.parentNode.removeChild(preloader); }, 450);
+    }
     if (zoomPanel) zoomPanel.classList.remove("invisible");
   };
-  app.addEventListener("viewer:ready", hidePreloader, { once: true });
-  setTimeout(hidePreloader, 1000);
 
   // ЛЕВАЯ ПАНЕЛЬ: показать/скрыть
   const sidebar = document.getElementById("ifcSidebar");
@@ -110,6 +115,11 @@ if (app) {
     });
   }
 
+  // Скрывать прелоадер, когда модель реально загружена (страховка от гонок)
+  document.addEventListener('ifc:model-loaded', () => {
+    hidePreloader();
+  }, { once: true });
+
   // Автозагрузка IFC: используем образец по умолчанию, параметр ?ifc= может переопределить
   try {
     const DEFAULT_IFC_URL = "/ifc/170ОК-23_1_1_АР_П.ifc";
@@ -131,6 +141,7 @@ if (app) {
           </div>`;
       }
       setSidebarVisible(true);
+      hidePreloader();
     }
   } catch (e) {
     console.warn('IFC autoload error', e);

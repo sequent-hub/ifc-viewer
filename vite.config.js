@@ -2,6 +2,24 @@ import { defineConfig } from 'vite';
 import { fileURLToPath, URL } from 'node:url';
 
 export default defineConfig({
+  plugins: [
+    {
+      name: 'ifc-wasm-rewrite',
+      configureServer(server) {
+        server.middlewares.use((req, res, next) => {
+          const url = req.url || '';
+          // Перенаправляем любые запросы воркера к wasm внутри node_modules на наш публичный ассет
+          if (url.startsWith('/node_modules/web-ifc-three/wasm/web-ifc.wasm') || url.includes('/node_modules/web-ifc-three//wasm/web-ifc.wasm')) {
+            res.statusCode = 302;
+            res.setHeader('Location', '/wasm/web-ifc.wasm');
+            res.end();
+            return;
+          }
+          next();
+        });
+      }
+    }
+  ],
   resolve: {
     alias: {
       // web-ifc-three ожидает mergeGeometries в BufferGeometryUtils,
