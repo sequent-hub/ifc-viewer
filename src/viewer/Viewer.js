@@ -25,6 +25,19 @@ export class Viewer {
     this.flatShading = true;
     this.quality = 'medium'; // low | medium | high
     this.navCube = null;
+    this.clipping = {
+      enabled: false,
+      planes: [
+        new THREE.Plane(new THREE.Vector3(1, 0, 0), Infinity),
+        new THREE.Plane(new THREE.Vector3(0, 1, 0), Infinity),
+        new THREE.Plane(new THREE.Vector3(0, 0, 1), Infinity),
+      ],
+      gizmos: {
+        x: null,
+        y: null,
+        z: null,
+      },
+    };
 
     this.handleResize = this.handleResize.bind(this);
     this.animate = this.animate.bind(this);
@@ -91,6 +104,9 @@ export class Viewer {
       opacity: 0.6,
     });
 
+    // Визуализация секущих плоскостей (полупрозрачные квадраты)
+    this.#initClippingGizmos();
+
     // Обработчики изменения размеров
     window.addEventListener("resize", this.handleResize);
     this.resizeObserver = new ResizeObserver((entries) => {
@@ -137,6 +153,13 @@ export class Viewer {
     if (this.controls) this.controls.update();
     this._notifyZoomIfChanged();
     if (this.renderer && this.camera && this.scene) {
+      // Применим глобальные плоскости отсечения
+      if (this.renderer.clippingPlanes !== this.clipping.planes) {
+        this.renderer.clippingPlanes = this.clipping.planes;
+        this.renderer.localClippingEnabled = true;
+      }
+      // Обновим позицию видимых гизмо-квадратов
+      this.#updateClippingGizmos();
       this.renderer.render(this.scene, this.camera);
     }
     // Рендер навигационного куба поверх основной сцены
@@ -440,6 +463,85 @@ export class Viewer {
       this.renderer.shadowMap.enabled = false;
       this.controls.enableDamping = true;
     }
+  }
+
+  // --- Clipping API ---
+  // axis: 'x' | 'y' | 'z', enabled: boolean, distance: number (в мировых единицах)
+  setSection(axis, enabled, distance = 0) {
+    const idx = axis === 'x' ? 0 : axis === 'y' ? 1 : 2;
+    const plane = this.clipping.planes[idx];
+    if (enabled) {
+      // Нормаль плоскости направлена от начала координат, d = -distance
+      if (idx === 0) plane.set(new THREE.Vector3(1, 0, 0), -distance);
+      if (idx === 1) plane.set(new THREE.Vector3(0, 1, 0), -distance);
+      if (idx === 2) plane.set(new THREE.Vector3(0, 0, 1), -distance);
+      this.#setGizmoVisible(axis, true);
+    } else {
+      // Уберём влияние — отодвинем плоскость на бесконечность
+      plane.constant = Infinity;
+      this.#setGizmoVisible(axis, false);
+    }
+  }
+
+  // Устанавливает позицию секущей плоскости по нормализованному значению [0..1] в пределах габаритов модели
+  setSectionNormalized(axis, enabled, t = 0.5) {
+    const subject = this.activeModel || this.demoCube;
+    if (!subject) { this.setSection(axis, enabled, 0); return; }
+    const box = new THREE.Box3().setFromObject(subject);
+    const size = box.getSize(new THREE.Vector3());
+    const min = box.min, max = box.max;
+    let distance = 0;
+    if (axis === 'x') distance = min.x + (max.x - min.x) * t;
+    else if (axis === 'y') distance = min.y + (max.y - min.y) * t;
+    else distance = min.z + (max.z - min.z) * t;
+    this.setSection(axis, enabled, distance);
+  }
+
+  #initClippingGizmos() {
+    const makeQuad = (axis) => {
+      // Крупный квадрат 100x100 в плоскости, материал полупрозрачный без клиппинга
+      const geom = new THREE.PlaneGeometry(100, 100);
+      const mat = new THREE.MeshBasicMaterial({ color: 0xff0055, transparent: true, opacity: 0.2, side: THREE.DoubleSide, depthWrite: false, clippingPlanes: [] });
+      const mesh = new THREE.Mesh(geom, mat);
+      mesh.name = `clip-gizmo-${axis}`;
+      mesh.visible = false;
+      this.scene.add(mesh);
+      return mesh;
+    };
+    this.clipping.gizmos.x = makeQuad('x');
+    this.clipping.gizmos.y = makeQuad('y');
+    this.clipping.gizmos.z = makeQuad('z');
+  }
+
+  #setGizmoVisible(axis, visible) {
+    const g = this.clipping.gizmos[axis];
+    if (g) g.visible = !!visible;
+  }
+
+  #updateClippingGizmos() {
+    const subject = this.activeModel || this.demoCube;
+    // Ориентируем квадраты по нормали плоскостей и ставим в позицию
+    const apply = (axis, idx, rotate) => {
+      const plane = this.clipping.planes[idx];
+      const g = this.clipping.gizmos[axis];
+      if (!g || !g.visible || !isFinite(plane.constant)) return;
+      // Позиция по distance вдоль нормали
+      g.position.copy(plane.normal).multiplyScalar(-plane.constant);
+      // Ориентация квадрата: нормаль совпадает с нормалью плоскости
+      const q = new THREE.Quaternion();
+      q.setFromUnitVectors(new THREE.Vector3(0, 0, 1), plane.normal);
+      g.setRotationFromQuaternion(q);
+      // Масштаб под габариты модели (если есть)
+      if (subject) {
+        const box = new THREE.Box3().setFromObject(subject);
+        const size = box.getSize(new THREE.Vector3());
+        const s = Math.max(size.x, size.y, size.z, 1) * 1.2;
+        g.scale.setScalar(s / 100);
+      }
+    };
+    apply('x', 0);
+    apply('y', 1);
+    apply('z', 2);
   }
 }
 

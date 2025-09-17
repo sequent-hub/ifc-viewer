@@ -54,6 +54,12 @@ if (app) {
   const qualHigh = document.getElementById("qualHigh");
   const toggleEdges = document.getElementById("toggleEdges");
   const toggleShading = document.getElementById("toggleShading");
+  const clipXBtn = document.getElementById("clipX");
+  const clipYBtn = document.getElementById("clipY");
+  const clipZBtn = document.getElementById("clipZ");
+  const clipXRange = document.getElementById("clipXRange");
+  const clipYRange = document.getElementById("clipYRange");
+  const clipZRange = document.getElementById("clipZRange");
 
   const setActive = (btn) => {
     [qualLow, qualMed, qualHigh].forEach((b) => b && b.classList.remove("btn-active"));
@@ -67,6 +73,35 @@ if (app) {
   toggleEdges?.addEventListener("click", () => { edgesOn = !edgesOn; viewer.setEdgesVisible(edgesOn); });
   let flatOn = true;
   toggleShading?.addEventListener("click", () => { flatOn = !flatOn; viewer.setFlatShading(flatOn); });
+
+  // Простые переключатели секущих плоскостей (позиция = 0)
+  let clipX = false, clipY = false, clipZ = false;
+  clipXBtn?.addEventListener('click', () => {
+    clipX = !clipX; viewer.setSection('x', clipX, 0);
+    clipXBtn.classList.toggle('btn-active', clipX);
+  });
+  clipYBtn?.addEventListener('click', () => {
+    clipY = !clipY; viewer.setSection('y', clipY, 0);
+    clipYBtn.classList.toggle('btn-active', clipY);
+  });
+  clipZBtn?.addEventListener('click', () => {
+    clipZ = !clipZ; viewer.setSection('z', clipZ, 0);
+    clipZBtn.classList.toggle('btn-active', clipZ);
+  });
+
+  // Слайдеры позиции плоскостей: значение [0..1] маппим на габариты модели
+  clipXRange?.addEventListener('input', (e) => {
+    const t = Number(e.target.value);
+    viewer.setSectionNormalized('x', clipX, t);
+  });
+  clipYRange?.addEventListener('input', (e) => {
+    const t = Number(e.target.value);
+    viewer.setSectionNormalized('y', clipY, t);
+  });
+  clipZRange?.addEventListener('input', (e) => {
+    const t = Number(e.target.value);
+    viewer.setSectionNormalized('z', clipZ, t);
+  });
 
   // Прелоадер: скрыть, когда Viewer готов, или через фолбэк 1с
   const preloader = document.getElementById("preloader");
