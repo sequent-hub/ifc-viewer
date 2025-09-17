@@ -4,6 +4,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { NavCube } from "./NavCube.js";
+import { SectionManipulator } from "./SectionManipulator.js";
 
 export class Viewer {
   constructor(containerElement) {
@@ -25,6 +26,7 @@ export class Viewer {
     this.flatShading = true;
     this.quality = 'medium'; // low | medium | high
     this.navCube = null;
+    this.sectionOverlayScene = null;
     this.clipping = {
       enabled: false,
       planes: [
@@ -33,6 +35,11 @@ export class Viewer {
         new THREE.Plane(new THREE.Vector3(0, 0, 1), Infinity),
       ],
       gizmos: {
+        x: null,
+        y: null,
+        z: null,
+      },
+      manipulators: {
         x: null,
         y: null,
         z: null,
@@ -49,6 +56,7 @@ export class Viewer {
     // Рендерер
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    this.renderer.autoClear = false; // управляем очисткой вручную для мульти-проходов
     // Спрячем канвас до первого корректного измерения
     this.renderer.domElement.style.visibility = "hidden";
     this.renderer.domElement.style.display = "block";
@@ -58,6 +66,8 @@ export class Viewer {
 
     // Сцена
     this.scene = new THREE.Scene();
+    // Оверлей-сцена для секущих манипуляторов (без клиппинга)
+    this.sectionOverlayScene = new THREE.Scene();
 
     // Камера
     const width = this.container.clientWidth || window.innerWidth;
@@ -104,7 +114,7 @@ export class Viewer {
       opacity: 0.6,
     });
 
-    // Визуализация секущих плоскостей (полупрозрачные квадраты)
+    // Визуализация секущих плоскостей (манипуляторы с квадратиком и стрелкой)
     this.#initClippingGizmos();
 
     // Обработчики изменения размеров
@@ -153,14 +163,25 @@ export class Viewer {
     if (this.controls) this.controls.update();
     this._notifyZoomIfChanged();
     if (this.renderer && this.camera && this.scene) {
-      // Применим глобальные плоскости отсечения
-      if (this.renderer.clippingPlanes !== this.clipping.planes) {
-        this.renderer.clippingPlanes = this.clipping.planes;
-        this.renderer.localClippingEnabled = true;
-      }
-      // Обновим позицию видимых гизмо-квадратов
+      // Применим ТОЛЬКО активные (конечные) плоскости отсечения
+      const activePlanes = this.clipping.planes.filter((p) => isFinite(p.constant));
+      this.renderer.clippingPlanes = activePlanes.length > 0 ? activePlanes : [];
+      this.renderer.localClippingEnabled = activePlanes.length > 0;
+      // Обновим манипуляторы секущих плоскостей
       this.#updateClippingGizmos();
+      // Рендер основной сцены
+      this.renderer.clear(true, true, true);
       this.renderer.render(this.scene, this.camera);
+      // Рендер оверлея манипуляторов без глобального клиппинга поверх
+      const prevLocal = this.renderer.localClippingEnabled;
+      const prevPlanes = this.renderer.clippingPlanes;
+      this.renderer.localClippingEnabled = false;
+      this.renderer.clippingPlanes = [];
+      this.renderer.clearDepth();
+      this.renderer.render(this.sectionOverlayScene, this.camera);
+      // Восстановление настроек клиппинга
+      this.renderer.localClippingEnabled = prevLocal;
+      this.renderer.clippingPlanes = prevPlanes;
     }
     // Рендер навигационного куба поверх основной сцены
     if (this.navCube) this.navCube.renderOverlay();
@@ -170,6 +191,17 @@ export class Viewer {
   dispose() {
     if (this.animationId) cancelAnimationFrame(this.animationId);
     window.removeEventListener("resize", this.handleResize);
+
+    // Освободим манипуляторы секущих плоскостей до удаления канваса
+    if (this.clipping?.manipulators) {
+      const { x, y, z } = this.clipping.manipulators;
+      x && x.dispose && x.dispose();
+      y && y.dispose && y.dispose();
+      z && z.dispose && z.dispose();
+      this.clipping.manipulators.x = null;
+      this.clipping.manipulators.y = null;
+      this.clipping.manipulators.z = null;
+    }
 
     if (this.renderer) {
       this.renderer.dispose();
@@ -198,6 +230,21 @@ export class Viewer {
           else if (m && m.dispose) m.dispose();
         }
       });
+    }
+    if (this.sectionOverlayScene) {
+      this.sectionOverlayScene.traverse((obj) => {
+        if (obj.isMesh) {
+          obj.geometry && obj.geometry.dispose && obj.geometry.dispose();
+          const m = obj.material;
+          if (Array.isArray(m)) m.forEach((mi) => mi && mi.dispose && mi.dispose());
+          else if (m && m.dispose) m.dispose();
+        }
+        if (obj.isLineSegments || obj.isLine) {
+          obj.geometry && obj.geometry.dispose && obj.geometry.dispose();
+          obj.material && obj.material.dispose && obj.material.dispose();
+        }
+      });
+      this.sectionOverlayScene = null;
     }
 
     this.renderer = null;
@@ -471,10 +518,45 @@ export class Viewer {
     const idx = axis === 'x' ? 0 : axis === 'y' ? 1 : 2;
     const plane = this.clipping.planes[idx];
     if (enabled) {
-      // Нормаль плоскости направлена от начала координат, d = -distance
-      if (idx === 0) plane.set(new THREE.Vector3(1, 0, 0), -distance);
-      if (idx === 1) plane.set(new THREE.Vector3(0, 1, 0), -distance);
-      if (idx === 2) plane.set(new THREE.Vector3(0, 0, 1), -distance);
+      const subject = this.activeModel || this.demoCube;
+      let dist = distance;
+      // Если дистанция не задана, выбираем границу bbox со стороны камеры
+      if ((plane.constant === Infinity) && subject && distance === 0) {
+        const box = new THREE.Box3().setFromObject(subject);
+        const center = box.getCenter(new THREE.Vector3());
+        const cam = this.camera.position;
+        if (idx === 0) dist = (cam.x >= center.x) ? box.max.x : box.min.x;
+        else if (idx === 1) dist = (cam.y >= center.y) ? box.max.y : box.min.y;
+        else dist = (cam.z >= center.z) ? box.max.z : box.min.z;
+      }
+      // Выберем нормаль/константу так, чтобы сохранялась «внутренняя» сторона модели (d >= 0)
+      let normal;
+      if (idx === 0) normal = new THREE.Vector3(1, 0, 0);
+      else if (idx === 1) normal = new THREE.Vector3(0, 1, 0);
+      else normal = new THREE.Vector3(0, 0, 1);
+      const camPos = this.camera.position;
+      const subjBox = subject ? new THREE.Box3().setFromObject(subject) : null;
+      const subjCenter = subjBox ? subjBox.getCenter(new THREE.Vector3()) : new THREE.Vector3();
+      const camOnPositive = idx === 0 ? (camPos.x >= subjCenter.x) : idx === 1 ? (camPos.y >= subjCenter.y) : (camPos.z >= subjCenter.z);
+      // Если камера на + стороне — используем нормаль в -ось и constant=+dist, иначе нормаль +ось и constant=-dist
+      if (camOnPositive) {
+        normal.multiplyScalar(-1);
+        plane.set(normal, +dist);
+      } else {
+        plane.set(normal, -dist);
+      }
+      // Убедимся, что ни одна из вершин bbox не уходит на «отбрасываемую» сторону из-за неточности
+      if (subjBox) {
+        const corners = this.#getBoxCorners(subjBox);
+        let minSigned = Infinity;
+        for (const c of corners) {
+          const s = plane.normal.dot(c) + plane.constant;
+          if (s < minSigned) minSigned = s;
+        }
+        if (minSigned < 0) {
+          plane.constant -= (minSigned - (-1e-4)); // сдвинем чуть так, чтобы все вершины имели s >= -1e-4
+        }
+      }
       this.#setGizmoVisible(axis, true);
     } else {
       // Уберём влияние — отодвинем плоскость на бесконечность
@@ -498,50 +580,67 @@ export class Viewer {
   }
 
   #initClippingGizmos() {
-    const makeQuad = (axis) => {
-      // Крупный квадрат 100x100 в плоскости, материал полупрозрачный без клиппинга
-      const geom = new THREE.PlaneGeometry(100, 100);
-      const mat = new THREE.MeshBasicMaterial({ color: 0xff0055, transparent: true, opacity: 0.2, side: THREE.DoubleSide, depthWrite: false, clippingPlanes: [] });
-      const mesh = new THREE.Mesh(geom, mat);
-      mesh.name = `clip-gizmo-${axis}`;
-      mesh.visible = false;
-      this.scene.add(mesh);
-      return mesh;
+    // Создаём по манипулятору на ось. Используем общие глобальные плоскости отсечения.
+    const create = (axis, idx) => {
+      const manip = new SectionManipulator({
+        scene: this.sectionOverlayScene,
+        camera: this.camera,
+        controls: this.controls,
+        domElement: this.renderer.domElement,
+        plane: this.clipping.planes[idx],
+        axis,
+      });
+      // Изначально скрыт
+      manip.setEnabled(false);
+      return manip;
     };
-    this.clipping.gizmos.x = makeQuad('x');
-    this.clipping.gizmos.y = makeQuad('y');
-    this.clipping.gizmos.z = makeQuad('z');
+    this.clipping.manipulators.x = create('x', 0);
+    this.clipping.manipulators.y = create('y', 1);
+    this.clipping.manipulators.z = create('z', 2);
+  }
+
+  // Гарантирует, что центр модели не будет полностью отсечён плоскостью
+  #ensureCenterKeptByPlane(plane, subject) {
+    try {
+      const center = new THREE.Box3().setFromObject(subject).getCenter(new THREE.Vector3());
+      const signed = plane.normal.dot(center) + plane.constant;
+      // В three.js отсекается положительная сторона (signed > 0)
+      // Если центр модели на отсекаемой стороне, инвертируем плоскость.
+      if (signed > 0) {
+        plane.normal.multiplyScalar(-1);
+        plane.constant *= -1;
+      }
+    } catch (_) {}
   }
 
   #setGizmoVisible(axis, visible) {
-    const g = this.clipping.gizmos[axis];
-    if (g) g.visible = !!visible;
+    const m = this.clipping.manipulators[axis];
+    if (m) m.setEnabled(!!visible);
   }
 
   #updateClippingGizmos() {
     const subject = this.activeModel || this.demoCube;
-    // Ориентируем квадраты по нормали плоскостей и ставим в позицию
-    const apply = (axis, idx, rotate) => {
-      const plane = this.clipping.planes[idx];
-      const g = this.clipping.gizmos[axis];
-      if (!g || !g.visible || !isFinite(plane.constant)) return;
-      // Позиция по distance вдоль нормали
-      g.position.copy(plane.normal).multiplyScalar(-plane.constant);
-      // Ориентация квадрата: нормаль совпадает с нормалью плоскости
-      const q = new THREE.Quaternion();
-      q.setFromUnitVectors(new THREE.Vector3(0, 0, 1), plane.normal);
-      g.setRotationFromQuaternion(q);
-      // Масштаб под габариты модели (если есть)
-      if (subject) {
-        const box = new THREE.Box3().setFromObject(subject);
-        const size = box.getSize(new THREE.Vector3());
-        const s = Math.max(size.x, size.y, size.z, 1) * 1.2;
-        g.scale.setScalar(s / 100);
-      }
-    };
-    apply('x', 0);
-    apply('y', 1);
-    apply('z', 2);
+    const mx = this.clipping.manipulators.x;
+    const my = this.clipping.manipulators.y;
+    const mz = this.clipping.manipulators.z;
+    mx && mx.update(subject);
+    my && my.update(subject);
+    mz && mz.update(subject);
+  }
+
+  // резерв: помощники больше не используются
+  #getBoxCorners(box) {
+    const min = box.min, max = box.max;
+    return [
+      new THREE.Vector3(min.x, min.y, min.z),
+      new THREE.Vector3(max.x, min.y, min.z),
+      new THREE.Vector3(min.x, max.y, min.z),
+      new THREE.Vector3(min.x, min.y, max.z),
+      new THREE.Vector3(max.x, max.y, min.z),
+      new THREE.Vector3(max.x, min.y, max.z),
+      new THREE.Vector3(min.x, max.y, max.z),
+      new THREE.Vector3(max.x, max.y, max.z),
+    ];
   }
 }
 
