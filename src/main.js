@@ -12,7 +12,9 @@ if (app) {
   const ifc = new IfcService(viewer);
   ifc.init();
   const ifcTreeEl = document.getElementById("ifcTree");
+  const ifcInfoEl = document.getElementById("ifcInfo");
   const ifcTree = ifcTreeEl ? new IfcTreeView(ifcTreeEl) : null;
+  const ifcIsolateToggle = document.getElementById("ifcIsolateToggle");
 
   const uploadBtn = document.getElementById("uploadBtn");
   const ifcInput = document.getElementById("ifcInput");
@@ -23,13 +25,27 @@ if (app) {
       if (!file) return;
       await ifc.loadFile(file);
       ifcInput.value = "";
-      // Обновим дерево IFC
-      if (ifcTree) {
-        const struct = await ifc.getSpatialStructure();
-        ifcTree.render(struct);
+      // Обновим дерево IFC и инфо
+      const last = ifc.getLastInfo();
+      const struct = await ifc.getSpatialStructure(last.modelID ? Number(last.modelID) : undefined);
+      if (!struct) console.warn('IFC spatial structure not available for modelID', last?.modelID);
+      if (ifcTree) ifcTree.render(struct);
+      if (ifcInfoEl) {
+        const info = ifc.getLastInfo();
+        ifcInfoEl.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="font-medium text-xs">${info.name || '—'}</div>
+              <div class="opacity-70">modelID: ${info.modelID || '—'}</div>
+            </div>
+          </div>`;
       }
+      // Авто-открытие панели
+      setSidebarVisible(true);
     });
   }
+
+  
 
   // Кнопки качества и стиля
   const qualLow = document.getElementById("qualLow");
@@ -79,6 +95,46 @@ if (app) {
   };
   sidebarToggle?.addEventListener("click", () => setSidebarVisible(true));
   sidebarClose?.addEventListener("click", () => setSidebarVisible(false));
+
+  // Переключатель изоляции
+  ifcIsolateToggle?.addEventListener("change", (e) => {
+    const enabled = e.target.checked;
+    ifc.setIsolateMode(enabled);
+  });
+
+  // Выбор узла в дереве → подсветка/изоляция
+  if (ifcTree) {
+    ifcTree.onSelect(async (node) => {
+      const ids = ifc.collectElementIDsFromStructure(node);
+      await ifc.highlightByIds(ids);
+    });
+  }
+
+  // Автозагрузка IFC: используем образец по умолчанию, параметр ?ifc= может переопределить
+  try {
+    const DEFAULT_IFC_URL = "/ifc/170ОК-23_1_1_АР_П.ifc";
+    const params = new URLSearchParams(location.search);
+    const ifcUrlParam = params.get('ifc');
+    const ifcUrl = ifcUrlParam || DEFAULT_IFC_URL;
+    const model = await ifc.loadUrl(encodeURI(ifcUrl));
+    if (model) {
+      const struct = await ifc.getSpatialStructure();
+      if (ifcTree) ifcTree.render(struct);
+      if (ifcInfoEl) {
+        const info = ifc.getLastInfo();
+        ifcInfoEl.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="font-medium text-xs">${info.name || '—'}</div>
+              <div class="opacity-70">modelID: ${info.modelID || '—'}</div>
+            </div>
+          </div>`;
+      }
+      setSidebarVisible(true);
+    }
+  } catch (e) {
+    console.warn('IFC autoload error', e);
+  }
 
   // Панель зума
   const zoomValue = document.getElementById("zoomValue");
