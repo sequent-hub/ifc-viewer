@@ -40,7 +40,7 @@ if (app) {
             </div>
           </div>`;
       }
-      // Авто-открытие панели
+      // Авто-открытие панели при ручной загрузке
       setSidebarVisible(true);
       hidePreloader();
     });
@@ -183,7 +183,7 @@ if (app) {
             </div>
           </div>`;
       }
-      setSidebarVisible(true);
+      // Не открываем панель автоматически при автозагрузке
       hidePreloader();
     }
   } catch (e) {
