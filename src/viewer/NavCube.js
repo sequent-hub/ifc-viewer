@@ -113,6 +113,12 @@ export class NavCube {
     // Инвертируем quaternion камеры, чтобы куб отражал мировые оси корректно
     this.cube.quaternion.copy(this.mainCamera.quaternion).invert();
 
+    // Сохраним и отключим клиппинг, чтобы куб не отсекался
+    const prevLocal = this.renderer.localClippingEnabled;
+    const prevPlanes = this.renderer.clippingPlanes;
+    this.renderer.localClippingEnabled = false;
+    this.renderer.clippingPlanes = [];
+
     // Включим scissor, чтобы не затрагивать основную сцену
     this.renderer.clearDepth();
     this.renderer.setScissorTest(true);
@@ -124,6 +130,10 @@ export class NavCube {
     this.renderer.setScissorTest(false);
     // Восстановим полный viewport на всякий случай
     this.renderer.setViewport(0, 0, fullW, fullH);
+
+    // Восстановим клиппинг
+    this.renderer.localClippingEnabled = prevLocal;
+    this.renderer.clippingPlanes = prevPlanes;
   }
 
   // ================= Ввод мыши =================
