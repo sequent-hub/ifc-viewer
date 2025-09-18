@@ -2,8 +2,6 @@
 // Требует three@^0.149 и web-ifc-three совместимой версии
 
 import { IFCLoader } from "web-ifc-three/IFCLoader";
-// Автоматический импорт WASM файла из пакета
-import WEBIFC_WASM_URL from '/wasm/web-ifc.wasm?url';
 // Примечание: IFCWorker не используется, так как мы отключаем Web Workers
 // для стабильности работы в различных окружениях
 
@@ -81,18 +79,15 @@ export class IfcService {
       paths.push(this.wasmUrl);
     }
     
-    // 2. WASM файл из пакета (автоматически включен в сборку)
-    try {
-      paths.push(WEBIFC_WASM_URL);
-    } catch (_) {}
-    
-    try {
-      const wasmDir = new URL('.', WEBIFC_WASM_URL).href;
-      paths.push(wasmDir);
-    } catch (_) {}
-    
-    // 3. Резервные пути для обратной совместимости
-    paths.push('/wasm/', '/wasm/web-ifc.wasm', '/web-ifc.wasm');
+    // 2. Популярные пути по умолчанию
+    paths.push(
+      '/wasm/web-ifc.wasm',           // Стандартный путь в public/wasm/
+      '/web-ifc.wasm',                // Корневой путь
+      '/wasm/',                       // Директория wasm
+      '/node_modules/web-ifc/web-ifc.wasm', // Прямо из node_modules
+      './web-ifc.wasm',               // Относительный путь
+      'web-ifc.wasm'                  // Просто имя файла
+    );
     
     return paths;
   }
