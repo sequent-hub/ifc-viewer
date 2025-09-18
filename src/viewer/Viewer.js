@@ -61,8 +61,15 @@ export class Viewer {
     this._isLmbDown = false;
     this._wasRotating = false;
     this._prevViewDir = null;
+    this._smoothedAxis = null;
+    this._recentPointerDelta = 0;
+    this._pointerPxThreshold = 2; // минимальный экранный сдвиг
+    this._rotAngleEps = 0.01;     // ~0.57° минимальный угловой сдвиг
+    this._axisEmaAlpha = 0.15;    // коэффициент сглаживания оси
+
     this._onPointerDown = null;
     this._onPointerUp = null;
+    this._onPointerMove = null;
     this._onControlsStart = null;
     this._onControlsChange = null;
     this._onControlsEnd = null;
@@ -139,13 +146,27 @@ export class Viewer {
     // Визуальная ось вращения: события мыши и контролов
     this._onPointerDown = (e) => { if (e.button === 0) this._isLmbDown = true; };
     this._onPointerUp = (e) => { if (e.button === 0) { this._isLmbDown = false; this.#hideRotationAxisLine(); } };
+    this._onPointerMove = (e) => {
+      const rect = this.renderer?.domElement?.getBoundingClientRect?.();
+      if (!rect) return;
+      // Копим абсолютный сдвиг курсора для простого порога
+      const now = { x: e.clientX, y: e.clientY };
+      if (!this._lastPointer) this._lastPointer = now;
+      const dx = Math.abs(now.x - this._lastPointer.x);
+      const dy = Math.abs(now.y - this._lastPointer.y);
+      this._recentPointerDelta = dx + dy;
+      this._lastPointer = now;
+    };
     this.renderer.domElement.addEventListener('pointerdown', this._onPointerDown, { passive: true });
     this.renderer.domElement.addEventListener('pointerup', this._onPointerUp, { passive: true });
+    this.renderer.domElement.addEventListener('pointermove', this._onPointerMove, { passive: true });
+
     this._onControlsStart = () => {
       // Инициализируем предыдущий вектор направления вида
       if (!this.camera || !this.controls) return;
       const dir = this.camera.position.clone().sub(this.controls.target).normalize();
       this._prevViewDir = dir;
+      this._smoothedAxis = null;
     };
     this._onControlsChange = () => {
       // Обновляем ось только при зажатой ЛКМ (вращение)
@@ -258,6 +279,7 @@ export class Viewer {
     if (this.renderer?.domElement) {
       try { this.renderer.domElement.removeEventListener('pointerdown', this._onPointerDown); } catch(_) {}
       try { this.renderer.domElement.removeEventListener('pointerup', this._onPointerUp); } catch(_) {}
+      try { this.renderer.domElement.removeEventListener('pointermove', this._onPointerMove); } catch(_) {}
     }
     if (this.controls) {
       try { this.controls.removeEventListener('start', this._onControlsStart); } catch(_) {}
@@ -802,13 +824,29 @@ export class Viewer {
 
   #updateRotationAxisLine() {
     if (!this.camera || !this.controls) return;
+    // Порог по экранному движению
+    if (this._recentPointerDelta < this._pointerPxThreshold) return;
+
     const currentDir = this.camera.position.clone().sub(this.controls.target).normalize();
     if (!this._prevViewDir) { this._prevViewDir = currentDir.clone(); return; }
+
+    // Угловой порог (dead zone)
+    const dot = THREE.MathUtils.clamp(this._prevViewDir.dot(currentDir), -1, 1);
+    const angle = Math.acos(dot);
+    if (angle < this._rotAngleEps) return;
+
     // Ось = prev × current
-    const axis = this._prevViewDir.clone().cross(currentDir);
+    let axis = this._prevViewDir.clone().cross(currentDir);
     const axisLen = axis.length();
     if (axisLen < 1e-6) return; // почти нет вращения
     axis.normalize();
+
+    // Сглаживание оси (EMA)
+    if (this._smoothedAxis) {
+      this._smoothedAxis.lerp(axis, this._axisEmaAlpha).normalize();
+    } else {
+      this._smoothedAxis = axis.clone();
+    }
 
     const subject = this.activeModel || this.demoCube;
     let sizeLen = 1.0;
@@ -820,8 +858,8 @@ export class Viewer {
 
     const line = this.#ensureRotationAxisLine();
     const target = this.controls.target.clone();
-    const p1 = target.clone().add(axis.clone().multiplyScalar(sizeLen));
-    const p2 = target.clone().add(axis.clone().multiplyScalar(-sizeLen));
+    const p1 = target.clone().add(this._smoothedAxis.clone().multiplyScalar(sizeLen));
+    const p2 = target.clone().add(this._smoothedAxis.clone().multiplyScalar(-sizeLen));
     line.geometry.setFromPoints([p1, p2]);
     line.computeLineDistances();
     const mat = line.material;
@@ -833,8 +871,9 @@ export class Viewer {
     }
     line.visible = true;
 
-    // Обновим предыдущее направление
+    // Обновим предыдущее направление и сбросим экранный сдвиг
     this._prevViewDir = currentDir.clone();
+    this._recentPointerDelta = 0;
   }
 }
 
