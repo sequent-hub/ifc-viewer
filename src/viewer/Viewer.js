@@ -56,6 +56,17 @@ export class Viewer {
       clipEnabled: [Infinity, Infinity, Infinity],
     };
 
+    // Визуализация оси вращения
+    this.rotationAxisLine = null;
+    this._isLmbDown = false;
+    this._wasRotating = false;
+    this._prevViewDir = null;
+    this._onPointerDown = null;
+    this._onPointerUp = null;
+    this._onControlsStart = null;
+    this._onControlsChange = null;
+    this._onControlsEnd = null;
+
     this.handleResize = this.handleResize.bind(this);
     this.animate = this.animate.bind(this);
   }
@@ -124,6 +135,27 @@ export class Viewer {
       opacity: 0.6,
       onHome: () => this.goHome(),
     });
+
+    // Визуальная ось вращения: события мыши и контролов
+    this._onPointerDown = (e) => { if (e.button === 0) this._isLmbDown = true; };
+    this._onPointerUp = (e) => { if (e.button === 0) { this._isLmbDown = false; this.#hideRotationAxisLine(); } };
+    this.renderer.domElement.addEventListener('pointerdown', this._onPointerDown, { passive: true });
+    this.renderer.domElement.addEventListener('pointerup', this._onPointerUp, { passive: true });
+    this._onControlsStart = () => {
+      // Инициализируем предыдущий вектор направления вида
+      if (!this.camera || !this.controls) return;
+      const dir = this.camera.position.clone().sub(this.controls.target).normalize();
+      this._prevViewDir = dir;
+    };
+    this._onControlsChange = () => {
+      // Обновляем ось только при зажатой ЛКМ (вращение)
+      if (!this._isLmbDown) return;
+      this.#updateRotationAxisLine();
+    };
+    this._onControlsEnd = () => { this.#hideRotationAxisLine(); };
+    this.controls.addEventListener('start', this._onControlsStart);
+    this.controls.addEventListener('change', this._onControlsChange);
+    this.controls.addEventListener('end', this._onControlsEnd);
 
     // Визуализация секущих плоскостей (манипуляторы с квадратиком и стрелкой)
     this.#initClippingGizmos();
@@ -220,6 +252,23 @@ export class Viewer {
       this.clipping.manipulators.x = null;
       this.clipping.manipulators.y = null;
       this.clipping.manipulators.z = null;
+    }
+
+    // Снимем события оси вращения
+    if (this.renderer?.domElement) {
+      try { this.renderer.domElement.removeEventListener('pointerdown', this._onPointerDown); } catch(_) {}
+      try { this.renderer.domElement.removeEventListener('pointerup', this._onPointerUp); } catch(_) {}
+    }
+    if (this.controls) {
+      try { this.controls.removeEventListener('start', this._onControlsStart); } catch(_) {}
+      try { this.controls.removeEventListener('change', this._onControlsChange); } catch(_) {}
+      try { this.controls.removeEventListener('end', this._onControlsEnd); } catch(_) {}
+    }
+    if (this.rotationAxisLine && this.scene) {
+      try { this.scene.remove(this.rotationAxisLine); } catch(_) {}
+      if (this.rotationAxisLine.geometry?.dispose) this.rotationAxisLine.geometry.dispose();
+      if (this.rotationAxisLine.material?.dispose) this.rotationAxisLine.material.dispose();
+      this.rotationAxisLine = null;
     }
 
     if (this.renderer) {
@@ -720,6 +769,72 @@ export class Viewer {
     });
     this.camera.updateProjectionMatrix();
     this.controls.update();
+  }
+
+  // ================= Вспомогательное: ось вращения =================
+  #ensureRotationAxisLine() {
+    if (this.rotationAxisLine) return this.rotationAxisLine;
+    const geom = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(0, 1, 0),
+    ]);
+    const mat = new THREE.LineDashedMaterial({
+      color: 0x84ffff,
+      dashSize: 0.06, // меньше базовый размер
+      gapSize: 0.02,  // маленький промежуток
+      depthTest: false,
+      depthWrite: false,
+    });
+    const line = new THREE.Line(geom, mat);
+    line.computeLineDistances();
+    line.visible = false;
+    line.renderOrder = 1002;
+    line.name = 'rotation-axis-line';
+    this.scene.add(line);
+    this.rotationAxisLine = line;
+    return line;
+  }
+
+  #hideRotationAxisLine() {
+    if (this.rotationAxisLine) this.rotationAxisLine.visible = false;
+    this._prevViewDir = null;
+  }
+
+  #updateRotationAxisLine() {
+    if (!this.camera || !this.controls) return;
+    const currentDir = this.camera.position.clone().sub(this.controls.target).normalize();
+    if (!this._prevViewDir) { this._prevViewDir = currentDir.clone(); return; }
+    // Ось = prev × current
+    const axis = this._prevViewDir.clone().cross(currentDir);
+    const axisLen = axis.length();
+    if (axisLen < 1e-6) return; // почти нет вращения
+    axis.normalize();
+
+    const subject = this.activeModel || this.demoCube;
+    let sizeLen = 1.0;
+    if (subject) {
+      const box = new THREE.Box3().setFromObject(subject);
+      const size = box.getSize(new THREE.Vector3());
+      sizeLen = Math.max(size.x, size.y, size.z) * 0.7;
+    }
+
+    const line = this.#ensureRotationAxisLine();
+    const target = this.controls.target.clone();
+    const p1 = target.clone().add(axis.clone().multiplyScalar(sizeLen));
+    const p2 = target.clone().add(axis.clone().multiplyScalar(-sizeLen));
+    line.geometry.setFromPoints([p1, p2]);
+    line.computeLineDistances();
+    const mat = line.material;
+    if (mat && 'dashSize' in mat) {
+      // ~в 3 раза мельче штрихи и с очень маленьким промежутком
+      mat.dashSize = sizeLen * 0.026;
+      mat.gapSize = sizeLen * 0.010;
+      mat.needsUpdate = true;
+    }
+    line.visible = true;
+
+    // Обновим предыдущее направление
+    this._prevViewDir = currentDir.clone();
   }
 }
 
