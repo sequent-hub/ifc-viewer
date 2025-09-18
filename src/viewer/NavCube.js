@@ -40,12 +40,25 @@ export class NavCube {
     this.cube.name = "nav-cube";
     this.scene.add(this.cube);
 
+    // Увеличим куб в 1.5 раза
+    this._cubeScale = 1.5;
+    this.cube.scale.setScalar(this._cubeScale);
+    // Подвинем камеру, чтобы увеличенный куб целиком помещался во вьюпорте
+    const vFov = (this.camera.fov * Math.PI) / 180;
+    const radius = Math.sqrt(3) * 0.5 * this._cubeScale; // радиус сферы, описанной вокруг куба
+    const fitDist = (radius / Math.tan(vFov / 2)) * 1.12; // небольшой запас
+    this.camera.position.set(0, 0, Math.max(fitDist, this.camera.near + 0.2));
+    this.camera.lookAt(0, 0, 0);
+
     // Рёбра для читабельности
     const edges = new THREE.EdgesGeometry(geom, 1);
     const lineMat = new THREE.LineBasicMaterial({ color: 0x111111, depthTest: true });
     this.cubeEdges = new THREE.LineSegments(edges, lineMat);
     this.cubeEdges.renderOrder = 999;
     this.cube.add(this.cubeEdges);
+
+    // Подписи граней (крупные, чёрные, на самих гранях)
+    this.#addFaceLabels();
 
     // Raycaster для интерактивности
     this.raycaster = new THREE.Raycaster();
@@ -134,6 +147,63 @@ export class NavCube {
     // Восстановим клиппинг
     this.renderer.localClippingEnabled = prevLocal;
     this.renderer.clippingPlanes = prevPlanes;
+  }
+
+  // ================= Подписи граней =================
+  #addFaceLabels() {
+    const makeFaceTexture = (text) => {
+      const size = 512; // квадрат для равномерности
+      const canvas = document.createElement('canvas');
+      canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+      ctx.clearRect(0, 0, size, size);
+      // Чёрный крупный текст по центру
+      ctx.fillStyle = '#000';
+      // Уменьшаем шрифт примерно в 1.2 раза относительно прошлого (0.42 -> ~0.35)
+      const fontPx = Math.floor(size * 0.35);
+      ctx.font = `bold ${fontPx}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text.toUpperCase(), size / 2, size / 2);
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.minFilter = THREE.LinearFilter;
+      tex.magFilter = THREE.LinearFilter;
+      return tex;
+    };
+
+    const makeFaceLabelMesh = (text, normal) => {
+      const tex = makeFaceTexture(text);
+      if (!tex) return null;
+      const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthTest: true, depthWrite: false });
+      // Уменьшаем паддинги плашки: максимально приближаем к размеру грани
+      const plane = new THREE.Mesh(new THREE.PlaneGeometry(0.995, 0.995), mat);
+      // Ориентируем плоскость, чтобы нормаль смотрела как normal
+      const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal);
+      plane.setRotationFromQuaternion(q);
+      // Позиционируем чуть снаружи от грани
+      plane.position.copy(normal.clone().multiplyScalar(0.505));
+      // Компенсируем масштаб куба, чтобы размер текста остался прежним
+      const s = this._cubeScale || 1;
+      plane.scale.setScalar(1 / s);
+      plane.renderOrder = 1001;
+      return plane;
+    };
+
+    // Переназначаем подписи: слева->спереди, справа->сзади, сзади->слева, спереди->справа
+    const faces = [
+      { text: 'сверху', normal: new THREE.Vector3(0, 1, 0) },   // +Y
+      { text: 'снизу',  normal: new THREE.Vector3(0, -1, 0) },  // -Y
+      { text: 'справа', normal: new THREE.Vector3(0, 0, 1) },   // +Z (было "спереди") -> "справа"
+      { text: 'слева',  normal: new THREE.Vector3(0, 0, -1) },  // -Z (было "сзади") -> "слева"
+      { text: 'спереди',normal: new THREE.Vector3(-1, 0, 0) },  // -X (было "слева") -> "спереди"
+      { text: 'сзади',  normal: new THREE.Vector3(1, 0, 0) },   // +X (было "справа") -> "сзади"
+    ];
+
+    faces.forEach(({ text, normal }) => {
+      const mesh = makeFaceLabelMesh(text, normal);
+      if (mesh) this.cube.add(mesh);
+    });
   }
 
   // ================= Ввод мыши =================
