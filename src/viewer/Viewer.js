@@ -74,7 +74,7 @@ export class Viewer {
     const height = this.container.clientHeight || window.innerHeight;
     const aspect = width / height;
     this.camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 1000);
-    this.camera.position.set(0, 2, 3);
+    this.camera.position.set(-22.03, 23.17, 39.12);
     this.camera.lookAt(0, 0, 0);
 
     // OrbitControls
@@ -412,17 +412,28 @@ export class Viewer {
     // На следующем кадре отъедем на 2x от вписанной дистанции (точно по размеру модели)
     try {
       const box = new THREE.Box3().setFromObject(object3D);
-      const size = box.getSize(new THREE.Vector3());
       const center = box.getCenter(new THREE.Vector3());
-      const fitDist = this.#computeFitDistanceForSize(size, 1.2);
       requestAnimationFrame(() => {
         if (!this.camera || !this.controls) return;
-        const dir = this.camera.position.clone().sub(this.controls.target).normalize();
-        const desiredDist = fitDist * 2;
+        // Центрируем точку взгляда на центр модели и ставим камеру в заданные координаты
         this.controls.target.copy(center);
-        this.camera.position.copy(center.clone().add(dir.multiplyScalar(desiredDist)));
-        if (this.camera.far < desiredDist * 4) {
-          this.camera.far = desiredDist * 4;
+        this.camera.position.set(-22.03, 23.17, 39.12);
+        try {
+          // Если камера слишком близко, отъедем до вписанной дистанции, сохранив направление
+          const size = box.getSize(new THREE.Vector3());
+          const fitDistExact = this.#computeFitDistanceForSize(size, 1.2);
+          const dirVec = this.camera.position.clone().sub(center);
+          const dist = dirVec.length();
+          if (dist < fitDistExact && dist > 1e-6) {
+            const dirNorm = dirVec.multiplyScalar(1 / dist);
+            this.camera.position.copy(center.clone().add(dirNorm.multiplyScalar(fitDistExact)));
+          }
+          // Поднимем модель в кадре: сместим точку прицеливания немного вниз по Y
+          const verticalBias = size.y * 0.30; // 30% высоты
+          this.controls.target.y = center.y - verticalBias;
+        } catch(_) {}
+        if (this.camera.far < 1000) {
+          this.camera.far = 1000;
         }
         this.camera.updateProjectionMatrix();
         this.controls.update();
