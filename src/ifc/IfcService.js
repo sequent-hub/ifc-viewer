@@ -2,12 +2,10 @@
 // Требует three@^0.149 и web-ifc-three совместимой версии
 
 import { IFCLoader } from "web-ifc-three/IFCLoader";
-// Абсолютный URL до wasm-асета из папки public (Vite подставит корректный путь)
+// Автоматический импорт WASM файла из пакета
 import WEBIFC_WASM_URL from '/wasm/web-ifc.wasm?url';
-// URL собранного воркера через Vite (даёт корректный путь для useWebWorkers)
-// Важно: используем ?url, чтобы получить сырой URL ассета и создать классический Worker,
-// т.к. web-ifc-three создаёт воркер без { type: 'module' }
-import IFCWorkerUrl from 'web-ifc-three/IFCWorker.js?url';
+// Примечание: IFCWorker не используется, так как мы отключаем Web Workers
+// для стабильности работы в различных окружениях
 
 export class IfcService {
   /**
@@ -28,8 +26,14 @@ export class IfcService {
   init() {
     try {
       this.loader = new IFCLoader();
-      // Отключаем Web Worker: временно парсим в главном потоке для стабильности
-      try { this.loader.ifcManager.useWebWorkers?.(false); } catch(_) {}
+      // Отключаем Web Workers: парсим в главном потоке для стабильности
+      // Это предотвращает проблемы с загрузкой IFCWorker в различных окружениях
+      try { 
+        this.loader.ifcManager.useWebWorkers?.(false);
+        console.log('IfcService: Web Workers отключены, парсинг в главном потоке');
+      } catch (error) {
+        console.warn('IfcService: не удалось отключить Web Workers:', error.message);
+      }
       
       // Настройка пути к WASM файлу с улучшенной обработкой ошибок
       this._setupWasmPath();
@@ -77,17 +81,17 @@ export class IfcService {
       paths.push(this.wasmUrl);
     }
     
-    // 2. Пути по умолчанию
+    // 2. WASM файл из пакета (автоматически включен в сборку)
+    try {
+      paths.push(WEBIFC_WASM_URL);
+    } catch (_) {}
+    
     try {
       const wasmDir = new URL('.', WEBIFC_WASM_URL).href;
       paths.push(wasmDir);
     } catch (_) {}
     
-    try {
-      paths.push(WEBIFC_WASM_URL);
-    } catch (_) {}
-    
-    // 3. Резервные пути
+    // 3. Резервные пути для обратной совместимости
     paths.push('/wasm/', '/wasm/web-ifc.wasm', '/web-ifc.wasm');
     
     return paths;

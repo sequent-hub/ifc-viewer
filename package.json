@@ -1,7 +1,7 @@
 {
   "name": "@sequent-org/ifc-viewer",
   "private": false,
-  "version": "1.0.4",
+  "version": "1.0.6",
   "type": "module",
   "description": "IFC 3D model viewer component for web applications",
   "main": "src/index.js",
@@ -10,11 +10,12 @@
     ".": {
       "import": "./src/index.js"
     },
-    "./style.css": "./src/style.css"
+    "./style.css": "./src/style.css",
+    "./wasm/web-ifc.wasm": "./wasm/web-ifc.wasm"
   },
   "files": [
     "src/",
-    "public/wasm/",
+    "wasm/",
     "README.md"
   ],
   "keywords": ["ifc", "3d", "viewer", "bim", "three.js", "web-ifc"],

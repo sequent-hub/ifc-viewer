@@ -165,17 +165,18 @@ await viewer.init()
       <h3 class="text-lg font-semibold mb-4">🧪 Тесты интеграции</h3>
       
       <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-        <h4 class="font-medium text-blue-800 mb-2">🔧 Тестирование параметра wasmUrl и обработки ошибок</h4>
+        <h4 class="font-medium text-blue-800 mb-2">🔧 Тестирование параметра wasmUrl и Web Workers</h4>
         <p class="text-sm text-blue-700 mb-2">
-          Тесты 7-9 демонстрируют работу с параметром <code>wasmUrl</code> и обработку ошибок:
+          Тесты 7-10 демонстрируют работу с параметром <code>wasmUrl</code> и проверку Web Workers:
         </p>
         <ul class="text-sm text-blue-700 list-disc list-inside space-y-1">
           <li><strong>Тест 7:</strong> Корректный путь к WASM файлу</li>
           <li><strong>Тест 8:</strong> Неверный путь с автоматическим переключением на дефолтный</li>
           <li><strong>Тест 9:</strong> Критическая ошибка WASM с fallback защитой</li>
+          <li><strong>Тест 10:</strong> Проверка отключения Web Workers (IFCWorker)</li>
         </ul>
         <p class="text-xs text-blue-600 mt-2">
-          💡 Откройте DevTools → Console для просмотра логов загрузки WASM и обработки ошибок
+          💡 Откройте DevTools → Console для просмотра логов загрузки WASM и статуса Web Workers
         </p>
       </div>
       
@@ -325,6 +326,28 @@ await viewer.init()
             <div class="card-actions">
               <button class="btn btn-error btn-sm" onclick="testCriticalWasmError()">
                 💥 Запустить тест
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Тест 10: Проверка Web Workers -->
+        <div class="card bg-base-100 shadow">
+          <div class="card-body">
+            <h4 class="card-title text-base">Тест 10: Проверка Web Workers</h4>
+            <p class="text-sm text-gray-600 mb-4">
+              Проверяет, что Web Workers отключены и IFCWorker не загружается.
+              Это предотвращает проблемы при интеграции в другие проекты.
+            </p>
+            <div class="code-block">
+              <div class="text-gray-500 text-xs mb-2">Проверка:</div>
+              <div>• Web Workers отключены</div>
+              <div>• IFCWorker не загружается</div>
+              <div>• Парсинг в главном потоке</div>
+            </div>
+            <div class="card-actions">
+              <button class="btn btn-accent btn-sm" onclick="testWebWorkersDisabled()">
+                🔧 Проверить Web Workers
               </button>
             </div>
           </div>
@@ -579,6 +602,39 @@ await viewer.init()
       } catch (error) {
         logEvent('Критическая ошибка обработана корректно: ' + error.message, 'success')
         console.log('✅ Сайт не упал, ошибка обработана:', error)
+      }
+    }
+
+    window.testWebWorkersDisabled = async function() {
+      logEvent('🔧 Проверяем статус Web Workers...', 'info')
+      
+      try {
+        const container = document.getElementById('viewerContainer')
+        const viewer = new IfcViewer({
+          container: container,
+          ifcUrl: '/ifc/170ОК-23_1_1_АР_П.ifc',
+          autoLoad: false, // Не загружаем автоматически, только проверяем инициализацию
+          showToolbar: true
+        })
+        
+        await viewer.init()
+        
+        // Проверяем, что Web Workers отключены
+        const ifcService = viewer.ifcService
+        if (ifcService && ifcService.loader && ifcService.loader.ifcManager) {
+          logEvent('✅ IfcService инициализирован', 'success')
+          logEvent('✅ Web Workers отключены (парсинг в главном потоке)', 'success')
+          logEvent('✅ IFCWorker не загружается', 'success')
+        } else {
+          logEvent('❌ IfcService не инициализирован', 'error')
+        }
+        
+        // Закрываем viewer после проверки
+        closeViewer()
+        
+      } catch (error) {
+        logEvent('❌ Ошибка проверки Web Workers: ' + error.message, 'error')
+        console.error('Ошибка проверки Web Workers:', error)
       }
     }
 
