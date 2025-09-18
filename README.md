@@ -175,7 +175,7 @@ import '@sequent-org/ifc-viewer/style.css'
 git clone <repo-url>
 cd ifc-viewer
 npm install
-npm run test
+npm run test:manual
 ```
 
 Откроется страница `test.html` с интерактивными тестами.

@@ -25,9 +25,9 @@
   "publishConfig": { "access": "public" },
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build", 
     "preview": "vite preview",
-    "test": "vite dev --open test.html"
+    "test:manual": "vite dev --open test.html"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.13",
