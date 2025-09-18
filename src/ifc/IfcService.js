@@ -12,9 +12,11 @@ import IFCWorkerUrl from 'web-ifc-three/IFCWorker.js?url';
 export class IfcService {
   /**
    * @param {import('../viewer/Viewer').Viewer} viewer
+   * @param {string} [wasmUrl] - URL для загрузки WASM файла web-ifc
    */
-  constructor(viewer) {
+  constructor(viewer, wasmUrl = null) {
     this.viewer = viewer;
+    this.wasmUrl = wasmUrl;
     this.loader = null;
     this.lastModel = null; // THREE.Object3D модели IFC
     this.lastFileName = null;
@@ -27,15 +29,19 @@ export class IfcService {
     this.loader = new IFCLoader();
     // Отключаем Web Worker: временно парсим в главном потоке для стабильности
     try { this.loader.ifcManager.useWebWorkers?.(false); } catch(_) {}
-    // Путь к wasm файлу (скопируйте web-ifc.wasm в public/wasm)
-    try {
-      // Преобразуем URL файла wasm в URL каталога и передадим в воркер
-      const wasmDir = new URL('.', WEBIFC_WASM_URL).href;
-      this.loader.ifcManager.setWasmPath(wasmDir);
-      // Дополнительно подстрахуемся передачей полного файла, если версия это поддерживает
-      try { this.loader.ifcManager.setWasmPath(WEBIFC_WASM_URL); } catch(_) {}
-    } catch (_) {
-      this.loader.ifcManager.setWasmPath('/wasm/');
+    
+    // Настройка пути к WASM файлу
+    if (this.wasmUrl) {
+      // Используем переданный пользователем URL
+      try {
+        this.loader.ifcManager.setWasmPath(this.wasmUrl);
+      } catch (_) {
+        console.warn('IfcService: не удалось установить пользовательский wasmUrl:', this.wasmUrl);
+        this._setDefaultWasmPath();
+      }
+    } else {
+      // Используем путь по умолчанию
+      this._setDefaultWasmPath();
     }
     try {
       this.loader.ifcManager.applyWebIfcConfig?.({
@@ -46,6 +52,22 @@ export class IfcService {
         SMALL_TRIANGLE_THRESHOLD: 1e-9,
       });
     } catch(_) {}
+  }
+
+  /**
+   * Устанавливает путь к WASM файлу по умолчанию
+   * @private
+   */
+  _setDefaultWasmPath() {
+    try {
+      // Преобразуем URL файла wasm в URL каталога и передадим в воркер
+      const wasmDir = new URL('.', WEBIFC_WASM_URL).href;
+      this.loader.ifcManager.setWasmPath(wasmDir);
+      // Дополнительно подстрахуемся передачей полного файла, если версия это поддерживает
+      try { this.loader.ifcManager.setWasmPath(WEBIFC_WASM_URL); } catch(_) {}
+    } catch (_) {
+      this.loader.ifcManager.setWasmPath('/wasm/');
+    }
   }
 
   /**

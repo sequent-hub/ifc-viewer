@@ -77,6 +77,16 @@
     .btn-accent { background-color: #8b5cf6; color: white; }
     .btn-accent:hover { background-color: #7c3aed; }
     .btn-outline { background-color: transparent; border: 1px solid currentColor; }
+    
+    /* Стили для информационного блока */
+    .bg-blue-50 { background-color: #eff6ff; }
+    .border-blue-200 { border-color: #bfdbfe; }
+    .text-blue-800 { color: #1e40af; }
+    .text-blue-700 { color: #1d4ed8; }
+    .text-blue-600 { color: #2563eb; }
+    .list-disc { list-style-type: disc; }
+    .list-inside { list-style-position: inside; }
+    .space-y-1 > * + * { margin-top: 0.25rem; }
     .btn-circle { border-radius: 9999px; width: 3rem; height: 3rem; padding: 0; }
     
     @media (min-width: 768px) {
@@ -134,11 +144,36 @@ const viewer = new IfcViewer({
 await viewer.init()
 await viewer.loadModel(userFile)  // File объект
       </div>
+
+      <h4 class="font-medium mb-2">3. Кастомный путь к WASM файлу:</h4>
+      <div class="code-block">
+const viewer = new IfcViewer({
+  container: '#viewer-container',
+  ifcUrl: '/models/building.ifc',
+  wasmUrl: '/custom-path/web-ifc.wasm'  // Указываем свой путь к WASM
+})
+
+await viewer.init()
+      </div>
     </div>
 
     <!-- Кнопки тестирования -->
     <div class="demo-section">
       <h3 class="text-lg font-semibold mb-4">🧪 Тесты интеграции</h3>
+      
+      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+        <h4 class="font-medium text-blue-800 mb-2">🔧 Тестирование параметра wasmUrl</h4>
+        <p class="text-sm text-blue-700 mb-2">
+          Новые тесты 7 и 8 демонстрируют работу с параметром <code>wasmUrl</code>:
+        </p>
+        <ul class="text-sm text-blue-700 list-disc list-inside space-y-1">
+          <li><strong>Тест 7:</strong> Корректный путь к WASM файлу</li>
+          <li><strong>Тест 8:</strong> Неверный путь с автоматическим переключением на дефолтный</li>
+        </ul>
+        <p class="text-xs text-blue-600 mt-2">
+          💡 Откройте DevTools → Console для просмотра логов загрузки WASM
+        </p>
+      </div>
       
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <!-- Тест 1: Режим по умолчанию -->
@@ -226,6 +261,46 @@ await viewer.loadModel(userFile)  // File объект
             <div class="card-actions">
               <button class="btn btn-warning btn-sm" onclick="testRealMinimal()">
                 🔍 Запустить тест
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Тест 7: Кастомный WASM URL -->
+        <div class="card bg-base-100 shadow">
+          <div class="card-body">
+            <h4 class="card-title text-base">Тест 7: Кастомный WASM URL</h4>
+            <p class="text-sm text-gray-600 mb-4">
+              Демонстрирует использование параметра <code>wasmUrl</code> для указания пути к WASM файлу.
+              Проверяет загрузку с явно указанным путем <code>/wasm/web-ifc.wasm</code>.
+            </p>
+            <div class="code-block">
+              <div class="text-gray-500 text-xs mb-2">Конфигурация:</div>
+              <div>wasmUrl: '/wasm/web-ifc.wasm'</div>
+            </div>
+            <div class="card-actions">
+              <button class="btn btn-secondary btn-sm" onclick="testCustomWasm()">
+                ⚙️ Запустить тест
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Тест 8: Неверный WASM URL -->
+        <div class="card bg-base-100 shadow">
+          <div class="card-body">
+            <h4 class="card-title text-base">Тест 8: Неверный WASM URL</h4>
+            <p class="text-sm text-gray-600 mb-4">
+              Тестирует обработку ошибок при неверном пути к WASM файлу.
+              Должен автоматически переключиться на путь по умолчанию.
+            </p>
+            <div class="code-block">
+              <div class="text-gray-500 text-xs mb-2">Конфигурация:</div>
+              <div>wasmUrl: '/wrong-path/web-ifc.wasm'</div>
+            </div>
+            <div class="card-actions">
+              <button class="btn btn-warning btn-sm" onclick="testWrongWasm()">
+                ⚠️ Запустить тест
               </button>
             </div>
           </div>
@@ -425,6 +500,28 @@ await viewer.loadModel(userFile)  // File объект
         showToolbar: true,   // Только верхняя панель инструментов
         autoLoad: true
       }, 'Тест 6: Минимальный просмотрщик')
+    }
+
+    window.testCustomWasm = async function() {
+      await createViewer({
+        ifcUrl: '/ifc/170ОК-23_1_1_АР_П.ifc',
+        wasmUrl: '/wasm/web-ifc.wasm', // Явно указываем путь к WASM файлу
+        showSidebar: false,
+        showControls: false,
+        showToolbar: true,
+        autoLoad: true
+      }, 'Тест 7: Кастомный WASM URL')
+    }
+
+    window.testWrongWasm = async function() {
+      await createViewer({
+        ifcUrl: '/ifc/170ОК-23_1_1_АР_П.ifc',
+        wasmUrl: '/wrong-path/web-ifc.wasm', // Неверный путь - должен переключиться на дефолтный
+        showSidebar: false,
+        showControls: false,
+        showToolbar: true,
+        autoLoad: true
+      }, 'Тест 8: Неверный WASM URL')
     }
 
     // Утилиты

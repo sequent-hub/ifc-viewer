@@ -21,6 +21,7 @@ export class IfcViewer {
    * @param {HTMLElement|string} options.container - Контейнер для рендера (элемент или селектор)
    * @param {string} [options.ifcUrl] - URL для загрузки IFC файла
    * @param {File} [options.ifcFile] - File объект для загрузки IFC файла
+   * @param {string} [options.wasmUrl] - URL для загрузки WASM файла web-ifc
    * @param {boolean} [options.showSidebar=false] - Показывать ли боковую панель с деревом
    * @param {boolean} [options.showControls=false] - Показывать ли панель управления (нижние кнопки)
    * @param {boolean} [options.showToolbar=true] - Показывать ли верхнюю панель инструментов
@@ -47,8 +48,9 @@ export class IfcViewer {
     this.options = {
       ifcUrl: options.ifcUrl || null,
       ifcFile: options.ifcFile || null,
+      wasmUrl: options.wasmUrl || null,
       showSidebar: options.showSidebar === true, // по умолчанию false
-      showControls: options.showControls === true, // по умолчанию false  
+      showControls: options.showControls === true, // по умолчанию false
       showToolbar: options.showToolbar !== false, // по умолчанию true
       autoLoad: options.autoLoad !== false,
       theme: options.theme || 'light',
@@ -430,7 +432,7 @@ export class IfcViewer {
       throw new Error('Viewer должен быть инициализирован перед IfcService');
     }
 
-    this.ifcService = new IfcService(this.viewer);
+    this.ifcService = new IfcService(this.viewer, this.options.wasmUrl);
     this.ifcService.init();
   }
 
