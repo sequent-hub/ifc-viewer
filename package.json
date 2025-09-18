@@ -3,11 +3,31 @@
   "private": false,
   "version": "1.0.1",
   "type": "module",
+  "description": "IFC 3D model viewer component for web applications",
+  "main": "src/index.js",
+  "module": "src/index.js",
+  "exports": {
+    ".": {
+      "import": "./src/index.js"
+    },
+    "./style.css": "./src/style.css"
+  },
+  "files": [
+    "src/",
+    "public/wasm/",
+    "README.md"
+  ],
+  "keywords": ["ifc", "3d", "viewer", "bim", "three.js", "web-ifc"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sequent-org/ifc-viewer.git"
+  },
   "publishConfig": { "access": "public" },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vite dev --open test.html"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.13",

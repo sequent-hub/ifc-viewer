@@ -1,0 +1,37 @@
+# Исключения для npm публикации
+
+# Разработка и сборка
+node_modules/
+.vscode/
+.idea/
+*.log
+*.tmp
+
+# Vite и сборка
+dist/
+.vite/
+vite.config.js
+postcss.config.cjs
+tailwind.config.cjs
+
+# Тестирование 
+test.html
+index.html
+fragments.html
+
+# Git
+.git/
+.gitignore
+
+# Исходный код разработки (оставляем только нужное)
+src/main.js
+src/fragments-main.js
+console-log.txt
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Документация разработчика
+*.md
+!README.md
