@@ -1,8 +1,9 @@
 {
-  "name": "3d-viewer",
-  "private": true,
+  "name": "@sequent-org/ifc-viewer",
+  "private": false,
   "version": "1.0.0",
   "type": "module",
+  "publishConfig": { "access": "public" },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
