@@ -9,7 +9,7 @@ export class NavCube {
    * @param {THREE.PerspectiveCamera} mainCamera
    * @param {any} controls OrbitControls (ожидается target, update())
    * @param {HTMLElement} container контейнер, содержащий канвас
-   * @param {{ sizePx?: number, marginPx?: number, opacity?: number }} [opts]
+   * @param {{ sizePx?: number, marginPx?: number, opacity?: number, onHome?: () => void }} [opts]
    */
   constructor(renderer, mainCamera, controls, container, opts = {}) {
     this.renderer = renderer;
@@ -20,6 +20,7 @@ export class NavCube {
     this.sizePx = opts.sizePx ?? 96;
     this.marginPx = opts.marginPx ?? 10;
     this.faceOpacity = opts.opacity ?? 0.6;
+    this.onHome = typeof opts.onHome === 'function' ? opts.onHome : null;
 
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(35, 1, 0.1, 10);
@@ -84,12 +85,38 @@ export class NavCube {
     this.dom.addEventListener("pointermove", this._onPointerMove, { passive: true });
     this.dom.addEventListener("pointerdown", this._onPointerDown, { passive: false });
     this.dom.addEventListener("pointerup", this._onPointerUp, { passive: false });
+
+    // Кнопка Home слева от куба
+    this.homeBtn = document.createElement('button');
+    this.homeBtn.type = 'button';
+    this.homeBtn.title = 'Home';
+    this.homeBtn.textContent = '⌂';
+    this.homeBtn.style.position = 'absolute';
+    this.homeBtn.style.zIndex = '40';
+    this.homeBtn.style.width = '28px';
+    this.homeBtn.style.height = '28px';
+    this.homeBtn.style.lineHeight = '28px';
+    this.homeBtn.style.textAlign = 'center';
+    this.homeBtn.style.borderRadius = '6px';
+    this.homeBtn.style.border = '1px solid rgba(255,255,255,0.4)';
+    this.homeBtn.style.background = 'rgba(0,0,0,0.45)';
+    this.homeBtn.style.color = '#fff';
+    this.homeBtn.style.cursor = 'pointer';
+    this.homeBtn.style.userSelect = 'none';
+    this.homeBtn.style.font = '14px/28px system-ui, sans-serif';
+    // Позиция задаётся в renderOverlay относительно текущего размера
+    this.homeBtn.addEventListener('click', () => { try { this.onHome && this.onHome(); } catch(_) {} });
+    try { this.container.appendChild(this.homeBtn); } catch(_) {}
   }
 
   dispose() {
     this.dom.removeEventListener("pointermove", this._onPointerMove);
     this.dom.removeEventListener("pointerdown", this._onPointerDown);
     this.dom.removeEventListener("pointerup", this._onPointerUp);
+    if (this.homeBtn && this.homeBtn.parentNode) {
+      try { this.homeBtn.parentNode.removeChild(this.homeBtn); } catch(_) {}
+      this.homeBtn = null;
+    }
     this.scene.traverse((obj) => {
       if (obj.isMesh) {
         obj.geometry && obj.geometry.dispose && obj.geometry.dispose();
@@ -147,6 +174,12 @@ export class NavCube {
     // Восстановим клиппинг
     this.renderer.localClippingEnabled = prevLocal;
     this.renderer.clippingPlanes = prevPlanes;
+
+    // Позиционируем кнопку Home слева от куба
+    if (this.homeBtn) {
+      this.homeBtn.style.top = `${this.marginPx + 2}px`;
+      this.homeBtn.style.left = `${Math.max(2, fullW - this.marginPx - vpSize - 32)}px`;
+    }
   }
 
   // ================= Подписи граней =================

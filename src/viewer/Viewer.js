@@ -46,6 +46,16 @@ export class Viewer {
       },
     };
 
+    // Snapshot начального состояния для Home
+    this._home = {
+      cameraPos: null,
+      target: new THREE.Vector3(0, 0, 0),
+      edgesVisible: true,
+      flatShading: true,
+      quality: 'medium',
+      clipEnabled: [Infinity, Infinity, Infinity],
+    };
+
     this.handleResize = this.handleResize.bind(this);
     this.animate = this.animate.bind(this);
   }
@@ -112,6 +122,7 @@ export class Viewer {
       sizePx: 96,
       marginPx: 10,
       opacity: 0.6,
+      onHome: () => this.goHome(),
     });
 
     // Визуализация секущих плоскостей (манипуляторы с квадратиком и стрелкой)
@@ -136,6 +147,14 @@ export class Viewer {
 
     // Старт цикла
     this.animate();
+
+    // Сохраним Home-снапшот после инициализации
+    this._home.cameraPos = this.camera.position.clone();
+    this._home.target = this.controls.target.clone();
+    this._home.edgesVisible = this.edgesVisible;
+    this._home.flatShading = this.flatShading;
+    this._home.quality = this.quality;
+    this._home.clipEnabled = this.clipping.planes.map(p => p.constant);
 
     // Сигнал о готовности после первого кадра
     requestAnimationFrame(() => {
@@ -437,6 +456,14 @@ export class Viewer {
         }
         this.camera.updateProjectionMatrix();
         this.controls.update();
+
+        // Снимем актуальный «домашний» вид после всех корректировок
+        this._home.cameraPos = this.camera.position.clone();
+        this._home.target = this.controls.target.clone();
+        this._home.edgesVisible = this.edgesVisible;
+        this._home.flatShading = this.flatShading;
+        this._home.quality = this.quality;
+        this._home.clipEnabled = this.clipping.planes.map(p => p.constant);
       });
     } catch(_) {}
   }
@@ -673,6 +700,26 @@ export class Viewer {
       new THREE.Vector3(min.x, max.y, max.z),
       new THREE.Vector3(max.x, max.y, max.z),
     ];
+  }
+
+  // Вернуть стартовый вид
+  goHome() {
+    if (!this.camera || !this.controls) return;
+    // Камера и прицел
+    this.controls.target.copy(this._home.target);
+    this.camera.position.copy(this._home.cameraPos);
+    // Визуальные настройки
+    this.setEdgesVisible(this._home.edgesVisible);
+    this.setFlatShading(this._home.flatShading);
+    this.setQuality(this._home.quality);
+    // Клиппинг
+    ['x','y','z'].forEach((axis, i) => {
+      const enabled = isFinite(this._home.clipEnabled[i]);
+      const dist = -this._home.clipEnabled[i];
+      this.setSection(axis, enabled, enabled ? dist : 0);
+    });
+    this.camera.updateProjectionMatrix();
+    this.controls.update();
   }
 }
 
