@@ -60,21 +60,6 @@ export class NavCube {
     // Подписи граней (крупные, чёрные, на самих гранях)
     this.#addFaceLabels();
 
-    // Небольшой DOM-оверлей для показа координат камеры сцены
-    this.coordsEl = document.createElement('div');
-    this.coordsEl.style.position = 'absolute';
-    this.coordsEl.style.zIndex = '40';
-    this.coordsEl.style.font = '12px/1.2 monospace';
-    this.coordsEl.style.color = '#fff';
-    this.coordsEl.style.background = 'rgba(0,0,0,0.45)';
-    this.coordsEl.style.padding = '4px 6px';
-    this.coordsEl.style.borderRadius = '4px';
-    this.coordsEl.style.pointerEvents = 'none';
-    // Изначальное позиционирование; точное обновим при рендере
-    this.coordsEl.style.top = `${this.marginPx + 4}px`;
-    this.coordsEl.style.right = `${this.marginPx + this.sizePx + 8}px`;
-    try { this.container.appendChild(this.coordsEl); } catch(_) {}
-
     // Raycaster для интерактивности
     this.raycaster = new THREE.Raycaster();
     this.pointerNdc = new THREE.Vector2();
@@ -105,10 +90,6 @@ export class NavCube {
     this.dom.removeEventListener("pointermove", this._onPointerMove);
     this.dom.removeEventListener("pointerdown", this._onPointerDown);
     this.dom.removeEventListener("pointerup", this._onPointerUp);
-    if (this.coordsEl && this.coordsEl.parentNode) {
-      try { this.coordsEl.parentNode.removeChild(this.coordsEl); } catch(_) {}
-      this.coordsEl = null;
-    }
     this.scene.traverse((obj) => {
       if (obj.isMesh) {
         obj.geometry && obj.geometry.dispose && obj.geometry.dispose();
@@ -162,15 +143,6 @@ export class NavCube {
     this.renderer.setScissorTest(false);
     // Восстановим полный viewport на всякий случай
     this.renderer.setViewport(0, 0, fullW, fullH);
-
-    // Обновим позицию и текст DOM-оверлея координат возле кубика
-    if (this.coordsEl) {
-      this.coordsEl.style.top = `${this.marginPx + 4}px`;
-      this.coordsEl.style.right = `${this.marginPx + this.sizePx + 8}px`;
-      const p = this.mainCamera.position;
-      const fx = (v) => v.toFixed(2);
-      this.coordsEl.textContent = `x: ${fx(p.x)}  y: ${fx(p.y)}  z: ${fx(p.z)}`;
-    }
 
     // Восстановим клиппинг
     this.renderer.localClippingEnabled = prevLocal;
