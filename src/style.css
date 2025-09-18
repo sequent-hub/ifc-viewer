@@ -1,2 +1,2 @@
-@import "tailwindcss";
-@plugin "daisyui";
+/* Импорт локальных стилей для полной автономности пакета */
+@import './styles-local.css';

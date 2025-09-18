@@ -342,8 +342,8 @@ export class IfcViewer {
         <!-- Основной контейнер просмотрщика -->
         <div id="ifcViewerMain" class="w-full flex-1 relative"></div>
 
-        <!-- Боковая панель -->
-        <div id="ifcSidebar" class="absolute left-0 top-0 h-full w-80 bg-base-200 shadow-lg transform -translate-x-full transition-transform duration-300 pointer-events-none z-40">
+        <!-- Боковая панель (временно скрыта) -->
+        <div id="ifcSidebar" class="absolute left-0 top-0 h-full w-80 bg-base-200 shadow-lg transform -translate-x-full transition-transform duration-300 pointer-events-none z-40" style="display: none;">
           <div class="flex flex-col h-full">
             <!-- Заголовок панели -->
             <div class="flex items-center justify-between p-4 border-b border-base-300">
@@ -371,11 +371,13 @@ export class IfcViewer {
           </div>
         </div>
 
-        <!-- Панель управления -->
-        <div id="ifcControls" class="absolute top-4 left-4 z-30" style="${this.options.showControls ? '' : 'display: none;'}">
-          <!-- Кнопка панели (показываем если включен сайдбар) -->
-          <button id="ifcSidebarToggle" class="btn btn-primary btn-sm mb-2">☰</button>
-          
+        <!-- Кнопка сайдбара (временно скрыта) -->
+        <div id="ifcSidebarToggleContainer" class="absolute top-4 left-4 z-30" style="display: none;">
+          <button id="ifcSidebarToggle" class="btn btn-primary btn-sm">☰</button>
+        </div>
+
+        <!-- Панель управления (дополнительные кнопки) -->
+        <div id="ifcControls" class="absolute top-4 left-4 z-30" style="${this.options.showControls ? 'margin-top: 3rem;' : 'display: none;'}">
           <!-- Кнопка загрузки -->
           <button id="ifcUploadBtn" class="btn btn-secondary btn-sm">📁</button>
           <input type="file" id="ifcFileInput" accept=".ifc,.ifczip,.zip" style="display: none;">
@@ -587,16 +589,17 @@ export class IfcViewer {
    * @private
    */
   _setSidebarVisible(visible) {
-    if (!this.elements.sidebar) return;
+    const sidebar = this.containerElement.querySelector('#ifcSidebar');
+    if (!sidebar) return;
 
     if (visible) {
-      this.elements.sidebar.classList.remove('-translate-x-full');
-      this.elements.sidebar.classList.add('translate-x-0');
-      this.elements.sidebar.classList.remove('pointer-events-none');
+      sidebar.classList.remove('-translate-x-full');
+      sidebar.classList.add('translate-x-0');
+      sidebar.classList.remove('pointer-events-none');
     } else {
-      this.elements.sidebar.classList.add('-translate-x-full');
-      this.elements.sidebar.classList.remove('translate-x-0');
-      this.elements.sidebar.classList.add('pointer-events-none');
+      sidebar.classList.add('-translate-x-full');
+      sidebar.classList.remove('translate-x-0');
+      sidebar.classList.add('pointer-events-none');
     }
   }
 

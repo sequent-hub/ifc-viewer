@@ -5,9 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>IFC Viewer Test - Тестирование пакета</title>
   
-  <!-- DaisyUI для стилизации -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdn.jsdelivr.net/npm/daisyui@5.1.12/dist/full.min.css" rel="stylesheet" type="text/css" />
+  <!-- Локальные стили пакета -->
+  <link rel="stylesheet" href="/src/style.css" />
   
   <style>
     body {
@@ -49,6 +48,40 @@
       font-size: 14px;
       overflow-x: auto;
       margin: 12px 0;
+    }
+    
+    /* Дополнительные стили для тестовой страницы */
+    .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+    .text-2xl { font-size: 1.5rem; line-height: 2rem; }
+    .font-bold { font-weight: 700; }
+    .mb-3 { margin-bottom: 0.75rem; }
+    .mb-4 { margin-bottom: 1rem; }
+    .text-gray-600 { color: #4b5563; }
+    .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+    .flex-1 { flex: 1 1 0%; }
+    .flex-none { flex: none; }
+    .grid { display: grid; }
+    .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+    .gap-4 { gap: 1rem; }
+    .card { display: flex; flex-direction: column; }
+    .card-body { flex: 1 1 auto; padding: 2rem; }
+    .card-title { color: inherit; font-weight: 600; font-size: 1.25rem; margin-bottom: 0.5rem; }
+    .card-actions { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 0.5rem; }
+    .shadow { box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06); }
+    .btn-info { background-color: #0ea5e9; color: white; }
+    .btn-info:hover { background-color: #0284c7; }
+    .btn-warning { background-color: #f59e0b; color: white; }
+    .btn-warning:hover { background-color: #d97706; }
+    .btn-neutral { background-color: #6b7280; color: white; }
+    .btn-neutral:hover { background-color: #4b5563; }
+    .btn-accent { background-color: #8b5cf6; color: white; }
+    .btn-accent:hover { background-color: #7c3aed; }
+    .btn-outline { background-color: transparent; border: 1px solid currentColor; }
+    .btn-circle { border-radius: 9999px; width: 3rem; height: 3rem; padding: 0; }
+    
+    @media (min-width: 768px) {
+      .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+      .md\\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
   </style>
 </head>
@@ -113,7 +146,7 @@ await viewer.loadModel(userFile)  // File объект
           <div class="card-body">
             <h4 class="card-title text-base">Тест 1: Режим по умолчанию</h4>
             <p class="text-sm text-gray-600 mb-4">
-              Создаёт IfcViewer в минимальном режиме - только просмотрщик с верхней панелью инструментов
+              Создаёт IfcViewer в минимальном режиме - только верхняя панель инструментов
             </p>
             <div class="card-actions">
               <button class="btn btn-primary btn-sm" onclick="testDefault()">
@@ -183,15 +216,15 @@ await viewer.loadModel(userFile)  // File объект
           </div>
         </div>
 
-        <!-- Тест 6: Без панели инструментов -->
+        <!-- Тест 6: Минимальный просмотрщик -->
         <div class="card bg-base-100 shadow">
           <div class="card-body">
-            <h4 class="card-title text-base">Тест 6: Только просмотрщик</h4>
+            <h4 class="card-title text-base">Тест 6: Минимальный просмотрщик</h4>
             <p class="text-sm text-gray-600 mb-4">
-              Создаёт IfcViewer без верхней панели, только базовый просмотр
+              Создаёт IfcViewer в настоящем минимальном режиме - только верхняя панель, без кнопок
             </p>
             <div class="card-actions">
-              <button class="btn btn-warning btn-sm" onclick="testNoToolbar()">
+              <button class="btn btn-warning btn-sm" onclick="testRealMinimal()">
                 🔍 Запустить тест
               </button>
             </div>
@@ -294,14 +327,17 @@ await viewer.loadModel(userFile)  // File объект
     // Создание просмотрщика с обработкой событий
     async function createViewer(options, title) {
       try {
+        console.log('createViewer вызван с опциями:', options, 'title:', title)
         logEvent(`Создание IfcViewer: ${title}`, 'info')
         showModal(title)
         
         const container = document.getElementById('viewerContainer')
+        console.log('Создаём IfcViewer, container:', container, 'IfcViewer:', IfcViewer)
         const viewer = new IfcViewer({
           container,
           ...options
         })
+        console.log('IfcViewer создан:', viewer)
 
         // Подписываемся на события просмотрщика
         container.addEventListener('ifcviewer:ready', (e) => {
@@ -330,11 +366,16 @@ await viewer.loadModel(userFile)  // File объект
 
     // Тестовые функции  
     window.testDefault = async function() {
-      await createViewer({
-        ifcUrl: '/ifc/170ОК-23_1_1_АР_П.ifc'
-        // Используем все дефолтные значения: 
-        // showSidebar: false, showControls: false, showToolbar: true
-      }, 'Тест 1: Режим по умолчанию')
+      console.log('testDefault вызван')
+      try {
+        await createViewer({
+          ifcUrl: '/ifc/170ОК-23_1_1_АР_П.ifc'
+          // Все по дефолту: showSidebar: false, showControls: false, showToolbar: true
+        }, 'Тест 1: Режим по умолчанию')
+      } catch (error) {
+        console.error('Ошибка в testDefault:', error)
+        logEvent('Ошибка в testDefault: ' + error.message, 'error')
+      }
     }
 
     window.testManualLoad = async function() {
@@ -376,15 +417,14 @@ await viewer.loadModel(userFile)  // File объект
       }, 'Тест 5: Все панели управления')
     }
 
-    window.testNoToolbar = async function() {
+    window.testRealMinimal = async function() {
       await createViewer({
         ifcUrl: '/ifc/170ОК-23_1_1_АР_П.ifc',
-        showSidebar: true,
-        showControls: true,
-        showToolbar: false,
-        autoLoad: true,
-        theme: 'light'
-      }, 'Тест 6: Только просмотрщик')
+        showSidebar: false,  // Никаких боковых панелей
+        showControls: false, // Никаких дополнительных кнопок
+        showToolbar: true,   // Только верхняя панель инструментов
+        autoLoad: true
+      }, 'Тест 6: Минимальный просмотрщик')
     }
 
     // Утилиты

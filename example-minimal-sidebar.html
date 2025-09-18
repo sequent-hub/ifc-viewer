@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Минимальный пример с сайдбаром</title>
+  <style>
+    body { margin: 0; font-family: sans-serif; }
+    .container { width: 100vw; height: 100vh; }
+  </style>
+</head>
+<body>
+  <div id="viewer-container" class="container"></div>
+
+  <script type="module">
+    import { IfcViewer } from './src/index.js'
+
+    // Создаём минимальный просмотрщик с сайдбаром
+    const viewer = new IfcViewer({
+      container: document.getElementById('viewer-container'),
+      ifcUrl: '/ifc/170ОК-23_1_1_АР_П.ifc',
+      showSidebar: true,     // ✅ Показываем сайдбар с кнопкой ☰
+      showControls: false,   // ❌ Дополнительные кнопки скрыты
+      showToolbar: true      // ✅ Верхняя панель инструментов
+    })
+
+    viewer.init().then(() => {
+      console.log('IfcViewer готов!')
+    }).catch(error => {
+      console.error('Ошибка инициализации:', error)
+    })
+  </script>
+</body>
+</html>
