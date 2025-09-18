@@ -405,8 +405,29 @@ export class Viewer {
         this.#attachEdgesToMesh(node, this.edgesVisible);
       }
     });
+
     // Настроим пределы зума и сфокусируемся на новой модели
     this.applyAdaptiveZoomLimits(object3D, { padding: 1.2, slack: 2.5, minRatio: 0.05, recenter: true });
+
+    // На следующем кадре отъедем на 2x от вписанной дистанции (точно по размеру модели)
+    try {
+      const box = new THREE.Box3().setFromObject(object3D);
+      const size = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
+      const fitDist = this.#computeFitDistanceForSize(size, 1.2);
+      requestAnimationFrame(() => {
+        if (!this.camera || !this.controls) return;
+        const dir = this.camera.position.clone().sub(this.controls.target).normalize();
+        const desiredDist = fitDist * 2;
+        this.controls.target.copy(center);
+        this.camera.position.copy(center.clone().add(dir.multiplyScalar(desiredDist)));
+        if (this.camera.far < desiredDist * 4) {
+          this.camera.far = desiredDist * 4;
+        }
+        this.camera.updateProjectionMatrix();
+        this.controls.update();
+      });
+    } catch(_) {}
   }
 
   #disposeObject(obj) {
