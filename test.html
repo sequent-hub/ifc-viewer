@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval';">
   <title>IFC Viewer Test - Тестирование пакета</title>
   
   <!-- Локальные стили пакета -->
@@ -76,6 +77,8 @@
     .btn-neutral:hover { background-color: #4b5563; }
     .btn-accent { background-color: #8b5cf6; color: white; }
     .btn-accent:hover { background-color: #7c3aed; }
+    .btn-error { background-color: #dc2626; color: white; }
+    .btn-error:hover { background-color: #b91c1c; }
     .btn-outline { background-color: transparent; border: 1px solid currentColor; }
     
     /* Стили для информационного блока */
@@ -162,16 +165,17 @@ await viewer.init()
       <h3 class="text-lg font-semibold mb-4">🧪 Тесты интеграции</h3>
       
       <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-        <h4 class="font-medium text-blue-800 mb-2">🔧 Тестирование параметра wasmUrl</h4>
+        <h4 class="font-medium text-blue-800 mb-2">🔧 Тестирование параметра wasmUrl и обработки ошибок</h4>
         <p class="text-sm text-blue-700 mb-2">
-          Новые тесты 7 и 8 демонстрируют работу с параметром <code>wasmUrl</code>:
+          Тесты 7-9 демонстрируют работу с параметром <code>wasmUrl</code> и обработку ошибок:
         </p>
         <ul class="text-sm text-blue-700 list-disc list-inside space-y-1">
           <li><strong>Тест 7:</strong> Корректный путь к WASM файлу</li>
           <li><strong>Тест 8:</strong> Неверный путь с автоматическим переключением на дефолтный</li>
+          <li><strong>Тест 9:</strong> Критическая ошибка WASM с fallback защитой</li>
         </ul>
         <p class="text-xs text-blue-600 mt-2">
-          💡 Откройте DevTools → Console для просмотра логов загрузки WASM
+          💡 Откройте DevTools → Console для просмотра логов загрузки WASM и обработки ошибок
         </p>
       </div>
       
@@ -305,6 +309,26 @@ await viewer.init()
             </div>
           </div>
         </div>
+
+        <!-- Тест 9: Критическая ошибка WASM -->
+        <div class="card bg-base-100 shadow">
+          <div class="card-body">
+            <h4 class="card-title text-base">Тест 9: Критическая ошибка WASM</h4>
+            <p class="text-sm text-gray-600 mb-4">
+              Тестирует обработку критических ошибок WASM, которые могут привести к падению сайта.
+              Проверяет fallback механизмы и предотвращение краха приложения.
+            </p>
+            <div class="code-block">
+              <div class="text-gray-500 text-xs mb-2">Конфигурация:</div>
+              <div>wasmUrl: 'http://invalid-domain-that-does-not-exist.com/wasm.wasm'</div>
+            </div>
+            <div class="card-actions">
+              <button class="btn btn-error btn-sm" onclick="testCriticalWasmError()">
+                💥 Запустить тест
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -341,11 +365,29 @@ await viewer.init()
 
   <!-- Подключаем основной модуль -->
   <script type="module">
-    import { IfcViewer } from './src/index.js'
-
-    // Глобальные переменные для тестов
-    window.currentViewer = null
-    window.IfcViewer = IfcViewer
+    try {
+      const { IfcViewer } = await import('./src/index.js')
+      
+      // Глобальные переменные для тестов
+      window.currentViewer = null
+      window.IfcViewer = IfcViewer
+      
+      console.log('✅ IfcViewer модуль успешно загружен')
+    } catch (error) {
+      console.error('❌ Ошибка загрузки IfcViewer модуля:', error)
+      
+      // Создаем заглушку для тестирования
+      window.IfcViewer = class MockIfcViewer {
+        constructor(options) {
+          console.log('MockIfcViewer создан с опциями:', options)
+        }
+        async init() {
+          throw new Error('Модуль IfcViewer не загружен. Проверьте консоль браузера.')
+        }
+      }
+      
+      alert('Ошибка загрузки модуля IfcViewer. Проверьте консоль браузера для подробностей.')
+    }
 
     // Функции логирования
     function logEvent(message, type = 'info') {
@@ -522,6 +564,22 @@ await viewer.init()
         showToolbar: true,
         autoLoad: true
       }, 'Тест 8: Неверный WASM URL')
+    }
+
+    window.testCriticalWasmError = async function() {
+      try {
+        await createViewer({
+          ifcUrl: '/ifc/170ОК-23_1_1_АР_П.ifc',
+          wasmUrl: 'http://invalid-domain-that-does-not-exist.com/wasm.wasm', // Критическая ошибка
+          showSidebar: false,
+          showControls: false,
+          showToolbar: true,
+          autoLoad: true
+        }, 'Тест 9: Критическая ошибка WASM')
+      } catch (error) {
+        logEvent('Критическая ошибка обработана корректно: ' + error.message, 'success')
+        console.log('✅ Сайт не упал, ошибка обработана:', error)
+      }
     }
 
     // Утилиты

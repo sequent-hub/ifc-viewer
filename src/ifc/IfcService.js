@@ -26,49 +26,114 @@ export class IfcService {
   }
 
   init() {
-    this.loader = new IFCLoader();
-    // Отключаем Web Worker: временно парсим в главном потоке для стабильности
-    try { this.loader.ifcManager.useWebWorkers?.(false); } catch(_) {}
-    
-    // Настройка пути к WASM файлу
-    if (this.wasmUrl) {
-      // Используем переданный пользователем URL
-      try {
-        this.loader.ifcManager.setWasmPath(this.wasmUrl);
-      } catch (_) {
-        console.warn('IfcService: не удалось установить пользовательский wasmUrl:', this.wasmUrl);
-        this._setDefaultWasmPath();
-      }
-    } else {
-      // Используем путь по умолчанию
-      this._setDefaultWasmPath();
+    try {
+      this.loader = new IFCLoader();
+      // Отключаем Web Worker: временно парсим в главном потоке для стабильности
+      try { this.loader.ifcManager.useWebWorkers?.(false); } catch(_) {}
+      
+      // Настройка пути к WASM файлу с улучшенной обработкой ошибок
+      this._setupWasmPath();
+      
+      // Настройка конфигурации web-ifc
+      this._setupWebIfcConfig();
+      
+    } catch (error) {
+      console.error('IfcService: критическая ошибка инициализации:', error);
+      this._handleCriticalError(error);
     }
+  }
+
+  /**
+   * Настройка пути к WASM файлу с fallback
+   * @private
+   */
+  _setupWasmPath() {
+    const wasmPaths = this._getWasmPaths();
+    
+    for (let i = 0; i < wasmPaths.length; i++) {
+      try {
+        this.loader.ifcManager.setWasmPath(wasmPaths[i]);
+        console.log(`IfcService: WASM путь установлен: ${wasmPaths[i]}`);
+        return; // Успешно установлен
+      } catch (error) {
+        console.warn(`IfcService: не удалось установить WASM путь ${wasmPaths[i]}:`, error.message);
+        if (i === wasmPaths.length - 1) {
+          // Последний путь тоже не сработал
+          throw new Error('Все пути к WASM файлу недоступны');
+        }
+      }
+    }
+  }
+
+  /**
+   * Получает список путей к WASM файлу в порядке приоритета
+   * @private
+   */
+  _getWasmPaths() {
+    const paths = [];
+    
+    // 1. Пользовательский путь (если указан)
+    if (this.wasmUrl) {
+      paths.push(this.wasmUrl);
+    }
+    
+    // 2. Пути по умолчанию
+    try {
+      const wasmDir = new URL('.', WEBIFC_WASM_URL).href;
+      paths.push(wasmDir);
+    } catch (_) {}
+    
+    try {
+      paths.push(WEBIFC_WASM_URL);
+    } catch (_) {}
+    
+    // 3. Резервные пути
+    paths.push('/wasm/', '/wasm/web-ifc.wasm', '/web-ifc.wasm');
+    
+    return paths;
+  }
+
+  /**
+   * Настройка конфигурации web-ifc
+   * @private
+   */
+  _setupWebIfcConfig() {
     try {
       this.loader.ifcManager.applyWebIfcConfig?.({
         COORDINATE_TO_ORIGIN: true,
         USE_FAST_BOOLS: true,
         // Порог игнорирования очень мелких полигонов (уменьшаем шум)
-        // Некоторые сборки поддерживают SMALL_TRIANGLE_THRESHOLD
         SMALL_TRIANGLE_THRESHOLD: 1e-9,
       });
-    } catch(_) {}
+    } catch (error) {
+      console.warn('IfcService: не удалось применить конфигурацию web-ifc:', error.message);
+    }
   }
 
   /**
-   * Устанавливает путь к WASM файлу по умолчанию
+   * Обработка критических ошибок инициализации
    * @private
    */
-  _setDefaultWasmPath() {
-    try {
-      // Преобразуем URL файла wasm в URL каталога и передадим в воркер
-      const wasmDir = new URL('.', WEBIFC_WASM_URL).href;
-      this.loader.ifcManager.setWasmPath(wasmDir);
-      // Дополнительно подстрахуемся передачей полного файла, если версия это поддерживает
-      try { this.loader.ifcManager.setWasmPath(WEBIFC_WASM_URL); } catch(_) {}
-    } catch (_) {
-      this.loader.ifcManager.setWasmPath('/wasm/');
-    }
+  _handleCriticalError(error) {
+    // Создаем заглушку для loader, чтобы избежать падения
+    this.loader = {
+      ifcManager: {
+        setWasmPath: () => {},
+        applyWebIfcConfig: () => {},
+        useWebWorkers: () => {},
+        load: () => Promise.reject(new Error('WASM не инициализирован'))
+      }
+    };
+    
+    // Уведомляем о критической ошибке
+    this.viewer?.container?.dispatchEvent(new CustomEvent('ifcviewer:error', {
+      detail: { 
+        error: new Error('Критическая ошибка инициализации WASM: ' + error.message),
+        type: 'wasm_init_error'
+      }
+    }));
   }
+
 
   /**
    * Возвращает пространственную структуру IFC (иерархия) для активной модели
@@ -141,33 +206,36 @@ export class IfcService {
    * @param {File} file
    */
   async loadFile(file) {
-    if (!this.loader) this.init();
-    // Проверка расширения: поддерживаются .ifc и .ifczip
-    const name = (file?.name || "").toLowerCase();
-    const isIFC = name.endsWith(".ifc");
-    const isIFS = name.endsWith(".ifs");
-    const isZIP = name.endsWith(".ifczip") || name.endsWith(".zip");
-    if (!isIFC && !isIFS && !isZIP) {
-      alert("Формат не поддерживается. Используйте .ifc, .ifs или .ifczip");
-      return null;
-    }
-    const url = URL.createObjectURL(file);
     try {
-      const model = await this.loader.loadAsync(url);
-      // Показать модель вместо демо-куба
-      if (this.viewer.replaceWithModel) this.viewer.replaceWithModel(model);
-      if (this.viewer.focusObject) this.viewer.focusObject(model);
-      this.lastModel = model;
-      this.lastFileName = file?.name || null;
-      // Сообщим, что модель загружена
-      try { document.dispatchEvent(new CustomEvent('ifc:model-loaded', { detail: { modelID: model.modelID } })); } catch(_) {}
-      return model;
+      if (!this.loader) this.init();
+      
+      // Проверка расширения: поддерживаются .ifc и .ifczip
+      const name = (file?.name || "").toLowerCase();
+      const isIFC = name.endsWith(".ifc");
+      const isIFS = name.endsWith(".ifs");
+      const isZIP = name.endsWith(".ifczip") || name.endsWith(".zip");
+      if (!isIFC && !isIFS && !isZIP) {
+        throw new Error("Формат не поддерживается. Используйте .ifc, .ifs или .ifczip");
+      }
+      
+      const url = URL.createObjectURL(file);
+      try {
+        const model = await this._loadModelWithFallback(url);
+        // Показать модель вместо демо-куба
+        if (this.viewer.replaceWithModel) this.viewer.replaceWithModel(model);
+        if (this.viewer.focusObject) this.viewer.focusObject(model);
+        this.lastModel = model;
+        this.lastFileName = file?.name || null;
+        // Сообщим, что модель загружена
+        this._dispatchModelLoaded(model);
+        return model;
+      } finally {
+        URL.revokeObjectURL(url);
+      }
     } catch (err) {
       console.error("IFC load error:", err);
-      alert("Ошибка загрузки IFC: " + (err?.message || err));
+      this._handleLoadError(err, 'loadFile');
       return null;
-    } finally {
-      URL.revokeObjectURL(url);
     }
   }
 
@@ -176,15 +244,17 @@ export class IfcService {
    * @param {string} url
    */
   async loadUrl(url) {
-    if (!this.loader) this.init();
-    if (!url) return null;
     try {
-      // Защитим загрузку: перехватим возможные исключения на уровне воркера
-      const model = await this.loader.loadAsync(url);
+      if (!this.loader) this.init();
+      if (!url) return null;
+      
+      const model = await this._loadModelWithFallback(url);
       if (!model || !model.geometry) throw new Error('IFC model returned without geometry');
+      
       if (this.viewer.replaceWithModel) this.viewer.replaceWithModel(model);
       if (this.viewer.focusObject) this.viewer.focusObject(model);
       this.lastModel = model;
+      
       try {
         // Показать имя файла из URL
         const u = new URL(url, window.location.origin);
@@ -192,12 +262,13 @@ export class IfcService {
       } catch (_) {
         this.lastFileName = url;
       }
+      
       // Сообщим, что модель загружена
-      try { document.dispatchEvent(new CustomEvent('ifc:model-loaded', { detail: { modelID: model.modelID } })); } catch(_) {}
+      this._dispatchModelLoaded(model);
       return model;
     } catch (err) {
       console.error("IFC loadUrl error:", err);
-      alert("Ошибка загрузки IFC по URL: " + (err?.message || err));
+      this._handleLoadError(err, 'loadUrl');
       return null;
     }
   }
@@ -284,6 +355,108 @@ export class IfcService {
     } else if (this.lastModel) {
       this.lastModel.visible = true;
     }
+  }
+
+  /**
+   * Загружает модель с fallback обработкой ошибок WASM
+   * @private
+   */
+  async _loadModelWithFallback(url) {
+    try {
+      return await this.loader.loadAsync(url);
+    } catch (error) {
+      // Проверяем, связана ли ошибка с WASM
+      if (this._isWasmError(error)) {
+        console.warn('IfcService: обнаружена ошибка WASM, пытаемся переинициализировать...');
+        await this._reinitializeWithFallback();
+        // Повторная попытка загрузки
+        return await this.loader.loadAsync(url);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Проверяет, связана ли ошибка с WASM
+   * @private
+   */
+  _isWasmError(error) {
+    const message = error?.message?.toLowerCase() || '';
+    return message.includes('wasm') || 
+           message.includes('webassembly') ||
+           message.includes('module') ||
+           message.includes('instantiate');
+  }
+
+  /**
+   * Переинициализирует loader с fallback путями
+   * @private
+   */
+  async _reinitializeWithFallback() {
+    try {
+      // Попробуем переинициализировать с другими путями
+      this.loader = new IFCLoader();
+      this._setupWasmPath();
+      this._setupWebIfcConfig();
+    } catch (error) {
+      console.error('IfcService: не удалось переинициализировать:', error);
+      throw new Error('Критическая ошибка WASM: невозможно загрузить модель');
+    }
+  }
+
+  /**
+   * Отправляет событие о загрузке модели
+   * @private
+   */
+  _dispatchModelLoaded(model) {
+    try {
+      document.dispatchEvent(new CustomEvent('ifc:model-loaded', { 
+        detail: { modelID: model.modelID } 
+      }));
+    } catch (_) {}
+  }
+
+  /**
+   * Обрабатывает ошибки загрузки
+   * @private
+   */
+  _handleLoadError(error, method) {
+    const errorMessage = `Ошибка загрузки IFC (${method}): ${error?.message || error}`;
+    
+    // Отправляем событие об ошибке
+    this.viewer?.container?.dispatchEvent(new CustomEvent('ifcviewer:error', {
+      detail: { 
+        error: new Error(errorMessage),
+        type: 'load_error',
+        method: method
+      }
+    }));
+    
+    // Показываем пользователю понятное сообщение
+    const userMessage = this._getUserFriendlyMessage(error);
+    alert(userMessage);
+  }
+
+  /**
+   * Возвращает понятное пользователю сообщение об ошибке
+   * @private
+   */
+  _getUserFriendlyMessage(error) {
+    const message = error?.message?.toLowerCase() || '';
+    
+    if (message.includes('wasm') || message.includes('webassembly')) {
+      return 'Ошибка загрузки WASM модуля. Проверьте доступность файла web-ifc.wasm';
+    }
+    
+    if (message.includes('network') || message.includes('fetch')) {
+      return 'Ошибка сети при загрузке файла. Проверьте подключение к интернету';
+    }
+    
+    if (message.includes('format') || message.includes('parse')) {
+      return 'Ошибка формата файла. Убедитесь, что файл является корректным IFC файлом';
+    }
+    
+    return `Ошибка загрузки модели: ${error?.message || 'Неизвестная ошибка'}`;
   }
 }
 
