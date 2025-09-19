@@ -56,3 +56,21 @@ if (typeof window !== 'undefined' && window.THREE) {
     console.warn('Three.js патч: не удалось применить к глобальному THREE:', error.message);
   }
 }
+
+// Патчим модуль BufferGeometryUtils напрямую для web-ifc-three
+try {
+  // Создаем объект с обеими функциями для совместимости
+  const patchedUtils = {
+    mergeGeometries: mergeGeometries,
+    mergeBufferGeometries: mergeBufferGeometries
+  };
+  
+  // Экспортируем для возможного использования другими модулями
+  if (typeof globalThis !== 'undefined') {
+    globalThis.__THREE_BUFFER_GEOMETRY_UTILS_PATCH__ = patchedUtils;
+  }
+  
+  console.log('✅ Three.js патч: BufferGeometryUtils готов для web-ifc-three');
+} catch (error) {
+  console.warn('Three.js патч: ошибка при создании патча:', error.message);
+}

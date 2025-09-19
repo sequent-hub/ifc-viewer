@@ -1,7 +1,7 @@
 // Сервис загрузки IFC моделей и добавления их в сцену three.js
 // Требует three@^0.149 и web-ifc-three совместимой версии
 
-import { IFCLoader } from "web-ifc-three/IFCLoader";
+import { IFCLoader } from "web-ifc-three/IFCLoader.js";
 // Примечание: IFCWorker не используется, так как мы отключаем Web Workers
 // для стабильности работы в различных окружениях
 
