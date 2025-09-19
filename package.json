@@ -13,7 +13,8 @@
   },
   "files": [
     "src/",
-    "README.md"
+    "README.md",
+    "patches/"
   ],
   "keywords": ["ifc", "3d", "viewer", "bim", "three.js", "web-ifc"],
   "repository": {
@@ -25,10 +26,12 @@
     "dev": "vite",
     "build": "vite build", 
     "preview": "vite preview",
-    "test:manual": "vite dev --open test.html"
+    "test:manual": "vite dev --open test.html",
+    "postinstall": "patch-package"
   },
   "devDependencies": {
-    "vite": "^7.1.2"
+    "vite": "^7.1.2",
+    "patch-package": "^8.0.0"
   },
   "dependencies": {
     "three": "^0.149.0",
