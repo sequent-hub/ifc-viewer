@@ -302,7 +302,7 @@ export class IfcViewer {
         </div>
 
         <!-- Верхняя панель управления -->
-        <div id="ifcToolbar" class="d-flex px-4" style="border:0px red solid; width: 250px; position: absolute; z-index: 1000; justify-content:space-between;  bottom: 10px; left: calc(50% - 125px); ">
+        <div id="ifcToolbar" class="d-flex px-4" style="border:0px red solid; width: 250px; position: absolute; z-index: 60; justify-content:space-between;  bottom: 10px; left: calc(50% - 125px); ">
           
           <div class="navbar-end flex gap-2">                   
             

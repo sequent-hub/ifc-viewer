@@ -30,12 +30,12 @@ export class NavCube {
     // Полупрозрачный куб с окрашенными сторонами (+X/-X, +Y/-Y, +Z/-Z)
     const geom = new THREE.BoxGeometry(1, 1, 1);
     const mats = [
-      new THREE.MeshBasicMaterial({ color: 0xd32f2f, transparent: true, opacity: this.faceOpacity }), // +X (red)
-      new THREE.MeshBasicMaterial({ color: 0x7f0000, transparent: true, opacity: this.faceOpacity }), // -X (dark red)
-      new THREE.MeshBasicMaterial({ color: 0x388e3c, transparent: true, opacity: this.faceOpacity }), // +Y (green)
-      new THREE.MeshBasicMaterial({ color: 0x1b5e20, transparent: true, opacity: this.faceOpacity }), // -Y (dark green)
-      new THREE.MeshBasicMaterial({ color: 0x1976d2, transparent: true, opacity: this.faceOpacity }), // +Z (blue)
-      new THREE.MeshBasicMaterial({ color: 0x0d47a1, transparent: true, opacity: this.faceOpacity }), // -Z (dark blue)
+      new THREE.MeshBasicMaterial({ color: 0x80CBC4, transparent: true, opacity: this.faceOpacity }), // +X (сзади - зеленый)
+      new THREE.MeshBasicMaterial({ color: 0xA5D6A7, transparent: true, opacity: this.faceOpacity }), // -X (спереди - зеленый)
+      new THREE.MeshBasicMaterial({ color: 0xFF8A65, transparent: true, opacity: this.faceOpacity }), // +Y (верх - красный )
+      new THREE.MeshBasicMaterial({ color: 0xEF9A9A, transparent: true, opacity: this.faceOpacity }), // -Y (низ - красный)
+      new THREE.MeshBasicMaterial({ color: 0x90CAF9, transparent: true, opacity: this.faceOpacity }), // +Z (справа - синий)
+      new THREE.MeshBasicMaterial({ color: 0x9FA8DA, transparent: true, opacity: this.faceOpacity }), // -Z (слева - синий)
     ];
     this.cube = new THREE.Mesh(geom, mats);
     this.cube.name = "nav-cube";
@@ -53,7 +53,7 @@ export class NavCube {
 
     // Рёбра для читабельности
     const edges = new THREE.EdgesGeometry(geom, 1);
-    const lineMat = new THREE.LineBasicMaterial({ color: 0x111111, depthTest: true });
+    const lineMat = new THREE.LineBasicMaterial({ color: 0xEEEEEE, depthTest: true });
     this.cubeEdges = new THREE.LineSegments(edges, lineMat);
     this.cubeEdges.renderOrder = 999;
     this.cube.add(this.cubeEdges);
@@ -90,20 +90,21 @@ export class NavCube {
     this.homeBtn = document.createElement('button');
     this.homeBtn.type = 'button';
     this.homeBtn.title = 'Home';
-    this.homeBtn.textContent = '⌂';
+    this.homeBtn.innerHTML = `   
+      <svg fill="#000000" width="20px" height="20px" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" class="icon">
+        <path d="M946.5 505L534.6 93.4a31.93 31.93 0 0 0-45.2 0L77.5 505c-12 12-18.8 28.3-18.8 45.3 0 35.3 28.7 64 64 64h43.4V908c0 17.7 14.3 32 32 32H448V716h112v224h265.9c17.7 0 32-14.3 32-32V614.3h43.4c17 0 33.3-6.7 45.3-18.8 24.9-25 24.9-65.5-.1-90.5z"/>
+      </svg>
+    `;
     this.homeBtn.style.position = 'absolute';
-    this.homeBtn.style.zIndex = '40';
-    this.homeBtn.style.width = '28px';
-    this.homeBtn.style.height = '28px';
-    this.homeBtn.style.lineHeight = '28px';
-    this.homeBtn.style.textAlign = 'center';
+    this.homeBtn.style.zIndex = '40';   
+    this.homeBtn.style.width = '30px';
+    this.homeBtn.style.height = '30px';    
     this.homeBtn.style.borderRadius = '6px';
-    this.homeBtn.style.border = '1px solid rgba(255,255,255,0.4)';
-    this.homeBtn.style.background = 'rgba(0,0,0,0.45)';
+    this.homeBtn.style.border = '0px solid rgba(255,255,255,0.1)';
+    this.homeBtn.style.background = 'rgba(0, 0, 0, 0.05)';
     this.homeBtn.style.color = '#fff';
     this.homeBtn.style.cursor = 'pointer';
-    this.homeBtn.style.userSelect = 'none';
-    this.homeBtn.style.font = '14px/28px system-ui, sans-serif';
+    this.homeBtn.style.userSelect = 'none';    
     // Позиция задаётся в renderOverlay относительно текущего размера
     this.homeBtn.addEventListener('click', () => { try { this.onHome && this.onHome(); } catch(_) {} });
     try { this.container.appendChild(this.homeBtn); } catch(_) {}
@@ -177,15 +178,15 @@ export class NavCube {
 
     // Позиционируем кнопку Home слева от куба
     if (this.homeBtn) {
-      this.homeBtn.style.top = `${this.marginPx + 2}px`;
-      this.homeBtn.style.left = `${Math.max(2, fullW - this.marginPx - vpSize - 32)}px`;
+      this.homeBtn.style.top = `${this.marginPx + 20}px`;
+      this.homeBtn.style.left = `${Math.max(2, fullW - this.marginPx - vpSize - 60)}px`;
     }
   }
 
   // ================= Подписи граней =================
   #addFaceLabels() {
     const makeFaceTexture = (text) => {
-      const size = 512; // квадрат для равномерности
+      const size = Math.floor(512 / 0.98); // квадрат для равномерности
       const canvas = document.createElement('canvas');
       canvas.width = size; canvas.height = size;
       const ctx = canvas.getContext('2d');
@@ -193,12 +194,13 @@ export class NavCube {
       ctx.clearRect(0, 0, size, size);
       // Чёрный крупный текст по центру
       ctx.fillStyle = '#000';
-      // Уменьшаем шрифт примерно в 1.2 раза относительно прошлого (0.42 -> ~0.35)
-      const fontPx = Math.floor(size * 0.35);
+      // Уменьшаем шрифт для лучшего размещения длинных слов
+      const fontPx = Math.floor(size * 0.2); // было 0.35, стало 0.25
       ctx.font = `bold ${fontPx}px sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(text.toUpperCase(), size / 2, size / 2);
+      
       const tex = new THREE.CanvasTexture(canvas);
       tex.minFilter = THREE.LinearFilter;
       tex.magFilter = THREE.LinearFilter;
@@ -209,8 +211,8 @@ export class NavCube {
       const tex = makeFaceTexture(text);
       if (!tex) return null;
       const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthTest: true, depthWrite: false });
-      // Уменьшаем паддинги плашки: максимально приближаем к размеру грани
-      const plane = new THREE.Mesh(new THREE.PlaneGeometry(0.995, 0.995), mat);
+      // Уменьшаем размер плашки для лучшего размещения текста
+      const plane = new THREE.Mesh(new THREE.PlaneGeometry(0.98, 0.98), mat);
       // Ориентируем плоскость, чтобы нормаль смотрела как normal
       const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal);
       plane.setRotationFromQuaternion(q);
