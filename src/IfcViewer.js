@@ -292,35 +292,24 @@ export class IfcViewer {
   _createInterface() {
     // Основная разметка просмотрщика
     const html = `
-      <div class="ifc-viewer-container" style="width: 100%; height: 100%; position: relative; display: flex; flex-direction: column;">
+      <div class="ifc-viewer-container" style="width: 100%; height: 100%; position: relative; display: flex; flex-direction: column; border:0px red solid;">
         <!-- Верхняя панель управления -->
-        <div id="ifcToolbar" class="navbar bg-neutral text-neutral-content shrink-0 px-4" style="${this.options.showToolbar ? '' : 'display: none;'}">
-          <div class="navbar-start">
-            <span class="text-lg font-semibold">IFC Viewer</span>
-          </div>
-          <div class="navbar-end flex gap-2">
-            <!-- Качество рендеринга -->
-            <div class="join">
-              <button class="btn btn-sm join-item" id="ifcQualLow">Low</button>
-              <button class="btn btn-sm join-item btn-active" id="ifcQualMed">Med</button>
-              <button class="btn btn-sm join-item" id="ifcQualHigh">High</button>
-            </div>
+        <div id="ifcToolbar" class="d-flex px-4" style="border:0px red solid; width: 250px; position: absolute; z-index: 1000; justify-content:space-between;  bottom: 5px; left: calc(50% - 125px); ">
+          
+          <div class="navbar-end flex gap-2">                   
             
             <!-- Стили отображения -->
             <div class="join">
-              <button class="btn btn-sm join-item btn-active" id="ifcToggleEdges">Edges</button>
-              <button class="btn btn-sm join-item btn-active" id="ifcToggleShading">Flat</button>
+              <button class="btn btn-sm join-item btn-active" id="ifcToggleEdges"><svg width="24" height="24" xmlns="http://www.w3.org/2000/svg" class="c-tree__icon c-tree__icon--3d"><g fill="#252A3F" fill-rule="nonzero"><path d="M12.5 5L6.005 8.75v7.5L12.5 20l6.495-3.75v-7.5L12.5 5zm0-1.155l7.495 4.328v8.654L12.5 21.155l-7.495-4.328V8.173L12.5 3.845z"></path><path d="M12 12v8.059h1V12z"></path><path d="M5.641 9.157l7.045 4.025.496-.868-7.045-4.026z"></path><path d="M18.863 8.288l-7.045 4.026.496.868 7.045-4.025z"></path></g></svg></button>              
             </div>
             
             <!-- Секущие плоскости -->
             <div class="join">
-              <button class="btn btn-sm join-item" id="ifcClipX">Clip X</button>
-              <button class="btn btn-sm join-item" id="ifcClipY">Clip Y</button>
-              <button class="btn btn-sm join-item" id="ifcClipZ">Clip Z</button>
+              <button class="btn btn-sm join-item" id="ifcClipX" style="margin-right:2px"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" class="MuiSvgIcon-root MuiSvgIcon-fontSizeLarge" focusable="false" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.6 3v9.07l3.87-1.72a2 2 0 01.81-.17 2.08 2.08 0 011.77 3.09 1.09 1.09 0 01-.56.56l-4.36 1.94L21.6 21V9z"></path><path d="M4.74 15.33l9.14-4.07a1 1 0 011.32.51 1 1 0 01-.51 1.32l-9.14 4.07 4 1.52L9 20l-6.6-2.53 2.53-6.6 1.32.51z"></path></svg></button>
+              <button class="btn btn-sm join-item" id="ifcClipZ" style="margin-right:2px"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" class="MuiSvgIcon-root MuiSvgIcon-fontSizeLarge" focusable="false" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 13.82a1.09 1.09 0 01-.56-.56 2.08 2.08 0 011.78-3.09 2 2 0 01.81.17l3.87 1.72V3l-11 6v12l9.54-5.2z"></path><path d="M17.24 11.37l1.32-.51 2.53 6.6L14.5 20l-.5-1.32 4-1.52-9.18-4.07a1 1 0 01-.51-1.32 1 1 0 011.32-.51l9.14 4.07z"></path></svg></button>
+              <button class="btn btn-sm join-item" id="ifcClipY" style="margin-right:2px"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" class="MuiSvgIcon-root MuiSvgIcon-fontSizeLarge" focusable="false" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.25 11.18v3.52A1.87 1.87 0 0111 15.88a1 1 0 01-.32-.72V11.1l-9 4.5L12.45 21l9.9-5.4z"></path><path d="M8.85 8.4L8 7.5 12.45 3 17 7.5l-.9.9-2.7-2.7v9a.9.9 0 01-.9.9.9.9 0 01-.9-.9v-9z"></path></svg></button>
             </div>
-            
-            <!-- Кнопка загрузки файла -->
-            <button id="ifcUploadBtnTop" class="btn btn-sm bg-white text-black">📁 Загрузить</button>
+                                 
           </div>
         </div>
 
@@ -389,13 +378,7 @@ export class IfcViewer {
         <div id="ifcSidebarToggleContainer" class="absolute top-4 left-4 z-30" style="display: none;">
           <button id="ifcSidebarToggle" class="btn btn-primary btn-sm">☰</button>
         </div>
-
-        <!-- Панель управления (дополнительные кнопки) -->
-        <div id="ifcControls" class="absolute top-4 left-4 z-30" style="${this.options.showControls ? 'margin-top: 3rem;' : 'display: none;'}">
-          <!-- Кнопка загрузки -->
-          <button id="ifcUploadBtn" class="btn btn-secondary btn-sm">📁</button>
-          <input type="file" id="ifcFileInput" accept=".ifc,.ifczip,.zip" style="display: none;">
-        </div>
+       
 
         <!-- Панель зума (будет создана Viewer'ом) -->
         <div id="ifcZoomPanel" class="absolute bottom-4 right-4 z-30"></div>

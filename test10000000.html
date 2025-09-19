@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ru" data-theme="light" class="h-dvh overflow-hidden">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IFC Viewer Test</title>
+  </head>
+  <body class="h-full overflow-hidden bg-base-100 text-base-content">
+    <div id="viewer-container" class="w-full h-full"></div>
+    
+    <script type="module">
+      import { IfcViewer } from './src/index.js';
+      
+      // Создаем экземпляр IfcViewer
+      const viewer = new IfcViewer({
+        container: '#viewer-container',
+        showSidebar: true,
+        showControls: true,
+        showToolbar: true,
+        autoLoad: false
+      });
+      
+      // Скрываем заставку сразу после инициализации
+      setTimeout(() => {
+        const preloader = document.querySelector('#ifcPreloader');
+        if (preloader) {
+          preloader.style.display = 'none';
+        }
+      }, 1000);
+      
+      // Инициализируем просмотрщик
+      try {
+        await viewer.init();
+        console.log('IFC Viewer успешно инициализирован');
+      } catch (error) {
+        console.error('Ошибка инициализации IFC Viewer:', error);
+      }
+    </script>
+  </body>
+</html>
