@@ -5,7 +5,8 @@ import { IFCLoader } from "web-ifc-three/IFCLoader.js";
 // Примечание: IFCWorker не используется, так как мы отключаем Web Workers
 // для стабильности работы в различных окружениях
 
-// Патч совместимости будет применен после инициализации WASM
+// Применяем патч совместимости сразу при импорте
+import '../compat/three-compat-patch.js';
 
 export class IfcService {
   /**
@@ -40,9 +41,6 @@ export class IfcService {
       
       // Настройка конфигурации web-ifc
       this._setupWebIfcConfig();
-      
-      // Применяем патч совместимости Three.js после успешной инициализации
-      this._applyThreeJsPatch();
       
     } catch (error) {
       console.error('IfcService: критическая ошибка инициализации:', error);
@@ -113,22 +111,6 @@ export class IfcService {
     }
   }
 
-  /**
-   * Применяет патч совместимости для Three.js 0.149+
-   * @private
-   */
-  _applyThreeJsPatch() {
-    try {
-      // Динамически импортируем патч совместимости
-      import('../compat/three-compat-patch.js').then(() => {
-        console.log('✅ IfcService: Патч совместимости Three.js применен');
-      }).catch(error => {
-        console.warn('IfcService: не удалось применить патч совместимости:', error.message);
-      });
-    } catch (error) {
-      console.warn('IfcService: ошибка при применении патча совместимости:', error.message);
-    }
-  }
 
   /**
    * Обработка критических ошибок инициализации
