@@ -70,17 +70,18 @@ try {
     globalThis.__THREE_BUFFER_GEOMETRY_UTILS_PATCH__ = patchedUtils;
   }
   
-  // Патчим модуль BufferGeometryUtils через import.meta
+  // Патчим модуль BufferGeometryUtils через Promise (без top-level await)
   if (typeof import.meta !== 'undefined' && import.meta.glob) {
-    // Для Vite - патчим через import.meta.glob
-    try {
-      const utilsModule = await import('three/examples/jsm/utils/BufferGeometryUtils.js');
+    // Для Vite - патчим через Promise
+    import('three/examples/jsm/utils/BufferGeometryUtils.js').then(utilsModule => {
       if (utilsModule && !utilsModule.mergeGeometries) {
         utilsModule.mergeGeometries = mergeGeometries;
+        console.log('✅ Three.js патч: mergeGeometries добавлен в BufferGeometryUtils модуль');
       }
-    } catch (e) {
+    }).catch(e => {
       // Игнорируем ошибки импорта
-    }
+      console.warn('Three.js патч: не удалось загрузить BufferGeometryUtils модуль:', e.message);
+    });
   }
   
   console.log('✅ Three.js патч: BufferGeometryUtils готов для web-ifc-three');
