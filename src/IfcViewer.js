@@ -293,8 +293,16 @@ export class IfcViewer {
     // Основная разметка просмотрщика
     const html = `
       <div class="ifc-viewer-container" style="width: 100%; height: 100%; position: relative; display: flex; flex-direction: column; border:0px red solid;">
+       <!-- Прелоадер -->
+        <div id="ifcPreloader" class="absolute inset-0 bg-base-100 flex items-center justify-center z-50">
+          <div class="text-center">
+            <span class="loading loading-spinner loading-lg"></span>
+            <div class="mt-2 text-sm opacity-70">Загрузка модели...</div>
+          </div>
+        </div>
+
         <!-- Верхняя панель управления -->
-        <div id="ifcToolbar" class="d-flex px-4" style="border:0px red solid; width: 250px; position: absolute; z-index: 1000; justify-content:space-between;  bottom: 5px; left: calc(50% - 125px); ">
+        <div id="ifcToolbar" class="d-flex px-4" style="border:0px red solid; width: 250px; position: absolute; z-index: 1000; justify-content:space-between;  bottom: 10px; left: calc(50% - 125px); ">
           
           <div class="navbar-end flex gap-2">                   
             
@@ -311,36 +319,7 @@ export class IfcViewer {
             </div>
                                  
           </div>
-        </div>
-
-        <!-- Слайдеры секущих плоскостей (изначально скрыты) -->
-        <div id="ifcClipControls" class="bg-base-200 px-4 py-2 border-b border-base-300" style="display: ${this.options.showToolbar ? 'none' : 'none'};">
-          <div class="flex items-center gap-4 text-sm">
-            <!-- Слайдер X -->
-            <div id="ifcClipXControl" class="flex items-center gap-2" style="display: none;">
-              <span class="w-12">Clip X:</span>
-              <input type="range" id="ifcClipXRange" class="range range-sm flex-1" min="0" max="1" step="0.01" value="0.5">
-            </div>
-            <!-- Слайдер Y -->
-            <div id="ifcClipYControl" class="flex items-center gap-2" style="display: none;">
-              <span class="w-12">Clip Y:</span>
-              <input type="range" id="ifcClipYRange" class="range range-sm flex-1" min="0" max="1" step="0.01" value="0.5">
-            </div>
-            <!-- Слайдер Z -->
-            <div id="ifcClipZControl" class="flex items-center gap-2" style="display: none;">
-              <span class="w-12">Clip Z:</span>
-              <input type="range" id="ifcClipZRange" class="range range-sm flex-1" min="0" max="1" step="0.01" value="0.5">
-            </div>
-          </div>
-        </div>
-
-        <!-- Прелоадер -->
-        <div id="ifcPreloader" class="absolute inset-0 bg-base-100 flex items-center justify-center z-50">
-          <div class="text-center">
-            <span class="loading loading-spinner loading-lg"></span>
-            <div class="mt-2 text-sm opacity-70">Загрузка модели...</div>
-          </div>
-        </div>
+        </div>              
 
         <!-- Основной контейнер просмотрщика -->
         <div id="ifcViewerMain" class="w-full flex-1 relative"></div>
