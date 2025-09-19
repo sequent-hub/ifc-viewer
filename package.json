@@ -1,9 +1,9 @@
 {
   "name": "@sequent-org/ifc-viewer",
   "private": false,
-  "version": "1.1.0",
+  "version": "1.2.1",
   "type": "module",
-  "description": "IFC 3D model viewer component for web applications",
+  "description": "IFC 3D model viewer component for web applications - fully self-contained with local IFCLoader",
   "main": "src/index.js",
   "module": "src/index.js",
   "exports": {
@@ -13,8 +13,7 @@
   },
   "files": [
     "src/",
-    "README.md",
-    "patches/"
+    "README.md"
   ],
   "keywords": ["ifc", "3d", "viewer", "bim", "three.js", "web-ifc"],
   "repository": {
@@ -26,16 +25,13 @@
     "dev": "vite",
     "build": "vite build", 
     "preview": "vite preview",
-    "test:manual": "vite dev --open test.html",
-    "postinstall": "patch-package"
+    "test:manual": "vite dev --open test.html"
   },
   "devDependencies": {
-    "vite": "^7.1.2",
-    "patch-package": "^8.0.0"
+    "vite": "^7.1.2"
   },
   "dependencies": {
     "three": "^0.149.0",
-    "web-ifc": "^0.0.39",
-    "web-ifc-three": "^0.0.126"
+    "web-ifc": "^0.0.39"
   }
 }
