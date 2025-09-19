@@ -1,7 +1,7 @@
 {
   "name": "@sequent-org/ifc-viewer",
   "private": false,
-  "version": "1.2.1",
+  "version": "1.2.2",
   "type": "module",
   "description": "IFC 3D model viewer component for web applications - fully self-contained with local IFCLoader",
   "main": "src/index.js",
