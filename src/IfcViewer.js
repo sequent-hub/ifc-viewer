@@ -14,6 +14,18 @@ import { Viewer } from "./viewer/Viewer.js";
 import { IfcService } from "./ifc/IfcService.js";
 import { IfcTreeView } from "./ifc/IfcTreeView.js";
 
+// Загружаем стили при импорте IfcViewer
+if (typeof window !== 'undefined' && !document.querySelector('style[data-ifc-viewer]')) {
+  import('./style.css').then(() => {
+    // Добавляем маркер, что стили загружены
+    const style = document.createElement('style');
+    style.setAttribute('data-ifc-viewer', 'loaded');
+    document.head.appendChild(style);
+  }).catch(error => {
+    console.warn('IfcViewer: не удалось загрузить стили:', error.message);
+  });
+}
+
 export class IfcViewer {
   /**
    * Создаёт новый экземпляр IfcViewer
