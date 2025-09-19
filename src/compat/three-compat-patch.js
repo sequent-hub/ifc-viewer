@@ -4,6 +4,14 @@
 import * as THREE from 'three';
 import { mergeBufferGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
+// Создаем патч для модуля BufferGeometryUtils
+const originalBufferGeometryUtils = {
+  mergeBufferGeometries: mergeBufferGeometries
+};
+
+// Добавляем mergeGeometries как алиас для mergeBufferGeometries
+originalBufferGeometryUtils.mergeGeometries = mergeBufferGeometries;
+
 // Создаем совместимую функцию mergeGeometries
 function createMergeGeometries() {
   return function mergeGeometries(geometries, useGroups = false) {
@@ -74,7 +82,12 @@ try {
   if (typeof import.meta !== 'undefined' && import.meta.glob) {
     // Для Vite - патчим через Promise
     import('three/examples/jsm/utils/BufferGeometryUtils.js').then(utilsModule => {
-      if (utilsModule && !utilsModule.mergeGeometries) {
+      if (utilsModule) {
+        // Добавляем mergeGeometries как алиас для mergeBufferGeometries
+        if (!utilsModule.mergeGeometries) {
+          utilsModule.mergeGeometries = mergeBufferGeometries;
+        }
+        // Также добавляем наш совместимый патч
         utilsModule.mergeGeometries = mergeGeometries;
         console.log('✅ Three.js патч: mergeGeometries добавлен в BufferGeometryUtils модуль');
       }
@@ -82,6 +95,22 @@ try {
       // Игнорируем ошибки импорта
       console.warn('Three.js патч: не удалось загрузить BufferGeometryUtils модуль:', e.message);
     });
+  }
+
+  // Патчим глобальный импорт для web-ifc-three
+  if (typeof globalThis !== 'undefined') {
+    // Создаем глобальный патч для импорта
+    globalThis.__THREE_BUFFER_GEOMETRY_UTILS__ = originalBufferGeometryUtils;
+    
+    // Патчим возможные импорты web-ifc-three
+    const originalImport = globalThis.import || (() => {});
+    globalThis.import = function(module) {
+      if (module === 'three/examples/jsm/utils/BufferGeometryUtils' || 
+          module === 'three/examples/jsm/utils/BufferGeometryUtils.js') {
+        return Promise.resolve(originalBufferGeometryUtils);
+      }
+      return originalImport(module);
+    };
   }
   
   console.log('✅ Three.js патч: BufferGeometryUtils готов для web-ifc-three');
