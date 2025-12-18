@@ -71,7 +71,9 @@ export class IfcService {
   }
 
   /**
-   * Получает список путей к WASM файлу в порядке приоритета
+   * Получает список путей к WASM в порядке приоритета.
+   * ВАЖНО: web-ifc сам добавляет имя файла web-ifc.wasm к переданному пути,
+   * поэтому здесь указываем директории, а не полный путь до файла.
    * @private
    */
   _getWasmPaths() {
@@ -83,12 +85,14 @@ export class IfcService {
     }
     
     // 2. Популярные пути по умолчанию (в порядке приоритета)
+    //    Ожидаемый итоговый URL после SetWasmPath(path):
+    //      path + 'web-ifc.wasm'
     paths.push(
-      '/node_modules/web-ifc/web-ifc.wasm', // Прямо из node_modules (самый надежный)
-      '/wasm/web-ifc.wasm',           // Стандартный путь в public/wasm/
-      '/web-ifc.wasm',                // Корневой путь
-      './web-ifc.wasm',               // Относительный путь
-      'web-ifc.wasm'                  // Просто имя файла
+      '/wasm/',                  // Стандартный путь: public/wasm/web-ifc.wasm
+      '/node_modules/web-ifc/',  // Прямо из node_modules
+      '/',                       // Корень dev-сервера
+      './',                      // Относительный путь
+      ''                         // Пусть библиотека сама определит путь
     );
     
     return paths;

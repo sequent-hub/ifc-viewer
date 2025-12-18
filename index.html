@@ -4,98 +4,24 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="/src/style.css" />
-    <title>3D </title>
+    <title>IFC Viewer</title>
   </head>
-  <body class="h-full flex flex-col overflow-hidden bg-base-100 text-base-content">
-    <div class="navbar bg-neutral text-neutral-content shrink-0">
-      <div class="navbar-start">
-        <div class="dropdown">
-          <div tabindex="0" role="button" class="btn btn-ghost lg:hidden" aria-label="Открыть меню">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
-          </div>
-          <ul tabindex="0" class="menu menu-sm dropdown-content bg-base-200 rounded-box z-10 mt-3 w-52 p-2 shadow">
-            <li><a>Главная</a></li>
-            <li><a>О нас</a></li>
-            <li><a>Контакты</a></li>
-          </ul>
-        </div>
-        <a class="btn btn-ghost text-xl">3D Viewer</a>
-      </div>
-      <div class="navbar-end hidden lg:flex gap-2">
-        <div class="join mr-2">
-          <button class="btn join-item" id="qualLow">Low</button>
-          <button class="btn join-item btn-active" id="qualMed">Med</button>
-          <button class="btn join-item" id="qualHigh">High</button>
-        </div>
-        <div class="join mr-2">
-          <button class="btn join-item" id="toggleEdges">Edges</button>
-          <button class="btn join-item" id="toggleShading">Flat</button>
-        </div>
-        <div class="join mr-2">
-          <button class="btn join-item" id="clipX">Clip X</button>
-          <button class="btn join-item" id="clipY">Clip Y</button>
-          <button class="btn join-item" id="clipZ">Clip Z</button>
-        </div>
-        <button id="uploadBtn" class="btn bg-white text-black">Загрузить модель</button>
-      </div>      
-    </div>
-    
-    <div id="app" class="w-full flex-1 relative min-h-0 overflow-hidden">
-      <!-- Кнопка открытия левой панели -->
-      <button id="sidebarToggle" class="btn btn-square btn-sm absolute left-3 top-3 z-30">☰</button>
+  <body class="h-dvh overflow-hidden bg-base-100 text-base-content">
+    <!--
+      Чистый полноэкранный контейнер для трёхмерного просмотрщика.
+      Вся логика (инициализация Viewer, IfcService и автозагрузка IFC)
+      реализована в файле src/main.js.
 
-      <!-- ЛЕВАЯ ПАНЕЛЬ IFC -->
-      <div id="ifcSidebar" class="absolute inset-y-0 left-0 z-30 w-80 max-w-[80%] -translate-x-full transition-transform duration-300 ease-in-out pointer-events-none">
-        <div class="h-full bg-base-200/95 backdrop-blur-md shadow-xl border-r border-base-300 flex flex-col">
-          <div class="p-3 flex items-center justify-between border-b border-base-300">
-            <div class="font-semibold">IFC Structure</div>
-            <button id="sidebarClose" class="btn btn-ghost btn-sm">✕</button>
-          </div>
-          <div id="ifcInfo" class="p-3 text-xs opacity-80 border-b border-base-300"></div>
-          <div id="ifcActions" class="px-3 py-2 border-b border-base-300 flex items-center gap-2">
-            <label class="label cursor-pointer justify-start gap-2">
-              <input id="ifcIsolateToggle" type="checkbox" class="toggle toggle-sm" />
-              <span class="label-text text-xs">Скрывать остальные</span>
-            </label>
-          </div>
-          <div id="ifcTree" class="flex-1 overflow-auto p-2"></div>
-        </div>
-      </div>
-      <div id="preloader" class="fixed inset-0 z-50 bg-black text-white opacity-100 transition-opacity duration-500 will-change-[opacity]">
-        <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[150px] h-[150px]">
-          <svg viewBox="0 0 100 100" class="w-full h-full">
-            <g fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="6">
-              <path d="M 21 40 V 59">
-                <animateTransform attributeName="transform" attributeType="XML" type="rotate" values="0 21 59; 180 21 59" dur="2s" repeatCount="indefinite" />
-              </path>
-              <path d="M 79 40 V 59">
-                <animateTransform attributeName="transform" attributeType="XML" type="rotate" values="0 79 59; -180 79 59" dur="2s" repeatCount="indefinite" />
-              </path>
-              <path d="M 50 21 V 40">
-                <animate attributeName="d" values="M 50 21 V 40; M 50 59 V 40" dur="2s" repeatCount="indefinite" />
-              </path>
-              <path d="M 50 60 V 79">
-                <animate attributeName="d" values="M 50 60 V 79; M 50 98 V 79" dur="2s" repeatCount="indefinite" />
-              </path>
-              <path d="M 50 21 L 79 40 L 50 60 L 21 40 Z">
-                <animate attributeName="stroke" values="rgba(255,255,255,1); rgba(100,100,100,0)" dur="2s" repeatCount="indefinite" />
-              </path>
-              <path d="M 50 40 L 79 59 L 50 79 L 21 59 Z"/>
-              <path d="M 50 59 L 79 78 L 50 98 L 21 78 Z">
-                <animate attributeName="stroke" values="rgba(100,100,100,0); rgba(255,255,255,1)" dur="2s" repeatCount="indefinite" />
-              </path>
-              <animateTransform attributeName="transform" attributeType="XML" type="translate" values="0 0; 0 -19" dur="2s" repeatCount="indefinite" />
-            </g>
-          </svg>
-        </div>
-      </div>
-      <input id="ifcInput" type="file" accept=".ifc,.ifczip,.ifs" class="hidden" />
-      <div id="zoomPanel" class="absolute bottom-4 right-4 join invisible">
-        <button id="zoomOut" class="btn join-item">-</button>
-        <div id="zoomValue" class="btn join-item btn-ghost select-none">100%</div>
-        <button id="zoomIn" class="btn join-item">+</button>
-      </div>
-    </div>
+      По умолчанию src/main.js загружает модель по пути:
+        /ifc/170ОК-23_1_1_АР_П.ifc
+      что соответствует файлу:
+        public/ifc/170ОК-23_1_1_АР_П.ifc
+    -->
+    <div id="app" class="w-full h-full relative overflow-hidden"></div>
+
+    <!-- Точка входа приложения -->
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
+
+
