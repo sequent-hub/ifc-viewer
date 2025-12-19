@@ -22,7 +22,37 @@
       <aside
         id="leftPanel"
         style="width:320px; height:100%; border-right:1px solid rgba(0,0,0,0.08); background:rgba(255,255,255,0.9);"
-      ></aside>
+      >
+        <!-- Панель свойств (пока минимальная) -->
+        <div style="padding:12px;">
+          <div style="font-size:12px; font-weight:600; opacity:0.75; margin-bottom:10px;">Свойства</div>
+
+          <label style="display:flex; align-items:center; gap:10px; user-select:none;">
+            <input id="shadowToggle" type="checkbox" />
+            <span>Тень</span>
+          </label>
+
+          <div style="height:10px;"></div>
+
+          <label style="display:flex; align-items:center; gap:10px; user-select:none;">
+            <input id="sunToggle" type="checkbox" checked />
+            <span>Солнце</span>
+          </label>
+
+          <div style="height:12px;"></div>
+
+          <div style="font-size:12px; opacity:0.8; margin-bottom:6px;">Высота солнца: <span id="sunHeightValue">5.0</span></div>
+          <input
+            id="sunHeight"
+            type="range"
+            min="0.0"
+            max="50.0"
+            step="0.1"
+            value="5.0"
+            style="width:100%;"
+          />
+        </div>
+      </aside>
       <div style="flex:1; height:100%;">
         <div id="app" class="w-full h-full relative overflow-hidden"></div>
       </div>

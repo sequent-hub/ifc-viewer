@@ -8,6 +8,44 @@ const app = document.getElementById("app");
 if (app) {
   const viewer = new Viewer(app);
   viewer.init();
+
+  // Панель свойств: тени
+  const shadowToggle = document.getElementById("shadowToggle");
+  if (shadowToggle) {
+    // По умолчанию тени выключены
+    shadowToggle.checked = false;
+    viewer.setShadowsEnabled(false);
+    shadowToggle.addEventListener("change", (e) => {
+      viewer.setShadowsEnabled(!!e.target.checked);
+    });
+  }
+
+  // Панель свойств: солнце (глобальное освещение)
+  const sunToggle = document.getElementById("sunToggle");
+  const sunHeight = document.getElementById("sunHeight");
+  const sunHeightValue = document.getElementById("sunHeightValue");
+  if (sunToggle) {
+    // По умолчанию включено
+    sunToggle.checked = true;
+    viewer.setSunEnabled(true);
+    sunToggle.addEventListener("change", (e) => {
+      const on = !!e.target.checked;
+      viewer.setSunEnabled(on);
+      if (sunHeight) sunHeight.disabled = !on;
+    });
+  }
+  if (sunHeight) {
+    // Дефолт синхронизирован с Viewer.init() (позиция солнца: y=5)
+    sunHeight.value = "5.0";
+    if (sunHeightValue) sunHeightValue.textContent = "5.0";
+    viewer.setSunHeight(5.0);
+    sunHeight.disabled = !(sunToggle ? !!sunToggle.checked : true);
+    sunHeight.addEventListener("input", (e) => {
+      const v = Number(e.target.value);
+      if (sunHeightValue) sunHeightValue.textContent = v.toFixed(1);
+      viewer.setSunHeight(v);
+    });
+  }
   // IFC загрузка
   const ifc = new IfcService(viewer);
   ifc.init();

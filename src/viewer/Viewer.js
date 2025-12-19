@@ -30,6 +30,14 @@ export class Viewer {
     // Плоскость под моделью (приёмник теней). Ничего не "включает" само по себе:
     // если тени в рендерере отключены — плоскость останется невидимой.
     this.shadowReceiver = null;
+    // Управление тенями через публичный API
+    this.shadowsEnabled = false;
+    /** @type {THREE.DirectionalLight|null} */
+    this.sunLight = null;
+    /** @type {THREE.AmbientLight|null} */
+    this.ambientLight = null;
+    // Базовые координаты солнца (чтобы менять только высоту по Y)
+    this._sunBaseXZ = { x: 5, z: 5 };
     this.clipping = {
       enabled: false,
       planes: [
@@ -88,6 +96,9 @@ export class Viewer {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.autoClear = false; // управляем очисткой вручную для мульти-проходов
+    // Тени по умолчанию выключены (включаются только через setShadowsEnabled)
+    this.renderer.shadowMap.enabled = false;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     // Спрячем канвас до первого корректного измерения
     this.renderer.domElement.style.visibility = "hidden";
     this.renderer.domElement.style.display = "block";
@@ -116,10 +127,17 @@ export class Viewer {
     this.controls.maxDistance = 20;
 
     // Свет
-    this.scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+    const amb = new THREE.AmbientLight(0xffffff, 0.6);
+    this.scene.add(amb);
+    this.ambientLight = amb;
     const dir = new THREE.DirectionalLight(0xffffff, 0.8);
     dir.position.set(5, 5, 5);
+    // Тени у источника тоже включаются только через setShadowsEnabled
+    dir.castShadow = false;
+    dir.shadow.mapSize.set(2048, 2048);
     this.scene.add(dir);
+    this.sunLight = dir;
+    this._sunBaseXZ = { x: dir.position.x, z: dir.position.z };
 
     // Плоскость-приёмник теней (под моделью). Позицию/размер выставим, когда появится модель.
     this.#ensureShadowReceiver();
@@ -506,10 +524,10 @@ export class Viewer {
     // Подчеркнуть грани: полигон оффсет + контуры
     object3D.traverse?.((node) => {
       if (node.isMesh) {
-        // Не включаем тени в рендерере/свете — но если они где-то включены,
-        // меши смогут бросать тень на приёмник.
-        node.castShadow = true;
-        node.receiveShadow = true;
+        // Тени управляются единообразно через setShadowsEnabled()
+        node.castShadow = !!this.shadowsEnabled;
+        // Важно: тени на самом здании отключаем, оставляем только на земле
+        node.receiveShadow = false;
         this.#applyPolygonOffsetToMesh(node, this.flatShading);
         this.#attachEdgesToMesh(node, this.edgesVisible);
       }
@@ -610,9 +628,9 @@ export class Viewer {
     const plane = new THREE.Mesh(geo, mat);
     plane.name = "shadow-receiver";
     plane.rotation.x = -Math.PI / 2;
-    plane.receiveShadow = true;
+    plane.receiveShadow = !!this.shadowsEnabled;
     plane.castShadow = false;
-    plane.visible = true;
+    plane.visible = !!this.shadowsEnabled;
     // Чуть выше, чтобы избежать z-fighting с "нулевым" уровнем
     plane.position.set(0, -9999, 0); // спрячем до первого апдейта по модели
     this.scene.add(plane);
@@ -637,6 +655,21 @@ export class Viewer {
       this.shadowReceiver.position.set(center.x, minY + 0.001, center.z);
       this.shadowReceiver.scale.set(Math.max(0.001, size.x * dimMul), Math.max(0.001, size.z * dimMul), 1);
       this.shadowReceiver.updateMatrixWorld();
+
+      // Подгоняем shadow-camera направленного света под габариты плоскости,
+      // чтобы при включении теней они не "обрезались" слишком маленькой областью.
+      if (this.sunLight) {
+        const cam = this.sunLight.shadow.camera;
+        const halfX = (size.x * dimMul) / 2;
+        const halfZ = (size.z * dimMul) / 2;
+        cam.left = -halfX;
+        cam.right = halfX;
+        cam.top = halfZ;
+        cam.bottom = -halfZ;
+        cam.near = 0.1;
+        cam.far = Math.max(50, size.y * 6);
+        cam.updateProjectionMatrix();
+      }
     } catch (_) {}
   }
 
@@ -686,18 +719,79 @@ export class Viewer {
     // Настройки рендера
     if (preset === 'low') {
       this.renderer.setPixelRatio(1);
-      this.renderer.shadowMap.enabled = false;
+      this.renderer.shadowMap.enabled = !!this.shadowsEnabled;
       this.controls.enableDamping = false;
     } else if (preset === 'high') {
       this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-      this.renderer.shadowMap.enabled = false;
+      this.renderer.shadowMap.enabled = !!this.shadowsEnabled;
       this.controls.enableDamping = true;
     } else {
       // medium
       this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
-      this.renderer.shadowMap.enabled = false;
+      this.renderer.shadowMap.enabled = !!this.shadowsEnabled;
       this.controls.enableDamping = true;
     }
+  }
+
+  /**
+   * Включить/выключить тени.
+   * Управляет shadowMap, castShadow/receiveShadow и видимостью приёмника.
+   * @param {boolean} enabled
+   */
+  setShadowsEnabled(enabled) {
+    const next = !!enabled;
+    this.shadowsEnabled = next;
+
+    if (this.renderer) {
+      this.renderer.shadowMap.enabled = next;
+    }
+    if (this.sunLight) {
+      this.sunLight.castShadow = next;
+    }
+    if (this.shadowReceiver) {
+      this.shadowReceiver.visible = next;
+      this.shadowReceiver.receiveShadow = next;
+    }
+    if (this.activeModel) {
+      this.activeModel.traverse?.((node) => {
+        if (!node?.isMesh) return;
+        node.castShadow = next;
+        // Важно: тени на самом здании отключаем, оставляем только на земле
+        node.receiveShadow = false;
+      });
+    }
+  }
+
+  /**
+   * Включить/выключить глобальное освещение сцены ("Солнце"):
+   * directional light + ambient light.
+   * @param {boolean} enabled
+   */
+  setSunEnabled(enabled) {
+    const next = !!enabled;
+    if (this.sunLight) {
+      this.sunLight.visible = next;
+      // Если солнце выключено — тени от него бессмысленны
+      this.sunLight.castShadow = next && !!this.shadowsEnabled;
+    }
+    if (this.ambientLight) {
+      this.ambientLight.visible = next;
+    }
+  }
+
+  /**
+   * Регулировка высоты солнца (Y координата DirectionalLight).
+   * Чем ниже солнце — тем тени длиннее.
+   * @param {number} y
+   */
+  setSunHeight(y) {
+    if (!this.sunLight) return;
+    const nextY = Number.isFinite(y) ? y : this.sunLight.position.y;
+    const clamped = Math.max(0, nextY);
+    this.sunLight.position.set(this._sunBaseXZ.x, clamped, this._sunBaseXZ.z);
+    this.sunLight.updateMatrixWorld();
+    // При активных тенях обновим shadow-camera (ориентация/проекция)
+    try { this.sunLight.shadow?.camera?.updateProjectionMatrix?.(); } catch (_) {}
   }
 
   // --- Clipping API ---
