@@ -27,6 +27,9 @@ export class Viewer {
     this.quality = 'medium'; // low | medium | high
     this.navCube = null;
     this.sectionOverlayScene = null;
+    // Плоскость под моделью (приёмник теней). Ничего не "включает" само по себе:
+    // если тени в рендерере отключены — плоскость останется невидимой.
+    this.shadowReceiver = null;
     this.clipping = {
       enabled: false,
       planes: [
@@ -117,6 +120,9 @@ export class Viewer {
     const dir = new THREE.DirectionalLight(0xffffff, 0.8);
     dir.position.set(5, 5, 5);
     this.scene.add(dir);
+
+    // Плоскость-приёмник теней (под моделью). Позицию/размер выставим, когда появится модель.
+    this.#ensureShadowReceiver();
 
     // Демонстрационный куб отключён для чистого прелоадера
     // Оставим сцену пустой до загрузки модели
@@ -321,6 +327,12 @@ export class Viewer {
         }
       });
     }
+    if (this.shadowReceiver) {
+      try { this.scene?.remove(this.shadowReceiver); } catch (_) {}
+      try { this.shadowReceiver.geometry?.dispose?.(); } catch (_) {}
+      try { this.shadowReceiver.material?.dispose?.(); } catch (_) {}
+      this.shadowReceiver = null;
+    }
     if (this.sectionOverlayScene) {
       this.sectionOverlayScene.traverse((obj) => {
         if (obj.isMesh) {
@@ -488,9 +500,16 @@ export class Viewer {
     this.activeModel = object3D;
     this.scene.add(object3D);
 
+    // Пересчитать плоскость под моделью (3x по площади bbox по X/Z)
+    this.#updateShadowReceiverFromModel(object3D);
+
     // Подчеркнуть грани: полигон оффсет + контуры
     object3D.traverse?.((node) => {
       if (node.isMesh) {
+        // Не включаем тени в рендерере/свете — но если они где-то включены,
+        // меши смогут бросать тень на приёмник.
+        node.castShadow = true;
+        node.receiveShadow = true;
         this.#applyPolygonOffsetToMesh(node, this.flatShading);
         this.#attachEdgesToMesh(node, this.edgesVisible);
       }
@@ -580,6 +599,45 @@ export class Viewer {
     };
     if (Array.isArray(mesh.material)) mesh.material.forEach(apply);
     else apply(mesh.material);
+  }
+
+  #ensureShadowReceiver() {
+    if (!this.scene || this.shadowReceiver) return;
+    // ShadowMaterial рисует только тени, сама плоскость прозрачная.
+    // Если тени отключены — визуально ничего не изменится.
+    const mat = new THREE.ShadowMaterial({ opacity: 0.25 });
+    const geo = new THREE.PlaneGeometry(1, 1, 1, 1);
+    const plane = new THREE.Mesh(geo, mat);
+    plane.name = "shadow-receiver";
+    plane.rotation.x = -Math.PI / 2;
+    plane.receiveShadow = true;
+    plane.castShadow = false;
+    plane.visible = true;
+    // Чуть выше, чтобы избежать z-fighting с "нулевым" уровнем
+    plane.position.set(0, -9999, 0); // спрячем до первого апдейта по модели
+    this.scene.add(plane);
+    this.shadowReceiver = plane;
+  }
+
+  #updateShadowReceiverFromModel(model) {
+    if (!model) return;
+    this.#ensureShadowReceiver();
+    if (!this.shadowReceiver) return;
+    try {
+      const box = new THREE.Box3().setFromObject(model);
+      const size = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
+      const minY = box.min.y;
+
+      // Требование: площадь плоскости = 3x площади объекта (bbox по X/Z).
+      // => множитель по размерам = sqrt(3).
+      const areaMultiplier = 3;
+      const dimMul = Math.sqrt(areaMultiplier);
+
+      this.shadowReceiver.position.set(center.x, minY + 0.001, center.z);
+      this.shadowReceiver.scale.set(Math.max(0.001, size.x * dimMul), Math.max(0.001, size.z * dimMul), 1);
+      this.shadowReceiver.updateMatrixWorld();
+    } catch (_) {}
   }
 
   #attachEdgesToMesh(mesh, visible) {
