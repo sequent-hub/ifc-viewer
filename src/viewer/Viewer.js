@@ -823,6 +823,11 @@ export class Viewer {
   }
 
   #updateRotationAxisLine() {
+    // Визуализацию оси вращения временно отключаем:
+    // логика вычисления оси и создание линии оставлены в коде,
+    // но сейчас просто не показываем её, чтобы не мешала.
+    return;
+
     if (!this.camera || !this.controls) return;
     // Порог по экранному движению
     if (this._recentPointerDelta < this._pointerPxThreshold) return;
