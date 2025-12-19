@@ -19,6 +19,21 @@
     -->
     <div id="app" class="w-full h-full relative overflow-hidden"></div>
 
+    <!-- Панель управления для тестовой страницы -->
+    <div
+      id="ifcToolbar"
+      style="position:fixed; bottom:16px; left:50%; transform:translateX(-50%); z-index:9999; display:flex; gap:8px; align-items:center; justify-content:center;"
+    >
+      <!-- Стили отображения -->
+      <button class="btn btn-sm" id="toggleEdges" title="Показать/скрыть рёбра">Edges</button>
+      <!-- Секущие плоскости -->
+      <div style="display:flex; gap:4px;">
+        <button class="btn btn-sm" id="clipX" title="Сечение по X">X</button>
+        <button class="btn btn-sm" id="clipY" title="Сечение по Y">Y</button>
+        <button class="btn btn-sm" id="clipZ" title="Сечение по Z">Z</button>
+      </div>
+    </div>
+
     <!-- Точка входа приложения -->
     <script type="module" src="/src/main.js"></script>
   </body>

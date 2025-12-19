@@ -22,7 +22,7 @@ export class Viewer {
     this.demoCube = null;
     this.activeModel = null;
     this.autoRotateDemo = true;
-    this.edgesVisible = true;
+    this.edgesVisible = false;
     this.flatShading = true;
     this.quality = 'medium'; // low | medium | high
     this.navCube = null;
@@ -50,7 +50,7 @@ export class Viewer {
     this._home = {
       cameraPos: null,
       target: new THREE.Vector3(0, 0, 0),
-      edgesVisible: true,
+      edgesVisible: false,
       flatShading: true,
       quality: 'medium',
       clipEnabled: [Infinity, Infinity, Infinity],

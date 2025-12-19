@@ -69,7 +69,9 @@ if (app) {
   qualMed?.addEventListener("click", () => { viewer.setQuality('medium'); setActive(qualMed); });
   qualHigh?.addEventListener("click", () => { viewer.setQuality('high'); setActive(qualHigh); });
 
-  let edgesOn = true;
+  // Рёбра по умолчанию выключены
+  let edgesOn = false;
+  viewer.setEdgesVisible(edgesOn);
   toggleEdges?.addEventListener("click", () => { edgesOn = !edgesOn; viewer.setEdgesVisible(edgesOn); });
   let flatOn = true;
   toggleShading?.addEventListener("click", () => { flatOn = !flatOn; viewer.setFlatShading(flatOn); });

@@ -80,7 +80,7 @@ export class IfcViewer {
     // Внутренние состояния управления
     this.viewerState = {
       quality: 'medium', // 'low' | 'medium' | 'high'
-      edgesVisible: true,
+      edgesVisible: false,
       flatShading: true,
       clipping: {
         x: false,
@@ -298,7 +298,7 @@ export class IfcViewer {
             
             <!-- Стили отображения -->
             <div class="join">
-              <button class="btn btn-sm join-item btn-active" id="ifcToggleEdges"><svg width="24" height="24" xmlns="http://www.w3.org/2000/svg" class="c-tree__icon c-tree__icon--3d"><g fill="#252A3F" fill-rule="nonzero"><path d="M12.5 5L6.005 8.75v7.5L12.5 20l6.495-3.75v-7.5L12.5 5zm0-1.155l7.495 4.328v8.654L12.5 21.155l-7.495-4.328V8.173L12.5 3.845z"></path><path d="M12 12v8.059h1V12z"></path><path d="M5.641 9.157l7.045 4.025.496-.868-7.045-4.026z"></path><path d="M18.863 8.288l-7.045 4.026.496.868 7.045-4.025z"></path></g></svg></button>              
+              <button class="btn btn-sm join-item" id="ifcToggleEdges"><svg width="24" height="24" xmlns="http://www.w3.org/2000/svg" class="c-tree__icon c-tree__icon--3d"><g fill="#252A3F" fill-rule="nonzero"><path d="M12.5 5L6.005 8.75v7.5L12.5 20l6.495-3.75v-7.5L12.5 5zm0-1.155l7.495 4.328v8.654L12.5 21.155l-7.495-4.328V8.173L12.5 3.845z"></path><path d="M12 12v8.059h1V12z"></path><path d="M5.641 9.157l7.045 4.025.496-.868-7.045-4.026z"></path><path d="M18.863 8.288l-7.045 4.026.496.868 7.045-4.025z"></path></g></svg></button>              
             </div>
             
             <!-- Секущие плоскости -->
