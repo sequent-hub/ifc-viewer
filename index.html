@@ -28,7 +28,7 @@
           <div style="font-size:12px; font-weight:600; opacity:0.75; margin-bottom:10px;">Свойства</div>
 
           <label style="display:flex; align-items:center; gap:10px; user-select:none;">
-            <input id="shadowToggle" type="checkbox" />
+            <input id="shadowToggle" type="checkbox" checked />
             <span>Тень</span>
           </label>
 
@@ -41,16 +41,123 @@
 
           <div style="height:12px;"></div>
 
-          <div style="font-size:12px; opacity:0.8; margin-bottom:6px;">Высота солнца: <span id="sunHeightValue">5.0</span></div>
+          <div style="font-size:12px; opacity:0.8; margin-bottom:6px;">Высота солнца: <span id="sunHeightValue">5.9</span></div>
           <input
             id="sunHeight"
             type="range"
             min="0.0"
             max="50.0"
             step="0.1"
-            value="5.0"
+            value="5.9"
             style="width:100%;"
           />
+
+          <div style="height:16px;"></div>
+          <div style="font-size:12px; font-weight:600; opacity:0.75; margin-bottom:10px;">Тень (градиент)</div>
+
+          <label style="display:flex; align-items:center; gap:10px; user-select:none;">
+            <input id="shadowGradToggle" type="checkbox" checked />
+            <span>Градиент</span>
+          </label>
+
+          <div style="height:10px;"></div>
+          <div style="font-size:12px; opacity:0.8; margin-bottom:6px;">Длина: <span id="shadowGradLenValue">14.4</span></div>
+          <input id="shadowGradLen" type="range" min="0.1" max="200.0" step="0.1" value="14.4" style="width:100%;" />
+
+          <div style="height:10px;"></div>
+          <div style="font-size:12px; opacity:0.8; margin-bottom:6px;">Сила: <span id="shadowGradStrValue">1.00</span></div>
+          <input id="shadowGradStr" type="range" min="0.0" max="1.0" step="0.01" value="1.00" style="width:100%;" />
+
+          <div style="height:10px;"></div>
+          <div style="font-size:12px; opacity:0.8; margin-bottom:6px;">Кривая: <span id="shadowGradCurveValue">0.50</span></div>
+          <input id="shadowGradCurve" type="range" min="0.20" max="5.00" step="0.05" value="0.50" style="width:100%;" />
+
+          <div style="height:16px;"></div>
+          <div style="font-size:12px; font-weight:600; opacity:0.75; margin-bottom:10px;">Тень (мягкость)</div>
+
+          <div style="font-size:12px; opacity:0.8; margin-bottom:6px;">Прозрачность: <span id="shadowOpacityValue">0.14</span></div>
+          <input id="shadowOpacity" type="range" min="0.0" max="1.0" step="0.01" value="0.14" style="width:100%;" />
+
+          <div style="height:10px;"></div>
+          <div style="font-size:12px; opacity:0.8; margin-bottom:6px;">Мягкость края: <span id="shadowSoftValue">0.0</span></div>
+          <input id="shadowSoft" type="range" min="0.0" max="10.0" step="0.1" value="0.0" style="width:100%;" />
+
+          <div style="height:16px;"></div>
+          <div style="font-size:12px; font-weight:600; opacity:0.75; margin-bottom:10px;">Материал</div>
+
+          <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
+            <select id="matPreset" style="flex:1; padding:4px 6px;">
+              <option value="original">Оригинал</option>
+              <option value="matte">Матовый</option>
+              <option value="glossy">Глянцевый</option>
+              <option value="plastic" selected>Пластик</option>
+              <option value="concrete">Бетон</option>
+            </select>
+          </div>
+
+          <div style="font-size:12px; opacity:0.8; margin-bottom:6px;">Roughness: <span id="matRoughValue">0.18</span></div>
+          <input id="matRough" type="range" min="0.0" max="1.0" step="0.01" value="0.18" style="width:100%;" />
+
+          <div style="height:10px;"></div>
+          <div style="font-size:12px; opacity:0.8; margin-bottom:6px;">Metalness: <span id="matMetalValue">0.68</span></div>
+          <input id="matMetal" type="range" min="0.0" max="1.0" step="0.01" value="0.68" style="width:100%;" />
+
+          <div style="height:18px;"></div>
+          <div style="font-size:12px; font-weight:600; opacity:0.75; margin-bottom:10px;">Визуал (диагностика)</div>
+
+          <label style="display:flex; align-items:center; gap:10px; user-select:none; margin-bottom:8px;">
+            <input id="envToggle" type="checkbox" checked />
+            <span>Окружение (Environment)</span>
+          </label>
+          <div style="font-size:12px; opacity:0.8; margin-bottom:6px;">Env intensity: <span id="envIntValue">0.65</span></div>
+          <input id="envInt" type="range" min="0.0" max="5.0" step="0.05" value="0.65" style="width:100%;" />
+
+          <div style="height:12px;"></div>
+
+          <label style="display:flex; align-items:center; gap:10px; user-select:none; margin-bottom:8px;">
+            <input id="toneToggle" type="checkbox" checked />
+            <span>ACES + sRGB</span>
+          </label>
+          <div style="font-size:12px; opacity:0.8; margin-bottom:6px;">Exposure: <span id="exposureValue">1.11</span></div>
+          <input id="exposure" type="range" min="0.10" max="2.50" step="0.01" value="1.11" style="width:100%;" />
+
+          <div style="height:12px;"></div>
+
+          <label style="display:flex; align-items:center; gap:10px; user-select:none; margin-bottom:8px;">
+            <input id="aoToggle" type="checkbox" checked />
+            <span>AO (SSAO)</span>
+          </label>
+          <div style="font-size:12px; opacity:0.8; margin-bottom:6px;">AO intensity: <span id="aoIntValue">0.52</span></div>
+          <input id="aoInt" type="range" min="0.0" max="2.0" step="0.01" value="0.52" style="width:100%;" />
+          <div style="height:10px;"></div>
+          <div style="font-size:12px; opacity:0.8; margin-bottom:6px;">AO radius: <span id="aoRadValue">8</span></div>
+          <input id="aoRad" type="range" min="1" max="64" step="1" value="8" style="width:100%;" />
+
+          <div style="height:12px;"></div>
+          <button class="btn btn-sm" id="dumpVisual" style="width:100%;">Dump (console)</button>
+
+          <div style="height:18px;"></div>
+          <div style="font-size:12px; font-weight:600; opacity:0.75; margin-bottom:10px;">Цвет</div>
+
+          <label style="display:flex; align-items:center; gap:10px; user-select:none; margin-bottom:8px;">
+            <input id="ccToggle" type="checkbox" />
+            <span>Цветокор</span>
+          </label>
+
+          <div style="font-size:12px; opacity:0.8; margin-bottom:6px;">Hue: <span id="ccHueValue">0.00</span></div>
+          <input id="ccHue" type="range" min="-1.00" max="1.00" step="0.01" value="0.00" style="width:100%;" />
+
+          <div style="height:10px;"></div>
+          <div style="font-size:12px; opacity:0.8; margin-bottom:6px;">Saturation: <span id="ccSatValue">0.00</span></div>
+          <input id="ccSat" type="range" min="-1.00" max="1.00" step="0.01" value="0.00" style="width:100%;" />
+
+          <div style="height:10px;"></div>
+          <div style="font-size:12px; opacity:0.8; margin-bottom:6px;">Brightness: <span id="ccBriValue">0.00</span></div>
+          <input id="ccBri" type="range" min="-1.00" max="1.00" step="0.01" value="0.00" style="width:100%;" />
+
+          <div style="height:10px;"></div>
+          <div style="font-size:12px; opacity:0.8; margin-bottom:6px;">Contrast: <span id="ccConValue">0.00</span></div>
+          <input id="ccCon" type="range" min="-1.00" max="1.00" step="0.01" value="0.00" style="width:100%;" />
         </div>
       </aside>
       <div style="flex:1; height:100%;">

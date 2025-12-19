@@ -3,6 +3,13 @@
 
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
+import { SSAOPass } from "three/examples/jsm/postprocessing/SSAOPass.js";
+import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
+import { HueSaturationShader } from "three/examples/jsm/shaders/HueSaturationShader.js";
+import { BrightnessContrastShader } from "three/examples/jsm/shaders/BrightnessContrastShader.js";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { NavCube } from "./NavCube.js";
 import { SectionManipulator } from "./SectionManipulator.js";
 
@@ -31,13 +38,60 @@ export class Viewer {
     // если тени в рендерере отключены — плоскость останется невидимой.
     this.shadowReceiver = null;
     // Управление тенями через публичный API
-    this.shadowsEnabled = false;
+    this.shadowsEnabled = true;
     /** @type {THREE.DirectionalLight|null} */
     this.sunLight = null;
     /** @type {THREE.AmbientLight|null} */
     this.ambientLight = null;
     // Базовые координаты солнца (чтобы менять только высоту по Y)
     this._sunBaseXZ = { x: 5, z: 5 };
+    // Параметры градиента тени на земле (модифицирует только ShadowMaterial приёмника)
+    this.shadowGradient = {
+      enabled: true,
+      // Длина градиента (в мировых единицах, от контура bbox здания наружу)
+      length: 14.4,
+      // 0..1 — насколько тень "растворяется" на дальнем краю
+      strength: 1.0,
+      // Кривая затухания (нелинейность). 1 = линейно, >1 = дольше темно у здания, быстрее растворение в конце.
+      curve: 0.5,
+      // bbox здания в XZ (центр и halfSize)
+      buildingCenterXZ: new THREE.Vector2(0, 0),
+      buildingHalfSizeXZ: new THREE.Vector2(0.5, 0.5),
+      // ссылка на скомпилированный шейдер ShadowMaterial (для обновления uniforms)
+      _shader: null,
+    };
+    // Настройки вида тени
+    this.shadowStyle = {
+      opacity: 0.14,  // прозрачность тени на земле (ShadowMaterial.opacity)
+      softness: 0.0,  // мягкость края (DirectionalLight.shadow.radius)
+    };
+
+    // Материалы (пресеты)
+    this.materialStyle = {
+      preset: 'original', // original | matte | glossy | plastic | concrete
+      roughness: null,    // override (0..1) или null = использовать пресет
+      metalness: null,    // override (0..1) или null = использовать пресет
+    };
+    /** @type {WeakMap<THREE.Mesh, any>} */
+    this._meshOriginalMaterial = new WeakMap();
+    /** @type {WeakMap<any, any>} */
+    this._origToConvertedMaterial = new WeakMap();
+
+    // Визуал: диагностика (по умолчанию ВСЁ выключено, чтобы не менять стартовую картинку)
+    this.visual = {
+      environment: { enabled: false, intensity: 1.0 },
+      tone: { enabled: false, exposure: 1.0 },
+      ao: { enabled: false, intensity: 0.75, radius: 12, minDistance: 0.001, maxDistance: 0.2 },
+      color: { enabled: false, hue: 0.0, saturation: 0.0, brightness: 0.0, contrast: 0.0 },
+    };
+    this._baselineRenderer = null;
+    this._pmrem = null;
+    this._roomEnvTex = null;
+    this._composer = null;
+    this._renderPass = null;
+    this._ssaoPass = null;
+    this._hueSatPass = null;
+    this._bcPass = null;
     this.clipping = {
       enabled: false,
       planes: [
@@ -106,6 +160,14 @@ export class Viewer {
     this.renderer.domElement.style.height = "100%";
     this.container.appendChild(this.renderer.domElement);
 
+    // Базовые настройки рендера для корректного "выкл"
+    this._baselineRenderer = {
+      outputEncoding: this.renderer.outputEncoding,
+      outputColorSpace: this.renderer.outputColorSpace,
+      toneMapping: this.renderer.toneMapping,
+      toneMappingExposure: this.renderer.toneMappingExposure,
+    };
+
     // Сцена
     this.scene = new THREE.Scene();
     // Оверлей-сцена для секущих манипуляторов (без клиппинга)
@@ -131,16 +193,22 @@ export class Viewer {
     this.scene.add(amb);
     this.ambientLight = amb;
     const dir = new THREE.DirectionalLight(0xffffff, 0.8);
-    dir.position.set(5, 5, 5);
+    dir.position.set(5, 5.9, 5);
     // Тени у источника тоже включаются только через setShadowsEnabled
     dir.castShadow = false;
     dir.shadow.mapSize.set(2048, 2048);
+    dir.shadow.radius = this.shadowStyle.softness;
     this.scene.add(dir);
     this.sunLight = dir;
     this._sunBaseXZ = { x: dir.position.x, z: dir.position.z };
 
     // Плоскость-приёмник теней (под моделью). Позицию/размер выставим, когда появится модель.
     this.#ensureShadowReceiver();
+
+    // Применим дефолтные флаги после создания света/приёмника
+    this.setSunEnabled(true);
+    this.setSunHeight(5.9);
+    this.setShadowsEnabled(this.shadowsEnabled);
 
     // Демонстрационный куб отключён для чистого прелоадера
     // Оставим сцену пустой до загрузки модели
@@ -267,7 +335,12 @@ export class Viewer {
       this.#updateClippingGizmos();
       // Рендер основной сцены
       this.renderer.clear(true, true, true);
-      this.renderer.render(this.scene, this.camera);
+      const useComposer = !!(this._composer && (this.visual?.ao?.enabled || this.visual?.color?.enabled));
+      if (useComposer) {
+        this._composer.render();
+      } else {
+        this.renderer.render(this.scene, this.camera);
+      }
       // Рендер оверлея манипуляторов без глобального клиппинга поверх
       const prevLocal = this.renderer.localClippingEnabled;
       const prevPlanes = this.renderer.clippingPlanes;
@@ -321,6 +394,14 @@ export class Viewer {
       this.renderer.dispose();
       const el = this.renderer.domElement;
       if (el && el.parentNode) el.parentNode.removeChild(el);
+    }
+    if (this._composer) {
+      try { this._composer.dispose?.(); } catch (_) {}
+      this._composer = null;
+      this._renderPass = null;
+      this._ssaoPass = null;
+      this._hueSatPass = null;
+      this._bcPass = null;
     }
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();
@@ -491,6 +572,12 @@ export class Viewer {
     this.camera.updateProjectionMatrix();
     // Третий аргумент false — не менять стилевые размеры, только буфер
     this.renderer.setSize(width, height, false);
+    if (this._composer) {
+      try { this._composer.setSize(width, height); } catch (_) {}
+    }
+    if (this._ssaoPass?.setSize) {
+      try { this._ssaoPass.setSize(width, height); } catch (_) {}
+    }
   }
 
   _dispatchReady() {
@@ -532,6 +619,9 @@ export class Viewer {
         this.#attachEdgesToMesh(node, this.edgesVisible);
       }
     });
+
+    // Материальный пресет (если выбран не original)
+    this.#applyMaterialStyleToModel(object3D);
 
     // Настроим пределы зума и сфокусируемся на новой модели
     this.applyAdaptiveZoomLimits(object3D, { padding: 1.2, slack: 2.5, minRatio: 0.05, recenter: true });
@@ -623,7 +713,86 @@ export class Viewer {
     if (!this.scene || this.shadowReceiver) return;
     // ShadowMaterial рисует только тени, сама плоскость прозрачная.
     // Если тени отключены — визуально ничего не изменится.
-    const mat = new THREE.ShadowMaterial({ opacity: 0.25 });
+    const mat = new THREE.ShadowMaterial({ opacity: this.shadowStyle.opacity });
+    // Градиент тени: модифицируем шейдер только приёмника (не влияет на остальные материалы)
+    mat.onBeforeCompile = (shader) => {
+      // uniforms
+      shader.uniforms.uShadowGradEnabled = { value: this.shadowGradient.enabled ? 1.0 : 0.0 };
+      shader.uniforms.uShadowGradLength = { value: this.shadowGradient.length };
+      shader.uniforms.uShadowGradStrength = { value: this.shadowGradient.strength };
+      shader.uniforms.uShadowGradCurve = { value: this.shadowGradient.curve };
+      shader.uniforms.uBuildingCenterXZ = { value: this.shadowGradient.buildingCenterXZ.clone() };
+      shader.uniforms.uBuildingHalfSizeXZ = { value: this.shadowGradient.buildingHalfSizeXZ.clone() };
+
+      // сохраняем ссылку для последующих обновлений
+      this.shadowGradient._shader = shader;
+
+      // varying world position
+      if (!shader.vertexShader.includes('varying vec3 vWorldPosition')) {
+        shader.vertexShader = shader.vertexShader.replace(
+          '#include <common>',
+          '#include <common>\nvarying vec3 vWorldPosition;'
+        );
+      }
+      // worldpos_vertex в three определяет worldPosition; используем его
+      shader.vertexShader = shader.vertexShader.replace(
+        '#include <worldpos_vertex>',
+        '#include <worldpos_vertex>\n  vWorldPosition = worldPosition.xyz;'
+      );
+
+      if (!shader.fragmentShader.includes('varying vec3 vWorldPosition')) {
+        shader.fragmentShader = shader.fragmentShader.replace(
+          '#include <common>',
+          '#include <common>\nvarying vec3 vWorldPosition;\n' +
+            'uniform float uShadowGradEnabled;\n' +
+            'uniform float uShadowGradLength;\n' +
+            'uniform float uShadowGradStrength;\n' +
+            'uniform float uShadowGradCurve;\n' +
+            'uniform vec2 uBuildingCenterXZ;\n' +
+            'uniform vec2 uBuildingHalfSizeXZ;\n' +
+            'float distToRect(vec2 p, vec2 c, vec2 h) {\n' +
+            '  vec2 d = abs(p - c) - h;\n' +
+            '  return length(max(d, 0.0));\n' +
+            '}\n'
+            + 'float computeShadowGrad(vec3 worldPos) {\n' +
+            '  if (uShadowGradEnabled <= 0.5) return 1.0;\n' +
+            '  float d = distToRect(worldPos.xz, uBuildingCenterXZ, uBuildingHalfSizeXZ);\n' +
+            '  float t = clamp(d / max(1e-6, uShadowGradLength), 0.0, 1.0);\n' +
+            '  float fade = smoothstep(0.0, 1.0, t);\n' +
+            '  fade = pow(fade, max(0.05, uShadowGradCurve));\n' +
+            '  return 1.0 - clamp(uShadowGradStrength, 0.0, 1.0) * fade;\n' +
+            '}\n'
+        );
+      }
+
+      let injected = false;
+      if (shader.fragmentShader.includes('#include <dithering_fragment>')) {
+        shader.fragmentShader = shader.fragmentShader.replace(
+          '#include <dithering_fragment>',
+          'gl_FragColor.a *= computeShadowGrad(vWorldPosition);\n#include <dithering_fragment>'
+        );
+        injected = true;
+      } else if (shader.fragmentShader.includes('#include <fog_fragment>')) {
+        shader.fragmentShader = shader.fragmentShader.replace(
+          '#include <fog_fragment>',
+          'gl_FragColor.a *= computeShadowGrad(vWorldPosition);\n#include <fog_fragment>'
+        );
+        injected = true;
+      } else {
+        // Фолбэк: домножаем перед последней закрывающей скобкой файла
+        const before = shader.fragmentShader;
+        shader.fragmentShader = shader.fragmentShader.replace(/\}\s*$/, '  gl_FragColor.a *= computeShadowGrad(vWorldPosition);\n}');
+        injected = before !== shader.fragmentShader;
+      }
+
+      // Диагностика (в консоль только если не удалось встроиться ожидаемым способом)
+      if (!injected) {
+        console.warn('[shadowReceiverGradient] Injection failed: no insertion point found');
+      }
+    };
+    // стабильный ключ для кеша программы (чтобы onBeforeCompile применялся предсказуемо)
+    mat.customProgramCacheKey = () => 'shadowReceiverGradient-v1';
+
     const geo = new THREE.PlaneGeometry(1, 1, 1, 1);
     const plane = new THREE.Mesh(geo, mat);
     plane.name = "shadow-receiver";
@@ -656,6 +825,13 @@ export class Viewer {
       this.shadowReceiver.scale.set(Math.max(0.001, size.x * dimMul), Math.max(0.001, size.z * dimMul), 1);
       this.shadowReceiver.updateMatrixWorld();
 
+      // Обновим bbox здания для градиента тени (в XZ)
+      this.shadowGradient.buildingCenterXZ.set(center.x, center.z);
+      this.shadowGradient.buildingHalfSizeXZ.set(Math.max(0.001, size.x / 2), Math.max(0.001, size.z / 2));
+      // Важно: длину градиента НЕ автокорректируем по размеру здания.
+      // Она задаётся пользователем/дефолтами через setShadowGradientLength().
+      this.#applyShadowGradientUniforms();
+
       // Подгоняем shadow-camera направленного света под габариты плоскости,
       // чтобы при включении теней они не "обрезались" слишком маленькой областью.
       if (this.sunLight) {
@@ -671,6 +847,17 @@ export class Viewer {
         cam.updateProjectionMatrix();
       }
     } catch (_) {}
+  }
+
+  #applyShadowGradientUniforms() {
+    const shader = this.shadowGradient?._shader;
+    if (!shader) return;
+    if (shader.uniforms?.uShadowGradEnabled) shader.uniforms.uShadowGradEnabled.value = this.shadowGradient.enabled ? 1.0 : 0.0;
+    if (shader.uniforms?.uShadowGradLength) shader.uniforms.uShadowGradLength.value = this.shadowGradient.length;
+    if (shader.uniforms?.uShadowGradStrength) shader.uniforms.uShadowGradStrength.value = this.shadowGradient.strength;
+    if (shader.uniforms?.uShadowGradCurve) shader.uniforms.uShadowGradCurve.value = this.shadowGradient.curve;
+    if (shader.uniforms?.uBuildingCenterXZ) shader.uniforms.uBuildingCenterXZ.value.copy(this.shadowGradient.buildingCenterXZ);
+    if (shader.uniforms?.uBuildingHalfSizeXZ) shader.uniforms.uBuildingHalfSizeXZ.value.copy(this.shadowGradient.buildingHalfSizeXZ);
   }
 
   #attachEdgesToMesh(mesh, visible) {
@@ -747,11 +934,18 @@ export class Viewer {
     }
     if (this.sunLight) {
       this.sunLight.castShadow = next;
+      this.sunLight.shadow.radius = this.shadowStyle.softness;
     }
     if (this.shadowReceiver) {
       this.shadowReceiver.visible = next;
       this.shadowReceiver.receiveShadow = next;
+      // Прозрачность тени на земле
+      if (this.shadowReceiver.material && 'opacity' in this.shadowReceiver.material) {
+        this.shadowReceiver.material.opacity = this.shadowStyle.opacity;
+        this.shadowReceiver.material.needsUpdate = true;
+      }
     }
+    this.#applyShadowGradientUniforms();
     if (this.activeModel) {
       this.activeModel.traverse?.((node) => {
         if (!node?.isMesh) return;
@@ -760,6 +954,448 @@ export class Viewer {
         node.receiveShadow = false;
       });
     }
+  }
+
+  /**
+   * Прозрачность тени на земле (0..1).
+   * Это opacity у ShadowMaterial приёмника.
+   * @param {number} opacity
+   */
+  setShadowOpacity(opacity) {
+    const v = Number(opacity);
+    if (!Number.isFinite(v)) return;
+    this.shadowStyle.opacity = Math.min(1, Math.max(0, v));
+    if (this.shadowReceiver?.material && 'opacity' in this.shadowReceiver.material) {
+      this.shadowReceiver.material.opacity = this.shadowStyle.opacity;
+      this.shadowReceiver.material.needsUpdate = true;
+    }
+  }
+
+  /**
+   * Мягкость края тени (radius для PCFSoftShadowMap).
+   * @param {number} softness
+   */
+  setShadowSoftness(softness) {
+    const v = Number(softness);
+    if (!Number.isFinite(v)) return;
+    this.shadowStyle.softness = Math.max(0, v);
+    if (this.sunLight) {
+      this.sunLight.shadow.radius = this.shadowStyle.softness;
+    }
+  }
+
+  // ===================== Materials =====================
+  /**
+   * Установить пресет материалов для модели.
+   * @param {'original'|'matte'|'glossy'|'plastic'|'concrete'} preset
+   */
+  setMaterialPreset(preset) {
+    const allowed = new Set(['original', 'matte', 'glossy', 'plastic', 'concrete']);
+    const next = allowed.has(preset) ? preset : 'original';
+    this.materialStyle.preset = next;
+    // При смене пресета сбрасываем ручные override-ы (чтобы пресет был предсказуемым)
+    this.materialStyle.roughness = null;
+    this.materialStyle.metalness = null;
+    this.#applyMaterialStyleToModel(this.activeModel);
+  }
+
+  // ===================== Visual diagnostics (Environment / Tone / AO) =====================
+  setEnvironmentEnabled(enabled) {
+    const next = !!enabled;
+    this.visual.environment.enabled = next;
+    if (next) this.#ensureEnvironment();
+    if (this.scene) this.scene.environment = next ? this._roomEnvTex : null;
+    this.#applyEnvIntensityToModel(this.activeModel);
+  }
+
+  setEnvironmentIntensity(intensity) {
+    const v = Number(intensity);
+    if (!Number.isFinite(v)) return;
+    this.visual.environment.intensity = Math.min(5, Math.max(0, v));
+    this.#applyEnvIntensityToModel(this.activeModel);
+  }
+
+  setToneMappingEnabled(enabled) {
+    const next = !!enabled;
+    this.visual.tone.enabled = next;
+    this.#applyToneSettings();
+  }
+
+  setExposure(exposure) {
+    const v = Number(exposure);
+    if (!Number.isFinite(v)) return;
+    this.visual.tone.exposure = Math.min(2.5, Math.max(0.1, v));
+    this.#applyToneSettings();
+  }
+
+  setAOEnabled(enabled) {
+    const next = !!enabled;
+    this.visual.ao.enabled = next;
+    if (next) this.#ensureComposer();
+    if (this._ssaoPass) this._ssaoPass.enabled = next;
+  }
+
+  // ===== Color correction =====
+  setColorCorrectionEnabled(enabled) {
+    const next = !!enabled;
+    this.visual.color.enabled = next;
+    if (next) this.#ensureComposer();
+    if (this._hueSatPass) this._hueSatPass.enabled = next;
+    if (this._bcPass) this._bcPass.enabled = next;
+    this.#applyColorCorrectionUniforms();
+  }
+
+  setColorHue(hue) {
+    const v = Number(hue);
+    if (!Number.isFinite(v)) return;
+    this.visual.color.hue = Math.min(1, Math.max(-1, v));
+    this.#applyColorCorrectionUniforms();
+  }
+
+  setColorSaturation(sat) {
+    const v = Number(sat);
+    if (!Number.isFinite(v)) return;
+    this.visual.color.saturation = Math.min(1, Math.max(-1, v));
+    this.#applyColorCorrectionUniforms();
+  }
+
+  setColorBrightness(brightness) {
+    const v = Number(brightness);
+    if (!Number.isFinite(v)) return;
+    this.visual.color.brightness = Math.min(1, Math.max(-1, v));
+    this.#applyColorCorrectionUniforms();
+  }
+
+  setColorContrast(contrast) {
+    const v = Number(contrast);
+    if (!Number.isFinite(v)) return;
+    this.visual.color.contrast = Math.min(1, Math.max(-1, v));
+    this.#applyColorCorrectionUniforms();
+  }
+
+  #applyColorCorrectionUniforms() {
+    if (this._hueSatPass?.uniforms) {
+      this._hueSatPass.uniforms.hue.value = this.visual.color.hue ?? 0.0;
+      this._hueSatPass.uniforms.saturation.value = this.visual.color.saturation ?? 0.0;
+    }
+    if (this._bcPass?.uniforms) {
+      this._bcPass.uniforms.brightness.value = this.visual.color.brightness ?? 0.0;
+      this._bcPass.uniforms.contrast.value = this.visual.color.contrast ?? 0.0;
+    }
+  }
+
+  setAOIntensity(intensity) {
+    const v = Number(intensity);
+    if (!Number.isFinite(v)) return;
+    this.visual.ao.intensity = Math.min(2, Math.max(0, v));
+    if (this._ssaoPass) this._ssaoPass.intensity = this.visual.ao.intensity;
+  }
+
+  setAORadius(radius) {
+    const v = Number(radius);
+    if (!Number.isFinite(v)) return;
+    this.visual.ao.radius = Math.min(64, Math.max(1, Math.round(v)));
+    if (this._ssaoPass) this._ssaoPass.kernelRadius = this.visual.ao.radius;
+  }
+
+  dumpVisualDebug() {
+    const r = this.renderer;
+    const s = this.scene;
+    const model = this.activeModel;
+    const mats = new Map();
+    const flags = { totalMeshes: 0, totalMaterials: 0, withMap: 0, withNormalMap: 0, withRoughnessMap: 0, withMetalnessMap: 0 };
+
+    model?.traverse?.((node) => {
+      if (!node?.isMesh) return;
+      flags.totalMeshes++;
+      const m = node.material;
+      const arr = Array.isArray(m) ? m : [m];
+      for (const mi of arr) {
+        if (!mi) continue;
+        flags.totalMaterials++;
+        const key = mi.type || 'UnknownMaterial';
+        mats.set(key, (mats.get(key) || 0) + 1);
+        if (mi.map) flags.withMap++;
+        if (mi.normalMap) flags.withNormalMap++;
+        if (mi.roughnessMap) flags.withRoughnessMap++;
+        if (mi.metalnessMap) flags.withMetalnessMap++;
+      }
+    });
+
+    // eslint-disable-next-line no-console
+    console.groupCollapsed('[Viewer] Visual dump');
+    // eslint-disable-next-line no-console
+    console.log('three', THREE.REVISION);
+    // eslint-disable-next-line no-console
+    console.log('renderer', {
+      outputEncoding: r?.outputEncoding,
+      outputColorSpace: r?.outputColorSpace,
+      toneMapping: r?.toneMapping,
+      toneMappingExposure: r?.toneMappingExposure,
+      physicallyCorrectLights: r?.physicallyCorrectLights,
+      useLegacyLights: r?.useLegacyLights,
+    });
+    // eslint-disable-next-line no-console
+    console.log('scene', { environment: !!s?.environment, background: !!s?.background });
+    // eslint-disable-next-line no-console
+    console.log('toggles', {
+      env: this.visual.environment,
+      tone: this.visual.tone,
+      ao: this.visual.ao,
+      materialPreset: this.materialStyle?.preset,
+    });
+    // eslint-disable-next-line no-console
+    console.log('model', flags);
+    // eslint-disable-next-line no-console
+    console.table(Object.fromEntries(mats.entries()));
+    // eslint-disable-next-line no-console
+    console.groupEnd();
+  }
+
+  #ensureEnvironment() {
+    if (!this.renderer || !this.scene) return;
+    if (!this._pmrem) this._pmrem = new THREE.PMREMGenerator(this.renderer);
+    if (this._roomEnvTex) return;
+    try {
+      const env = new RoomEnvironment();
+      const rt = this._pmrem.fromScene(env, 0.04);
+      this._roomEnvTex = rt.texture;
+      env.dispose?.();
+    } catch (_) {
+      this._roomEnvTex = null;
+    }
+  }
+
+  #applyEnvIntensityToModel(model) {
+    if (!model) return;
+    const intensity = this.visual?.environment?.intensity ?? 1.0;
+    model.traverse?.((node) => {
+      if (!node?.isMesh) return;
+      const m = node.material;
+      const arr = Array.isArray(m) ? m : [m];
+      for (const mi of arr) {
+        if (!mi) continue;
+        if ('envMapIntensity' in mi) mi.envMapIntensity = intensity;
+      }
+    });
+  }
+
+  #applyToneSettings() {
+    if (!this.renderer || !this._baselineRenderer) return;
+    const enabled = !!this.visual?.tone?.enabled;
+    if (enabled) {
+      // sRGB output
+      if ('outputColorSpace' in this.renderer && THREE.SRGBColorSpace) {
+        try { this.renderer.outputColorSpace = THREE.SRGBColorSpace; } catch (_) {}
+      } else if ('outputEncoding' in this.renderer && THREE.sRGBEncoding) {
+        this.renderer.outputEncoding = THREE.sRGBEncoding;
+      }
+      this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      this.renderer.toneMappingExposure = this.visual.tone.exposure ?? 1.0;
+    } else {
+      // restore baseline
+      if ('outputColorSpace' in this.renderer) {
+        try { this.renderer.outputColorSpace = this._baselineRenderer.outputColorSpace; } catch (_) {}
+      }
+      if ('outputEncoding' in this.renderer) {
+        this.renderer.outputEncoding = this._baselineRenderer.outputEncoding;
+      }
+      this.renderer.toneMapping = this._baselineRenderer.toneMapping;
+      this.renderer.toneMappingExposure = this._baselineRenderer.toneMappingExposure;
+    }
+  }
+
+  #ensureComposer() {
+    if (!this.renderer || !this.scene || !this.camera) return;
+    if (this._composer) return;
+    const { width, height } = this._getContainerSize();
+    const w = Math.max(1, Math.floor(width));
+    const h = Math.max(1, Math.floor(height));
+    this._composer = new EffectComposer(this.renderer);
+    this._renderPass = new RenderPass(this.scene, this.camera);
+    this._composer.addPass(this._renderPass);
+    this._ssaoPass = new SSAOPass(this.scene, this.camera, w, h);
+    this._ssaoPass.enabled = !!this.visual?.ao?.enabled;
+    this._ssaoPass.intensity = this.visual.ao.intensity;
+    this._ssaoPass.kernelRadius = this.visual.ao.radius;
+    this._ssaoPass.minDistance = this.visual.ao.minDistance;
+    this._ssaoPass.maxDistance = this.visual.ao.maxDistance;
+    this._composer.addPass(this._ssaoPass);
+
+    // Цветокоррекция (выключена по умолчанию, включается через setColorCorrectionEnabled)
+    this._hueSatPass = new ShaderPass(HueSaturationShader);
+    this._hueSatPass.enabled = !!this.visual?.color?.enabled;
+    this._composer.addPass(this._hueSatPass);
+
+    this._bcPass = new ShaderPass(BrightnessContrastShader);
+    this._bcPass.enabled = !!this.visual?.color?.enabled;
+    this._composer.addPass(this._bcPass);
+
+    this.#applyColorCorrectionUniforms();
+    try { this._composer.setSize(w, h); } catch (_) {}
+  }
+
+  /** @param {number|null} roughness */
+  setMaterialRoughness(roughness) {
+    if (roughness === null) {
+      this.materialStyle.roughness = null;
+    } else {
+      const v = Number(roughness);
+      if (!Number.isFinite(v)) return;
+      this.materialStyle.roughness = Math.min(1, Math.max(0, v));
+    }
+    this.#applyMaterialStyleToModel(this.activeModel);
+  }
+
+  /** @param {number|null} metalness */
+  setMaterialMetalness(metalness) {
+    if (metalness === null) {
+      this.materialStyle.metalness = null;
+    } else {
+      const v = Number(metalness);
+      if (!Number.isFinite(v)) return;
+      this.materialStyle.metalness = Math.min(1, Math.max(0, v));
+    }
+    this.#applyMaterialStyleToModel(this.activeModel);
+  }
+
+  #getMaterialPresetDefaults(preset) {
+    switch (preset) {
+      case 'matte': return { roughness: 0.90, metalness: 0.00 };
+      case 'glossy': return { roughness: 0.05, metalness: 0.00 };
+      case 'plastic': return { roughness: 0.35, metalness: 0.00 };
+      case 'concrete': return { roughness: 0.95, metalness: 0.00 };
+      default: return { roughness: null, metalness: null };
+    }
+  }
+
+  #ensureMeshOriginalMaterial(mesh) {
+    if (this._meshOriginalMaterial.has(mesh)) return;
+    this._meshOriginalMaterial.set(mesh, mesh.material);
+  }
+
+  #restoreOriginalMaterials(model) {
+    if (!model) return;
+    model.traverse?.((node) => {
+      if (!node?.isMesh) return;
+      const orig = this._meshOriginalMaterial.get(node);
+      if (orig) node.material = orig;
+    });
+  }
+
+  #getConvertedMaterial(origMat) {
+    if (!origMat) return origMat;
+    const cached = this._origToConvertedMaterial.get(origMat);
+    if (cached) return cached;
+
+    let converted = null;
+    try {
+      if (origMat.isMeshStandardMaterial || origMat.isMeshPhysicalMaterial) {
+        converted = origMat.clone();
+      } else {
+        converted = new THREE.MeshStandardMaterial();
+        if (origMat.color) converted.color = origMat.color.clone();
+        if ('map' in origMat) converted.map = origMat.map || null;
+        if ('alphaMap' in origMat) converted.alphaMap = origMat.alphaMap || null;
+        if ('transparent' in origMat) converted.transparent = !!origMat.transparent;
+        if ('opacity' in origMat) converted.opacity = Number(origMat.opacity ?? 1);
+        if ('side' in origMat) converted.side = origMat.side;
+        if ('alphaTest' in origMat) converted.alphaTest = Number(origMat.alphaTest ?? 0);
+        if ('depthWrite' in origMat) converted.depthWrite = !!origMat.depthWrite;
+        if ('depthTest' in origMat) converted.depthTest = !!origMat.depthTest;
+      }
+      // Сохраняем polygonOffset (важно для edges-overlay)
+      if ('polygonOffset' in origMat) converted.polygonOffset = !!origMat.polygonOffset;
+      if ('polygonOffsetFactor' in origMat) converted.polygonOffsetFactor = Number(origMat.polygonOffsetFactor ?? 0);
+      if ('polygonOffsetUnits' in origMat) converted.polygonOffsetUnits = Number(origMat.polygonOffsetUnits ?? 0);
+      converted.needsUpdate = true;
+    } catch (_) {
+      converted = origMat;
+    }
+
+    this._origToConvertedMaterial.set(origMat, converted);
+    return converted;
+  }
+
+  #applyMaterialStyleToModel(model) {
+    if (!model) return;
+    const preset = this.materialStyle.preset || 'original';
+    if (preset === 'original') {
+      this.#restoreOriginalMaterials(model);
+      return;
+    }
+
+    const defaults = this.#getMaterialPresetDefaults(preset);
+    const rough = (this.materialStyle.roughness !== null) ? this.materialStyle.roughness : defaults.roughness;
+    const metal = (this.materialStyle.metalness !== null) ? this.materialStyle.metalness : defaults.metalness;
+    const targetRough = (rough === null) ? 0.8 : rough;
+    const targetMetal = (metal === null) ? 0.0 : metal;
+
+    model.traverse?.((node) => {
+      if (!node?.isMesh) return;
+      this.#ensureMeshOriginalMaterial(node);
+      const orig = this._meshOriginalMaterial.get(node);
+      if (!orig) return;
+
+      const applyToMat = (m) => {
+        const cm = this.#getConvertedMaterial(m);
+        if (cm?.isMeshStandardMaterial || cm?.isMeshPhysicalMaterial) {
+          cm.roughness = targetRough;
+          cm.metalness = targetMetal;
+          cm.needsUpdate = true;
+        }
+        return cm;
+      };
+
+      if (Array.isArray(orig)) {
+        node.material = orig.map(applyToMat);
+      } else {
+        node.material = applyToMat(orig);
+      }
+    });
+  }
+
+  /**
+   * Включить/выключить градиент тени на земле.
+   * @param {boolean} enabled
+   */
+  setShadowGradientEnabled(enabled) {
+    this.shadowGradient.enabled = !!enabled;
+    this.#applyShadowGradientUniforms();
+  }
+
+  /**
+   * Длина градиента тени (в мировых единицах).
+   * @param {number} length
+   */
+  setShadowGradientLength(length) {
+    const v = Number(length);
+    if (!Number.isFinite(v)) return;
+    this.shadowGradient.length = Math.max(0.001, v);
+    this.#applyShadowGradientUniforms();
+  }
+
+  /**
+   * Сила градиента тени (0..1).
+   * @param {number} strength
+   */
+  setShadowGradientStrength(strength) {
+    const v = Number(strength);
+    if (!Number.isFinite(v)) return;
+    this.shadowGradient.strength = Math.min(1, Math.max(0, v));
+    this.#applyShadowGradientUniforms();
+  }
+
+  /**
+   * Кривая затухания градиента (нелинейность).
+   * 1 = линейно, >1 = дольше темно у основания, <1 = быстрее убывает в начале.
+   * @param {number} curve
+   */
+  setShadowGradientCurve(curve) {
+    const v = Number(curve);
+    if (!Number.isFinite(v)) return;
+    this.shadowGradient.curve = Math.max(0.05, v);
+    this.#applyShadowGradientUniforms();
   }
 
   /**

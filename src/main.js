@@ -11,12 +11,133 @@ if (app) {
 
   // Панель свойств: тени
   const shadowToggle = document.getElementById("shadowToggle");
+  const shadowGradToggle = document.getElementById("shadowGradToggle");
+  const shadowGradLen = document.getElementById("shadowGradLen");
+  const shadowGradLenValue = document.getElementById("shadowGradLenValue");
+  const shadowGradStr = document.getElementById("shadowGradStr");
+  const shadowGradStrValue = document.getElementById("shadowGradStrValue");
+  const shadowGradCurve = document.getElementById("shadowGradCurve");
+  const shadowGradCurveValue = document.getElementById("shadowGradCurveValue");
+  const shadowOpacity = document.getElementById("shadowOpacity");
+  const shadowOpacityValue = document.getElementById("shadowOpacityValue");
+  const shadowSoft = document.getElementById("shadowSoft");
+  const shadowSoftValue = document.getElementById("shadowSoftValue");
+  // Материалы
+  const matPreset = document.getElementById("matPreset");
+  const matRough = document.getElementById("matRough");
+  const matRoughValue = document.getElementById("matRoughValue");
+  const matMetal = document.getElementById("matMetal");
+  const matMetalValue = document.getElementById("matMetalValue");
+  // Визуал (диагностика)
+  const envToggle = document.getElementById("envToggle");
+  const envInt = document.getElementById("envInt");
+  const envIntValue = document.getElementById("envIntValue");
+  const toneToggle = document.getElementById("toneToggle");
+  const exposure = document.getElementById("exposure");
+  const exposureValue = document.getElementById("exposureValue");
+  const aoToggle = document.getElementById("aoToggle");
+  const aoInt = document.getElementById("aoInt");
+  const aoIntValue = document.getElementById("aoIntValue");
+  const aoRad = document.getElementById("aoRad");
+  const aoRadValue = document.getElementById("aoRadValue");
+  const dumpVisual = document.getElementById("dumpVisual");
+  // Цветокор
+  const ccToggle = document.getElementById("ccToggle");
+  const ccHue = document.getElementById("ccHue");
+  const ccHueValue = document.getElementById("ccHueValue");
+  const ccSat = document.getElementById("ccSat");
+  const ccSatValue = document.getElementById("ccSatValue");
+  const ccBri = document.getElementById("ccBri");
+  const ccBriValue = document.getElementById("ccBriValue");
+  const ccCon = document.getElementById("ccCon");
+  const ccConValue = document.getElementById("ccConValue");
   if (shadowToggle) {
-    // По умолчанию тени выключены
-    shadowToggle.checked = false;
-    viewer.setShadowsEnabled(false);
+    // Дефолт (из текущих подобранных значений)
+    shadowToggle.checked = true;
+    viewer.setShadowsEnabled(true);
     shadowToggle.addEventListener("change", (e) => {
-      viewer.setShadowsEnabled(!!e.target.checked);
+      const on = !!e.target.checked;
+      viewer.setShadowsEnabled(on);
+      // UI градиента имеет смысл только когда тени включены
+      if (shadowGradToggle) shadowGradToggle.disabled = !on;
+      if (shadowGradLen) shadowGradLen.disabled = !on;
+      if (shadowGradStr) shadowGradStr.disabled = !on;
+      if (shadowGradCurve) shadowGradCurve.disabled = !on;
+      if (shadowOpacity) shadowOpacity.disabled = !on;
+      if (shadowSoft) shadowSoft.disabled = !on;
+    });
+  }
+  // Градиент тени: по умолчанию включён, но элементы блокируем пока тени выключены
+  const syncGradUiEnabled = (enabled) => {
+    if (shadowGradToggle) shadowGradToggle.disabled = !enabled;
+    if (shadowGradLen) shadowGradLen.disabled = !enabled;
+    if (shadowGradStr) shadowGradStr.disabled = !enabled;
+    if (shadowGradCurve) shadowGradCurve.disabled = !enabled;
+    if (shadowOpacity) shadowOpacity.disabled = !enabled;
+    if (shadowSoft) shadowSoft.disabled = !enabled;
+  };
+  syncGradUiEnabled(true);
+
+  if (shadowGradToggle) {
+    shadowGradToggle.checked = true;
+    viewer.setShadowGradientEnabled(true);
+    shadowGradToggle.addEventListener("change", (e) => {
+      viewer.setShadowGradientEnabled(!!e.target.checked);
+    });
+  }
+  if (shadowGradLen) {
+    shadowGradLen.value = "14.4";
+    if (shadowGradLenValue) shadowGradLenValue.textContent = "14.4";
+    viewer.setShadowGradientLength(14.4);
+    shadowGradLen.addEventListener("input", (e) => {
+      const v = Number(e.target.value);
+      if (shadowGradLenValue) shadowGradLenValue.textContent = v.toFixed(1);
+      viewer.setShadowGradientLength(v);
+    });
+  }
+  if (shadowGradStr) {
+    shadowGradStr.value = "1.00";
+    if (shadowGradStrValue) shadowGradStrValue.textContent = "1.00";
+    viewer.setShadowGradientStrength(1.0);
+    shadowGradStr.addEventListener("input", (e) => {
+      const v = Number(e.target.value);
+      if (shadowGradStrValue) shadowGradStrValue.textContent = v.toFixed(2);
+      viewer.setShadowGradientStrength(v);
+    });
+  }
+
+  if (shadowGradCurve) {
+    shadowGradCurve.value = "0.50";
+    if (shadowGradCurveValue) shadowGradCurveValue.textContent = "0.50";
+    viewer.setShadowGradientCurve(0.5);
+    shadowGradCurve.addEventListener("input", (e) => {
+      const v = Number(e.target.value);
+      if (shadowGradCurveValue) shadowGradCurveValue.textContent = v.toFixed(2);
+      viewer.setShadowGradientCurve(v);
+    });
+  }
+
+  // Полупрозрачность тени на земле
+  if (shadowOpacity) {
+    shadowOpacity.value = "0.14";
+    if (shadowOpacityValue) shadowOpacityValue.textContent = "0.14";
+    viewer.setShadowOpacity(0.14);
+    shadowOpacity.addEventListener("input", (e) => {
+      const v = Number(e.target.value);
+      if (shadowOpacityValue) shadowOpacityValue.textContent = v.toFixed(2);
+      viewer.setShadowOpacity(v);
+    });
+  }
+
+  // Мягкость края тени
+  if (shadowSoft) {
+    shadowSoft.value = "0.0";
+    if (shadowSoftValue) shadowSoftValue.textContent = "0.0";
+    viewer.setShadowSoftness(0.0);
+    shadowSoft.addEventListener("input", (e) => {
+      const v = Number(e.target.value);
+      if (shadowSoftValue) shadowSoftValue.textContent = v.toFixed(1);
+      viewer.setShadowSoftness(v);
     });
   }
 
@@ -35,10 +156,10 @@ if (app) {
     });
   }
   if (sunHeight) {
-    // Дефолт синхронизирован с Viewer.init() (позиция солнца: y=5)
-    sunHeight.value = "5.0";
-    if (sunHeightValue) sunHeightValue.textContent = "5.0";
-    viewer.setSunHeight(5.0);
+    // Дефолт (из текущих подобранных значений)
+    sunHeight.value = "5.9";
+    if (sunHeightValue) sunHeightValue.textContent = "5.9";
+    viewer.setSunHeight(5.9);
     sunHeight.disabled = !(sunToggle ? !!sunToggle.checked : true);
     sunHeight.addEventListener("input", (e) => {
       const v = Number(e.target.value);
@@ -46,6 +167,211 @@ if (app) {
       viewer.setSunHeight(v);
     });
   }
+
+  // ===== Материалы =====
+  const MAT_DEFAULTS = {
+    original: { roughness: 0.90, metalness: 0.00, slidersEnabled: false },
+    matte: { roughness: 0.90, metalness: 0.00, slidersEnabled: true },
+    glossy: { roughness: 0.05, metalness: 0.00, slidersEnabled: true },
+    plastic: { roughness: 0.18, metalness: 0.68, slidersEnabled: true },
+    concrete: { roughness: 0.95, metalness: 0.00, slidersEnabled: true },
+  };
+
+  const setMatUiEnabled = (enabled) => {
+    if (matRough) matRough.disabled = !enabled;
+    if (matMetal) matMetal.disabled = !enabled;
+  };
+
+  const applyMatPresetUi = (preset) => {
+    const d = MAT_DEFAULTS[preset] || MAT_DEFAULTS.original;
+    if (matRough) matRough.value = String(d.roughness.toFixed(2));
+    if (matRoughValue) matRoughValue.textContent = d.roughness.toFixed(2);
+    if (matMetal) matMetal.value = String(d.metalness.toFixed(2));
+    if (matMetalValue) matMetalValue.textContent = d.metalness.toFixed(2);
+    setMatUiEnabled(d.slidersEnabled);
+  };
+
+  if (matPreset) {
+    // Дефолт: Пластик (как на скрине)
+    matPreset.value = "plastic";
+    applyMatPresetUi("plastic");
+    viewer.setMaterialPreset("plastic");
+    viewer.setMaterialRoughness(MAT_DEFAULTS.plastic.roughness);
+    viewer.setMaterialMetalness(MAT_DEFAULTS.plastic.metalness);
+    matPreset.addEventListener("change", (e) => {
+      const preset = e.target.value;
+      viewer.setMaterialPreset(preset);
+      applyMatPresetUi(preset);
+      // применяем дефолтные параметры пресета как override
+      const d = MAT_DEFAULTS[preset] || MAT_DEFAULTS.original;
+      if (d.slidersEnabled) {
+        viewer.setMaterialRoughness(d.roughness);
+        viewer.setMaterialMetalness(d.metalness);
+      } else {
+        viewer.setMaterialRoughness(null);
+        viewer.setMaterialMetalness(null);
+      }
+    });
+  }
+
+  if (matRough) {
+    matRough.addEventListener("input", (e) => {
+      const v = Number(e.target.value);
+      if (matRoughValue) matRoughValue.textContent = v.toFixed(2);
+      viewer.setMaterialRoughness(v);
+    });
+  }
+  if (matMetal) {
+    matMetal.addEventListener("input", (e) => {
+      const v = Number(e.target.value);
+      if (matMetalValue) matMetalValue.textContent = v.toFixed(2);
+      viewer.setMaterialMetalness(v);
+    });
+  }
+
+  // ===== Визуал (диагностика) =====
+  const syncVisualUiEnabled = () => {
+    const envOn = !!(envToggle && envToggle.checked);
+    const toneOn = !!(toneToggle && toneToggle.checked);
+    const aoOn = !!(aoToggle && aoToggle.checked);
+    if (envInt) envInt.disabled = !envOn;
+    if (exposure) exposure.disabled = !toneOn;
+    if (aoInt) aoInt.disabled = !aoOn;
+    if (aoRad) aoRad.disabled = !aoOn;
+  };
+
+  const syncCcUiEnabled = () => {
+    const on = !!(ccToggle && ccToggle.checked);
+    if (ccHue) ccHue.disabled = !on;
+    if (ccSat) ccSat.disabled = !on;
+    if (ccBri) ccBri.disabled = !on;
+    if (ccCon) ccCon.disabled = !on;
+  };
+
+  // Дефолты (как на скрине)
+  if (envToggle) {
+    envToggle.checked = true;
+    viewer.setEnvironmentEnabled(true);
+    envToggle.addEventListener("change", (e) => {
+      viewer.setEnvironmentEnabled(!!e.target.checked);
+      syncVisualUiEnabled();
+    });
+  }
+  if (envInt) {
+    envInt.value = "0.65";
+    if (envIntValue) envIntValue.textContent = "0.65";
+    viewer.setEnvironmentIntensity(0.65);
+    envInt.addEventListener("input", (e) => {
+      const v = Number(e.target.value);
+      if (envIntValue) envIntValue.textContent = v.toFixed(2);
+      viewer.setEnvironmentIntensity(v);
+    });
+  }
+
+  if (toneToggle) {
+    toneToggle.checked = true;
+    viewer.setToneMappingEnabled(true);
+    toneToggle.addEventListener("change", (e) => {
+      viewer.setToneMappingEnabled(!!e.target.checked);
+      syncVisualUiEnabled();
+    });
+  }
+  if (exposure) {
+    exposure.value = "1.11";
+    if (exposureValue) exposureValue.textContent = "1.11";
+    viewer.setExposure(1.11);
+    exposure.addEventListener("input", (e) => {
+      const v = Number(e.target.value);
+      if (exposureValue) exposureValue.textContent = v.toFixed(2);
+      viewer.setExposure(v);
+    });
+  }
+
+  if (aoToggle) {
+    aoToggle.checked = true;
+    viewer.setAOEnabled(true);
+    aoToggle.addEventListener("change", (e) => {
+      viewer.setAOEnabled(!!e.target.checked);
+      syncVisualUiEnabled();
+    });
+  }
+  if (aoInt) {
+    aoInt.value = "0.52";
+    if (aoIntValue) aoIntValue.textContent = "0.52";
+    viewer.setAOIntensity(0.52);
+    aoInt.addEventListener("input", (e) => {
+      const v = Number(e.target.value);
+      if (aoIntValue) aoIntValue.textContent = v.toFixed(2);
+      viewer.setAOIntensity(v);
+    });
+  }
+  if (aoRad) {
+    aoRad.value = "8";
+    if (aoRadValue) aoRadValue.textContent = "8";
+    viewer.setAORadius(8);
+    aoRad.addEventListener("input", (e) => {
+      const v = Number(e.target.value);
+      if (aoRadValue) aoRadValue.textContent = String(Math.round(v));
+      viewer.setAORadius(v);
+    });
+  }
+
+  syncVisualUiEnabled();
+
+  if (dumpVisual) {
+    dumpVisual.addEventListener("click", () => viewer.dumpVisualDebug());
+  }
+
+  // ===== Цветокор =====
+  if (ccToggle) {
+    ccToggle.checked = false;
+    viewer.setColorCorrectionEnabled(false);
+    ccToggle.addEventListener("change", (e) => {
+      viewer.setColorCorrectionEnabled(!!e.target.checked);
+      syncCcUiEnabled();
+    });
+  }
+  if (ccHue) {
+    ccHue.value = "0.00";
+    if (ccHueValue) ccHueValue.textContent = "0.00";
+    viewer.setColorHue(0.0);
+    ccHue.addEventListener("input", (e) => {
+      const v = Number(e.target.value);
+      if (ccHueValue) ccHueValue.textContent = v.toFixed(2);
+      viewer.setColorHue(v);
+    });
+  }
+  if (ccSat) {
+    ccSat.value = "0.00";
+    if (ccSatValue) ccSatValue.textContent = "0.00";
+    viewer.setColorSaturation(0.0);
+    ccSat.addEventListener("input", (e) => {
+      const v = Number(e.target.value);
+      if (ccSatValue) ccSatValue.textContent = v.toFixed(2);
+      viewer.setColorSaturation(v);
+    });
+  }
+  if (ccBri) {
+    ccBri.value = "0.00";
+    if (ccBriValue) ccBriValue.textContent = "0.00";
+    viewer.setColorBrightness(0.0);
+    ccBri.addEventListener("input", (e) => {
+      const v = Number(e.target.value);
+      if (ccBriValue) ccBriValue.textContent = v.toFixed(2);
+      viewer.setColorBrightness(v);
+    });
+  }
+  if (ccCon) {
+    ccCon.value = "0.00";
+    if (ccConValue) ccConValue.textContent = "0.00";
+    viewer.setColorContrast(0.0);
+    ccCon.addEventListener("input", (e) => {
+      const v = Number(e.target.value);
+      if (ccConValue) ccConValue.textContent = v.toFixed(2);
+      viewer.setColorContrast(v);
+    });
+  }
+  syncCcUiEnabled();
   // IFC загрузка
   const ifc = new IfcService(viewer);
   ifc.init();
