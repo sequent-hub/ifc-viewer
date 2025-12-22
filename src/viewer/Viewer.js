@@ -84,6 +84,8 @@ export class Viewer {
       ao: { enabled: false, intensity: 0.75, radius: 12, minDistance: 0.001, maxDistance: 0.2 },
       color: { enabled: false, hue: 0.0, saturation: 0.0, brightness: 0.0, contrast: 0.0 },
     };
+    // Пресет Realtime-quality: хранит снимок пользовательских настроек для восстановления
+    this._rtQuality = { enabled: false, snapshot: null };
     this._baselineRenderer = null;
     this._pmrem = null;
     this._roomEnvTex = null;
@@ -166,6 +168,8 @@ export class Viewer {
       outputColorSpace: this.renderer.outputColorSpace,
       toneMapping: this.renderer.toneMapping,
       toneMappingExposure: this.renderer.toneMappingExposure,
+      physicallyCorrectLights: this.renderer.physicallyCorrectLights,
+      useLegacyLights: this.renderer.useLegacyLights,
     };
 
     // Сцена
@@ -917,6 +921,115 @@ export class Viewer {
       this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
       this.renderer.shadowMap.enabled = !!this.shadowsEnabled;
       this.controls.enableDamping = true;
+    }
+  }
+
+  /**
+   * Режим "Realtime-quality": применяет рекомендованные настройки рендера/постпроцесса
+   * и может восстановить прежние, когда режим выключают.
+   * @param {boolean} enabled
+   */
+  setRealtimeQualityEnabled(enabled) {
+    const next = !!enabled;
+    if (next === this._rtQuality.enabled) return;
+
+    if (next) {
+      // Снимок состояния для восстановления
+      this._rtQuality.snapshot = {
+        quality: this.quality,
+        shadowsEnabled: this.shadowsEnabled,
+        shadowOpacity: this.shadowStyle.opacity,
+        shadowSoftness: this.shadowStyle.softness,
+        sunEnabled: !!(this.sunLight && this.sunLight.visible),
+        sunHeight: this.sunLight ? this.sunLight.position.y : null,
+        visual: JSON.parse(JSON.stringify(this.visual)),
+        materialStyle: { ...this.materialStyle },
+        renderer: this.renderer ? {
+          physicallyCorrectLights: this.renderer.physicallyCorrectLights,
+          useLegacyLights: this.renderer.useLegacyLights,
+        } : null,
+      };
+
+      // Рекомендованный пресет (баланс "красиво" / "стабильно")
+      this.setQuality('high');
+      this.setSunEnabled(true);
+      this.setShadowsEnabled(true);
+      this.setShadowSoftness(2.0);
+      this.setShadowOpacity(0.18);
+
+      this.setEnvironmentEnabled(true);
+      this.setEnvironmentIntensity(1.25);
+
+      this.setToneMappingEnabled(true);
+      this.setExposure(1.05);
+
+      this.setAOEnabled(true);
+      this.setAOIntensity(0.75);
+      this.setAORadius(16);
+
+      // Цветокор — обычно спорная, выключаем в пресете
+      this.setColorCorrectionEnabled(false);
+      this.setColorHue(0.0);
+      this.setColorSaturation(0.0);
+      this.setColorBrightness(0.0);
+      this.setColorContrast(0.0);
+
+      // Физически корректный свет (если доступно в этой версии three)
+      if (this.renderer) {
+        try { this.renderer.physicallyCorrectLights = true; } catch (_) {}
+        try { this.renderer.useLegacyLights = false; } catch (_) {}
+      }
+
+      this._rtQuality.enabled = true;
+      return;
+    }
+
+    // Выключаем: восстанавливаем снимок
+    const snap = this._rtQuality.snapshot;
+    this._rtQuality.enabled = false;
+    this._rtQuality.snapshot = null;
+    if (!snap) return;
+
+    // Порядок важен: сначала базовые тумблеры, потом параметры
+    this.setQuality(snap.quality || 'medium');
+    this.setSunEnabled(!!snap.sunEnabled);
+    if (typeof snap.sunHeight === 'number') this.setSunHeight(snap.sunHeight);
+
+    this.setShadowsEnabled(!!snap.shadowsEnabled);
+    if (typeof snap.shadowSoftness === 'number') this.setShadowSoftness(snap.shadowSoftness);
+    if (typeof snap.shadowOpacity === 'number') this.setShadowOpacity(snap.shadowOpacity);
+
+    // Визуал
+    try {
+      // environment
+      this.setEnvironmentEnabled(!!snap.visual?.environment?.enabled);
+      if (typeof snap.visual?.environment?.intensity === 'number') this.setEnvironmentIntensity(snap.visual.environment.intensity);
+      // tone
+      this.setToneMappingEnabled(!!snap.visual?.tone?.enabled);
+      if (typeof snap.visual?.tone?.exposure === 'number') this.setExposure(snap.visual.tone.exposure);
+      // AO
+      this.setAOEnabled(!!snap.visual?.ao?.enabled);
+      if (typeof snap.visual?.ao?.intensity === 'number') this.setAOIntensity(snap.visual.ao.intensity);
+      if (typeof snap.visual?.ao?.radius === 'number') this.setAORadius(snap.visual.ao.radius);
+      // color
+      this.setColorCorrectionEnabled(!!snap.visual?.color?.enabled);
+      if (typeof snap.visual?.color?.hue === 'number') this.setColorHue(snap.visual.color.hue);
+      if (typeof snap.visual?.color?.saturation === 'number') this.setColorSaturation(snap.visual.color.saturation);
+      if (typeof snap.visual?.color?.brightness === 'number') this.setColorBrightness(snap.visual.color.brightness);
+      if (typeof snap.visual?.color?.contrast === 'number') this.setColorContrast(snap.visual.color.contrast);
+    } catch (_) {}
+
+    // Материалы (если пользователь успел переключить пресет до включения)
+    try {
+      if (snap.materialStyle?.preset) this.setMaterialPreset(snap.materialStyle.preset);
+      this.setMaterialRoughness(snap.materialStyle?.roughness ?? null);
+      this.setMaterialMetalness(snap.materialStyle?.metalness ?? null);
+    } catch (_) {}
+
+    // Рендерер флаги света
+    if (this.renderer && snap.renderer) {
+      try { this.renderer.physicallyCorrectLights = snap.renderer.physicallyCorrectLights; } catch (_) {}
+      try { this.renderer.useLegacyLights = snap.renderer.useLegacyLights; } catch (_) {}
     }
   }
 

@@ -29,6 +29,7 @@ if (app) {
   const matMetal = document.getElementById("matMetal");
   const matMetalValue = document.getElementById("matMetalValue");
   // Визуал (диагностика)
+  const rtQualityToggle = document.getElementById("rtQualityToggle");
   const envToggle = document.getElementById("envToggle");
   const envInt = document.getElementById("envInt");
   const envIntValue = document.getElementById("envIntValue");
@@ -51,6 +52,67 @@ if (app) {
   const ccBriValue = document.getElementById("ccBriValue");
   const ccCon = document.getElementById("ccCon");
   const ccConValue = document.getElementById("ccConValue");
+
+  // ===== Realtime-quality preset (UI master toggle) =====
+  const _rtSnapshot = new Map();
+  const snapshotEl = (el) => {
+    if (!el) return;
+    _rtSnapshot.set(el, {
+      checked: "checked" in el ? el.checked : undefined,
+      value: "value" in el ? el.value : undefined,
+      disabled: "disabled" in el ? el.disabled : undefined,
+    });
+  };
+  const restoreEl = (el) => {
+    if (!el) return;
+    const s = _rtSnapshot.get(el);
+    if (!s) return;
+    if ("checked" in el && typeof s.checked === "boolean") el.checked = s.checked;
+    if ("value" in el && typeof s.value === "string") el.value = s.value;
+    if ("disabled" in el && typeof s.disabled === "boolean") el.disabled = s.disabled;
+  };
+  const setDisabled = (el, disabled) => { if (el && "disabled" in el) el.disabled = !!disabled; };
+
+  // Важно: делаем это функцией, чтобы не попасть в TDZ для переменных,
+  // которые объявляются ниже (например, sunToggle/sunHeight).
+  const getRtManagedControls = () => ([
+    // Shadows + sun
+    shadowToggle, shadowGradToggle, shadowGradLen, shadowGradStr, shadowGradCurve, shadowOpacity, shadowSoft,
+    sunToggle, sunHeight,
+    // Materials
+    matPreset, matRough, matMetal,
+    // Visual
+    envToggle, envInt, toneToggle, exposure, aoToggle, aoInt, aoRad,
+    // Color correction
+    ccToggle, ccHue, ccSat, ccBri, ccCon,
+  ].filter(Boolean));
+
+  const applyRtQualityUiLock = (enabled) => {
+    // Блокируем все ручные контролы, кроме самого переключателя и кнопки dump
+    getRtManagedControls().forEach((el) => setDisabled(el, enabled));
+  };
+
+  if (rtQualityToggle) {
+    rtQualityToggle.checked = false;
+    rtQualityToggle.addEventListener("change", (e) => {
+      const on = !!e.target.checked;
+      if (on) {
+        // Снимем UI-снапшот, чтобы вернуть всё как было (включая disabled-состояния)
+        _rtSnapshot.clear();
+        getRtManagedControls().forEach(snapshotEl);
+        snapshotEl(dumpVisual); // dump не блокируем, но состояние тоже сохраним на всякий
+
+        viewer.setRealtimeQualityEnabled(true);
+        applyRtQualityUiLock(true);
+      } else {
+        viewer.setRealtimeQualityEnabled(false);
+        // Вернём UI
+        getRtManagedControls().forEach(restoreEl);
+        restoreEl(dumpVisual);
+        applyRtQualityUiLock(false);
+      }
+    });
+  }
   if (shadowToggle) {
     // Дефолт (из текущих подобранных значений)
     shadowToggle.checked = true;
