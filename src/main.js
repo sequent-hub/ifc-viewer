@@ -176,9 +176,14 @@ if (app) {
     // Дефолт (из текущих подобранных значений)
     shadowToggle.checked = true;
     viewer.setShadowsEnabled(true);
+    // синхронизируем тулбар-кнопку, если есть
+    const _btn = document.getElementById("ifcToggleShadows");
+    if (_btn) _btn.classList.toggle('btn-active', true);
     shadowToggle.addEventListener("change", (e) => {
       const on = !!e.target.checked;
       viewer.setShadowsEnabled(on);
+      const btn = document.getElementById("ifcToggleShadows");
+      if (btn) btn.classList.toggle('btn-active', on);
       // UI градиента имеет смысл только когда тени включены
       if (shadowGradToggle) shadowGradToggle.disabled = !on;
       if (shadowGradLen) shadowGradLen.disabled = !on;
@@ -540,6 +545,8 @@ if (app) {
   const qualHigh = document.getElementById("qualHigh");
   // Нижний тулбар пакета (index.html): Edges
   const toggleEdges = document.getElementById("ifcToggleEdges");
+  // Нижний тулбар пакета (index.html): Shadows
+  const toggleShadowsBtn = document.getElementById("ifcToggleShadows");
   const toggleShading = document.getElementById("toggleShading");
   // Нижний тулбар пакета (index.html): секущие плоскости
   const clipXBtn = document.getElementById("ifcClipX");
@@ -561,6 +568,21 @@ if (app) {
   let edgesOn = false;
   viewer.setEdgesVisible(edgesOn);
   toggleEdges?.addEventListener("click", () => { edgesOn = !edgesOn; viewer.setEdgesVisible(edgesOn); });
+
+  // Тени по умолчанию включены (как и в левой панели)
+  const setToolbarShadowsActive = (on) => {
+    if (toggleShadowsBtn) toggleShadowsBtn.classList.toggle('btn-active', !!on);
+  };
+  setToolbarShadowsActive(true);
+  toggleShadowsBtn?.addEventListener("click", () => {
+    const next = !(shadowToggle ? !!shadowToggle.checked : true);
+    // Меняем состояние у Viewer
+    viewer.setShadowsEnabled(next);
+    // Синхронизируем UI слева, если он есть
+    if (shadowToggle) shadowToggle.checked = next;
+    setToolbarShadowsActive(next);
+  });
+
   let flatOn = true;
   toggleShading?.addEventListener("click", () => { flatOn = !flatOn; viewer.setFlatShading(flatOn); });
 

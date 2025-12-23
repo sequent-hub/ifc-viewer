@@ -85,6 +85,7 @@ export class IfcViewer {
       quality: 'medium', // 'low' | 'medium' | 'high'
       edgesVisible: false,
       flatShading: true,
+      shadowsEnabled: true,
       clipping: {
         x: false,
         y: false,
@@ -501,6 +502,9 @@ export class IfcViewer {
     this._addEventListener('#ifcToggleEdges', 'click', () => {
       this._toggleEdges();
     });
+    this._addEventListener('#ifcToggleShadows', 'click', () => {
+      this._toggleShadows();
+    });
     this._addEventListener('#ifcToggleShading', 'click', () => {
       this._toggleShading();
     });
@@ -700,6 +704,18 @@ export class IfcViewer {
     if (btn) {
       btn.classList.toggle('btn-active', this.viewerState.edgesVisible);
     }
+  }
+
+  /**
+   * Переключает тени (вкл/выкл) для сцены.
+   * @private
+   */
+  _toggleShadows() {
+    if (!this.viewer) return;
+    this.viewerState.shadowsEnabled = !this.viewerState.shadowsEnabled;
+    try { this.viewer.setShadowsEnabled(this.viewerState.shadowsEnabled); } catch (_) {}
+    const btn = this.containerElement.querySelector('#ifcToggleShadows');
+    if (btn) btn.classList.toggle('btn-active', this.viewerState.shadowsEnabled);
   }
 
   /**

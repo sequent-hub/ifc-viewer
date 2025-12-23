@@ -629,7 +629,7 @@ export class Viewer {
         // Тени управляются единообразно через setShadowsEnabled()
         node.castShadow = !!this.shadowsEnabled;
         // Самозатенение включается только в пресете "Тест"
-        node.receiveShadow = !!this._testPreset?.enabled;
+        node.receiveShadow = !!this.shadowsEnabled && !!this._testPreset?.enabled;
         // Стекло/прозрачность: рендерим после непрозрачных (уменьшает мерцание сортировки)
         try {
           const mats = Array.isArray(node.material) ? node.material : [node.material];
@@ -1093,7 +1093,7 @@ export class Viewer {
         if (!node?.isMesh) return;
         node.castShadow = next;
         // Самозатенение включается только в пресете "Тест"
-        node.receiveShadow = !!this._testPreset?.enabled;
+        node.receiveShadow = next && !!this._testPreset?.enabled;
       });
     }
   }
