@@ -29,6 +29,7 @@ if (app) {
   const matMetal = document.getElementById("matMetal");
   const matMetalValue = document.getElementById("matMetalValue");
   // Визуал (диагностика)
+  const testPresetToggle = document.getElementById("testPresetToggle");
   const rtQualityToggle = document.getElementById("rtQualityToggle");
   const envToggle = document.getElementById("envToggle");
   const envInt = document.getElementById("envInt");
@@ -53,6 +54,66 @@ if (app) {
   const ccCon = document.getElementById("ccCon");
   const ccConValue = document.getElementById("ccConValue");
 
+  // ===== Test preset ("Тест") - полностью изолированная настройка =====
+  const _testSnapshot = new Map();
+  const testSnapshotEl = (el) => {
+    if (!el) return;
+    _testSnapshot.set(el, {
+      checked: "checked" in el ? el.checked : undefined,
+      value: "value" in el ? el.value : undefined,
+      disabled: "disabled" in el ? el.disabled : undefined,
+    });
+  };
+  const testRestoreEl = (el) => {
+    if (!el) return;
+    const s = _testSnapshot.get(el);
+    if (!s) return;
+    if ("checked" in el && typeof s.checked === "boolean") el.checked = s.checked;
+    if ("value" in el && typeof s.value === "string") el.value = s.value;
+    if ("disabled" in el && typeof s.disabled === "boolean") el.disabled = s.disabled;
+  };
+
+  const getAllNonTestControls = () => ([
+    // Test preset toggle must stay enabled to allow turning it off
+    // Shadows + sun
+    shadowToggle, shadowGradToggle, shadowGradLen, shadowGradStr, shadowGradCurve, shadowOpacity, shadowSoft,
+    sunToggle, sunHeight,
+    // Materials
+    matPreset, matRough, matMetal,
+    // Visual
+    rtQualityToggle, envToggle, envInt, toneToggle, exposure, aoToggle, aoInt, aoRad,
+    dumpVisual,
+    // Color correction
+    ccToggle, ccHue, ccSat, ccBri, ccCon,
+  ].filter(Boolean));
+
+  const setDisabled = (el, disabled) => { if (el && "disabled" in el) el.disabled = !!disabled; };
+
+  const applyTestUiLock = (enabled) => {
+    getAllNonTestControls().forEach((el) => setDisabled(el, enabled));
+    // сам тест-переключатель не блокируем
+    if (testPresetToggle) setDisabled(testPresetToggle, false);
+  };
+
+  if (testPresetToggle) {
+    testPresetToggle.checked = false;
+    testPresetToggle.addEventListener("change", (e) => {
+      const on = !!e.target.checked;
+      if (on) {
+        _testSnapshot.clear();
+        // снимем снапшот со всех контролов, включая сам test (чтобы вернуть checked), но блокировать его не будем
+        [testPresetToggle, ...getAllNonTestControls()].forEach(testSnapshotEl);
+        viewer.setTestPresetEnabled?.(true);
+        applyTestUiLock(true);
+      } else {
+        viewer.setTestPresetEnabled?.(false);
+        // вернём UI
+        [testPresetToggle, ...getAllNonTestControls()].forEach(testRestoreEl);
+        applyTestUiLock(false);
+      }
+    });
+  }
+
   // ===== Realtime-quality preset (UI master toggle) =====
   const _rtSnapshot = new Map();
   const snapshotEl = (el) => {
@@ -71,8 +132,6 @@ if (app) {
     if ("value" in el && typeof s.value === "string") el.value = s.value;
     if ("disabled" in el && typeof s.disabled === "boolean") el.disabled = s.disabled;
   };
-  const setDisabled = (el, disabled) => { if (el && "disabled" in el) el.disabled = !!disabled; };
-
   // Важно: делаем это функцией, чтобы не попасть в TDZ для переменных,
   // которые объявляются ниже (например, sunToggle/sunHeight).
   const getRtManagedControls = () => ([
@@ -235,7 +294,8 @@ if (app) {
     original: { roughness: 0.90, metalness: 0.00, slidersEnabled: false },
     matte: { roughness: 0.90, metalness: 0.00, slidersEnabled: true },
     glossy: { roughness: 0.05, metalness: 0.00, slidersEnabled: true },
-    plastic: { roughness: 0.18, metalness: 0.68, slidersEnabled: true },
+    // Важно: "пластик" не должен быть металлом, иначе появятся резкие блики и "дёрганая" картинка при вращении
+    plastic: { roughness: 0.65, metalness: 0.00, slidersEnabled: true },
     concrete: { roughness: 0.95, metalness: 0.00, slidersEnabled: true },
   };
 

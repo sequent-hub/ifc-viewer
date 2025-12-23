@@ -86,6 +86,8 @@ export class Viewer {
     };
     // Пресет Realtime-quality: хранит снимок пользовательских настроек для восстановления
     this._rtQuality = { enabled: false, snapshot: null };
+    // Пресет "Тест": полностью изолированная настройка (тени+самозатенение+визуал из рекомендаций)
+    this._testPreset = { enabled: false, snapshot: null };
     this._baselineRenderer = null;
     this._pmrem = null;
     this._roomEnvTex = null;
@@ -149,7 +151,9 @@ export class Viewer {
     if (!this.container) throw new Error("Viewer: контейнер не найден");
 
     // Рендерер
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    // logarithmicDepthBuffer: уменьшает z-fighting на почти копланарных поверхностях (часто в IFC).
+    // Это заметно снижает "мигание" тонких накладных деталей на фасадах.
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, logarithmicDepthBuffer: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.autoClear = false; // управляем очисткой вручную для мульти-проходов
     // Тени по умолчанию выключены (включаются только через setShadowsEnabled)
@@ -515,10 +519,17 @@ export class Viewer {
     this.controls.minDistance = newMin;
     this.controls.maxDistance = newMax;
 
-    // Расширим дальнюю плоскость, чтобы исключить клиппинг при большом отъезде
-    const desiredFar = Math.max(this.camera.far, newMax * 4);
-    if (desiredFar !== this.camera.far) {
-      this.camera.far = desiredFar;
+    // Настройка near/far для стабильной глубины (уменьшает z-fighting на тонких/накладных деталях).
+    // Важно: far должен быть "как можно меньше", но достаточен для maxDistance.
+    // near не должен быть слишком маленьким относительно far.
+    const desiredNear = Math.max(0.05, fitDist * 0.001);     // 0.1% от вписанной дистанции (но не меньше 0.05)
+    const desiredFar = Math.max(50, newMax * 4);             // гарантированно покрываем maxDistance
+    // Защитимся от некорректного отношения near/far
+    const safeNear = Math.min(desiredNear, desiredFar / 1000);
+    const safeFar = Math.max(desiredFar, safeNear * 1000);
+    if (this.camera.near !== safeNear || this.camera.far !== safeFar) {
+      this.camera.near = safeNear;
+      this.camera.far = safeFar;
       this.camera.updateProjectionMatrix();
     }
 
@@ -617,8 +628,14 @@ export class Viewer {
       if (node.isMesh) {
         // Тени управляются единообразно через setShadowsEnabled()
         node.castShadow = !!this.shadowsEnabled;
-        // Важно: тени на самом здании отключаем, оставляем только на земле
-        node.receiveShadow = false;
+        // Самозатенение включается только в пресете "Тест"
+        node.receiveShadow = !!this._testPreset?.enabled;
+        // Стекло/прозрачность: рендерим после непрозрачных (уменьшает мерцание сортировки)
+        try {
+          const mats = Array.isArray(node.material) ? node.material : [node.material];
+          const anyTransparent = mats.some((m) => !!m && !!m.transparent && (Number(m.opacity ?? 1) < 0.999));
+          node.renderOrder = anyTransparent ? 10 : 0;
+        } catch (_) {}
         this.#applyPolygonOffsetToMesh(node, this.flatShading);
         this.#attachEdgesToMesh(node, this.edgesVisible);
       }
@@ -629,6 +646,11 @@ export class Viewer {
 
     // Настроим пределы зума и сфокусируемся на новой модели
     this.applyAdaptiveZoomLimits(object3D, { padding: 1.2, slack: 2.5, minRatio: 0.05, recenter: true });
+
+    // Если "Тест" активен, сразу применим его к только что загруженной модели (самозатенение + shadow camera по bbox)
+    if (this._testPreset?.enabled) {
+      try { this.#applyTestPresetToScene(); } catch (_) {}
+    }
 
     // На следующем кадре отъедем на 2x от вписанной дистанции (точно по размеру модели)
     try {
@@ -653,9 +675,9 @@ export class Viewer {
           const verticalBias = size.y * 0.30; // 30% высоты
           this.controls.target.y = center.y - verticalBias;
         } catch(_) {}
-        if (this.camera.far < 1000) {
-          this.camera.far = 1000;
-        }
+        // После ручной перестановки камеры ещё раз "оздоровим" near/far под модель,
+        // чтобы не ловить z-fighting на фасадных накладках.
+        try { this.applyAdaptiveZoomLimits(object3D, { padding: 1.2, slack: 2.5, minRatio: 0.05, recenter: false }); } catch (_) {}
         this.camera.updateProjectionMatrix();
         this.controls.update();
 
@@ -957,15 +979,22 @@ export class Viewer {
       this.setShadowSoftness(2.0);
       this.setShadowOpacity(0.18);
 
+      // Материалы: убираем "металлические" блики, делаем архитектурно-матовый вид
+      this.setMaterialPreset('matte');
+      this.setMaterialRoughness(0.92);
+      this.setMaterialMetalness(0.0);
+
+      // Окружение: оставляем, но значительно слабее (иначе даёт резкие блики на фасаде)
       this.setEnvironmentEnabled(true);
-      this.setEnvironmentIntensity(1.25);
+      this.setEnvironmentIntensity(0.55);
 
       this.setToneMappingEnabled(true);
-      this.setExposure(1.05);
+      this.setExposure(1.0);
 
       this.setAOEnabled(true);
-      this.setAOIntensity(0.75);
-      this.setAORadius(16);
+      // AO чуть мягче, чтобы не давал "грязь"/мыло на расстоянии
+      this.setAOIntensity(0.45);
+      this.setAORadius(10);
 
       // Цветокор — обычно спорная, выключаем в пресете
       this.setColorCorrectionEnabled(false);
@@ -1063,9 +1092,480 @@ export class Viewer {
       this.activeModel.traverse?.((node) => {
         if (!node?.isMesh) return;
         node.castShadow = next;
-        // Важно: тени на самом здании отключаем, оставляем только на земле
+        // Самозатенение включается только в пресете "Тест"
+        node.receiveShadow = !!this._testPreset?.enabled;
+      });
+    }
+  }
+
+  /**
+   * Пресет "Тест": полностью изолированная настройка теней/визуала из рекомендаций.
+   * При включении: переопределяет renderer/sun/AO/tone/env/materialPreset и включает самозатенение модели.
+   * При выключении: восстанавливает предыдущее состояние.
+   * @param {boolean} enabled
+   */
+  setTestPresetEnabled(enabled) {
+    const next = !!enabled;
+    if (next === this._testPreset.enabled) return;
+
+    if (next) {
+      // Снимок состояния для восстановления (минимально необходимое для независимости теста)
+      this._testPreset.snapshot = {
+        quality: this.quality,
+        edgesVisible: this.edgesVisible,
+        flatShading: this.flatShading,
+        shadowsEnabled: this.shadowsEnabled,
+        shadowOpacity: this.shadowStyle.opacity,
+        shadowSoftness: this.shadowStyle.softness,
+        shadowGradient: {
+          enabled: this.shadowGradient.enabled,
+          length: this.shadowGradient.length,
+          strength: this.shadowGradient.strength,
+          curve: this.shadowGradient.curve,
+        },
+        sun: this.sunLight ? {
+          visible: this.sunLight.visible,
+          intensity: this.sunLight.intensity,
+          position: this.sunLight.position.clone(),
+          castShadow: this.sunLight.castShadow,
+          shadow: {
+            mapSize: this.sunLight.shadow?.mapSize?.clone?.() || null,
+            bias: this.sunLight.shadow?.bias ?? null,
+            normalBias: this.sunLight.shadow?.normalBias ?? null,
+            radius: this.sunLight.shadow?.radius ?? null,
+            camera: this.sunLight.shadow?.camera ? {
+              left: this.sunLight.shadow.camera.left,
+              right: this.sunLight.shadow.camera.right,
+              top: this.sunLight.shadow.camera.top,
+              bottom: this.sunLight.shadow.camera.bottom,
+              near: this.sunLight.shadow.camera.near,
+              far: this.sunLight.shadow.camera.far,
+            } : null,
+          },
+        } : null,
+        ambient: this.ambientLight ? {
+          visible: this.ambientLight.visible,
+          intensity: this.ambientLight.intensity,
+        } : null,
+        visual: JSON.parse(JSON.stringify(this.visual)),
+        materialStyle: { ...this.materialStyle },
+        renderer: this.renderer ? {
+          shadowMapEnabled: this.renderer.shadowMap?.enabled,
+          shadowMapType: this.renderer.shadowMap?.type,
+          outputEncoding: this.renderer.outputEncoding,
+          outputColorSpace: this.renderer.outputColorSpace,
+          toneMapping: this.renderer.toneMapping,
+          toneMappingExposure: this.renderer.toneMappingExposure,
+          physicallyCorrectLights: this.renderer.physicallyCorrectLights,
+          useLegacyLights: this.renderer.useLegacyLights,
+        } : null,
+      };
+
+      this._testPreset.enabled = true;
+
+      // Применяем "Тест" (из рекомендаций)
+      this.#applyTestPresetToScene();
+      this.dumpTestPresetDebug();
+      return;
+    }
+
+    // Выключаем: восстановление
+    const snap = this._testPreset.snapshot;
+    this._testPreset.enabled = false;
+    this._testPreset.snapshot = null;
+    if (!snap) return;
+
+    // Порядок восстановления важен: базовые флаги → рендерер → свет → тени/модель → визуал
+    try { this.setQuality(snap.quality || 'medium'); } catch (_) {}
+    try { this.setEdgesVisible(!!snap.edgesVisible); } catch (_) {}
+    try { this.setFlatShading(!!snap.flatShading); } catch (_) {}
+
+    // renderer
+    if (this.renderer && snap.renderer) {
+      try { this.renderer.shadowMap.enabled = !!snap.renderer.shadowMapEnabled; } catch (_) {}
+      try { if (snap.renderer.shadowMapType != null) this.renderer.shadowMap.type = snap.renderer.shadowMapType; } catch (_) {}
+      try { if ('outputColorSpace' in this.renderer) this.renderer.outputColorSpace = snap.renderer.outputColorSpace; } catch (_) {}
+      try { if ('outputEncoding' in this.renderer) this.renderer.outputEncoding = snap.renderer.outputEncoding; } catch (_) {}
+      try { this.renderer.toneMapping = snap.renderer.toneMapping; } catch (_) {}
+      try { this.renderer.toneMappingExposure = snap.renderer.toneMappingExposure; } catch (_) {}
+      try { this.renderer.physicallyCorrectLights = snap.renderer.physicallyCorrectLights; } catch (_) {}
+      try { this.renderer.useLegacyLights = snap.renderer.useLegacyLights; } catch (_) {}
+    }
+
+    // visual (env/tone/ao/color) — через публичные сеттеры
+    try {
+      this.setEnvironmentEnabled(!!snap.visual?.environment?.enabled);
+      this.setEnvironmentIntensity(snap.visual?.environment?.intensity ?? 1.0);
+      this.setToneMappingEnabled(!!snap.visual?.tone?.enabled);
+      this.setExposure(snap.visual?.tone?.exposure ?? 1.0);
+      this.setAOEnabled(!!snap.visual?.ao?.enabled);
+      this.setAOIntensity(snap.visual?.ao?.intensity ?? 0.75);
+      this.setAORadius(snap.visual?.ao?.radius ?? 12);
+      this.setColorCorrectionEnabled(!!snap.visual?.color?.enabled);
+      this.setColorHue(snap.visual?.color?.hue ?? 0.0);
+      this.setColorSaturation(snap.visual?.color?.saturation ?? 0.0);
+      this.setColorBrightness(snap.visual?.color?.brightness ?? 0.0);
+      this.setColorContrast(snap.visual?.color?.contrast ?? 0.0);
+    } catch (_) {}
+
+    // materials: вернём как было
+    try {
+      if (snap.materialStyle?.preset) this.setMaterialPreset(snap.materialStyle.preset);
+      this.setMaterialRoughness(snap.materialStyle?.roughness ?? null);
+      this.setMaterialMetalness(snap.materialStyle?.metalness ?? null);
+    } catch (_) {}
+
+    // sun/ambient
+    if (this.sunLight && snap.sun) {
+      try { this.sunLight.visible = !!snap.sun.visible; } catch (_) {}
+      try { this.sunLight.intensity = snap.sun.intensity; } catch (_) {}
+      try { this.sunLight.position.copy(snap.sun.position); } catch (_) {}
+      try { this._sunBaseXZ = { x: this.sunLight.position.x, z: this.sunLight.position.z }; } catch (_) {}
+      try { this.sunLight.castShadow = !!snap.sun.castShadow; } catch (_) {}
+      try {
+        if (snap.sun.shadow?.mapSize && this.sunLight.shadow?.mapSize) this.sunLight.shadow.mapSize.copy(snap.sun.shadow.mapSize);
+        if (snap.sun.shadow?.bias != null) this.sunLight.shadow.bias = snap.sun.shadow.bias;
+        if (snap.sun.shadow?.normalBias != null) this.sunLight.shadow.normalBias = snap.sun.shadow.normalBias;
+        if (snap.sun.shadow?.radius != null) this.sunLight.shadow.radius = snap.sun.shadow.radius;
+        if (snap.sun.shadow?.camera && this.sunLight.shadow?.camera) {
+          const c = snap.sun.shadow.camera;
+          this.sunLight.shadow.camera.left = c.left;
+          this.sunLight.shadow.camera.right = c.right;
+          this.sunLight.shadow.camera.top = c.top;
+          this.sunLight.shadow.camera.bottom = c.bottom;
+          this.sunLight.shadow.camera.near = c.near;
+          this.sunLight.shadow.camera.far = c.far;
+          this.sunLight.shadow.camera.updateProjectionMatrix();
+        }
+      } catch (_) {}
+    }
+    if (this.ambientLight && snap.ambient) {
+      try { this.ambientLight.visible = !!snap.ambient.visible; } catch (_) {}
+      try { this.ambientLight.intensity = snap.ambient.intensity; } catch (_) {}
+    }
+
+    // shadows & receiver style
+    try {
+      this.setShadowOpacity(snap.shadowOpacity);
+      this.setShadowSoftness(snap.shadowSoftness);
+      this.setShadowGradientEnabled(!!snap.shadowGradient?.enabled);
+      this.setShadowGradientLength(snap.shadowGradient?.length ?? this.shadowGradient.length);
+      this.setShadowGradientStrength(snap.shadowGradient?.strength ?? this.shadowGradient.strength);
+      this.setShadowGradientCurve(snap.shadowGradient?.curve ?? this.shadowGradient.curve);
+      this.setShadowsEnabled(!!snap.shadowsEnabled);
+    } catch (_) {}
+
+    // Восстановим самозатенение как было до теста (по текущей логике viewer: receiveShadow=false)
+    if (this.activeModel) {
+      this.activeModel.traverse?.((node) => {
+        if (!node?.isMesh) return;
+        node.castShadow = !!this.shadowsEnabled;
         node.receiveShadow = false;
       });
+    }
+  }
+
+  /**
+   * Дамп текущих параметров тест-пресета в консоль.
+   */
+  dumpTestPresetDebug() {
+    if (!this._testPreset?.enabled) return;
+    const r = this.renderer;
+    const sun = this.sunLight;
+    const cam = sun?.shadow?.camera;
+    const model = this.activeModel;
+    const receiver = this.shadowReceiver;
+    let meshCount = 0;
+    let castOn = 0;
+    let recvOn = 0;
+    const matTypes = new Map();
+    const sampleMats = [];
+    model?.traverse?.((n) => {
+      if (!n?.isMesh) return;
+      meshCount++;
+      if (n.castShadow) castOn++;
+      if (n.receiveShadow) recvOn++;
+      // Материалы: статистика по типам
+      const m = n.material;
+      const arr = Array.isArray(m) ? m : [m];
+      for (const mi of arr) {
+        if (!mi) continue;
+        const t = mi.type || 'UnknownMaterial';
+        matTypes.set(t, (matTypes.get(t) || 0) + 1);
+        // Возьмём несколько первых материалов как сэмпл (для свойств, которые могут влиять на тени)
+        if (sampleMats.length < 6) sampleMats.push(mi);
+      }
+    });
+
+    // Геометрия/габариты модели (bbox)
+    let bbox = null;
+    try {
+      if (model) {
+        const box = new THREE.Box3().setFromObject(model);
+        const size = box.getSize(new THREE.Vector3());
+        const center = box.getCenter(new THREE.Vector3());
+        bbox = {
+          min: { x: box.min.x, y: box.min.y, z: box.min.z },
+          max: { x: box.max.x, y: box.max.y, z: box.max.z },
+          size: { x: size.x, y: size.y, z: size.z },
+          center: { x: center.x, y: center.y, z: center.z },
+        };
+      }
+    } catch (_) {
+      bbox = null;
+    }
+
+    // Наличие shadow map (может появиться только после первого рендера)
+    const getShadowMapInfo = () => {
+      try {
+        const map = sun?.shadow?.map;
+        const tex = map?.texture;
+        const img = tex?.image;
+        return {
+          hasMap: !!map,
+          type: map?.type || null,
+          tex: tex ? { format: tex.format, type: tex.type, colorSpace: tex.colorSpace } : null,
+          image: img ? { width: img.width, height: img.height } : null,
+        };
+      } catch (_) {
+        return { hasMap: false };
+      }
+    };
+
+    const getShadowReceiverInfo = () => {
+      try {
+        if (!receiver) return null;
+        const mat = receiver.material;
+        return {
+          visible: !!receiver.visible,
+          receiveShadow: !!receiver.receiveShadow,
+          position: { x: receiver.position.x, y: receiver.position.y, z: receiver.position.z },
+          scale: { x: receiver.scale.x, y: receiver.scale.y, z: receiver.scale.z },
+          material: mat ? { type: mat.type, opacity: mat.opacity } : null,
+        };
+      } catch (_) {
+        return null;
+      }
+    };
+
+    const getSunTargetInfo = () => {
+      try {
+        const t = sun?.target;
+        if (!t) return null;
+        return {
+          inScene: !!t.parent,
+          position: { x: t.position.x, y: t.position.y, z: t.position.z },
+        };
+      } catch (_) {
+        return null;
+      }
+    };
+
+    // eslint-disable-next-line no-console
+    console.groupCollapsed('[Viewer][TestPreset] dump');
+    // eslint-disable-next-line no-console
+    console.log('renderer.shadowMap', { enabled: r?.shadowMap?.enabled, type: r?.shadowMap?.type });
+    // eslint-disable-next-line no-console
+    console.log('renderer.color', { outputColorSpace: r?.outputColorSpace, outputEncoding: r?.outputEncoding, toneMapping: r?.toneMapping, exposure: r?.toneMappingExposure });
+    // eslint-disable-next-line no-console
+    console.log('sun', {
+      intensity: sun?.intensity,
+      position: sun ? { x: sun.position.x, y: sun.position.y, z: sun.position.z } : null,
+      mapSize: sun?.shadow?.mapSize ? { x: sun.shadow.mapSize.x, y: sun.shadow.mapSize.y } : null,
+      bias: sun?.shadow?.bias,
+      normalBias: sun?.shadow?.normalBias,
+      radius: sun?.shadow?.radius,
+    });
+    // eslint-disable-next-line no-console
+    console.log('sun.target', getSunTargetInfo());
+    // eslint-disable-next-line no-console
+    console.log('sun.shadow.camera', cam ? { left: cam.left, right: cam.right, top: cam.top, bottom: cam.bottom, near: cam.near, far: cam.far } : null);
+    // eslint-disable-next-line no-console
+    console.log('sun.shadow.map (now)', getShadowMapInfo());
+    // eslint-disable-next-line no-console
+    console.log('modelMeshes', { meshCount, castOn, recvOn });
+    // eslint-disable-next-line no-console
+    console.log('model.bbox', bbox);
+    // eslint-disable-next-line no-console
+    console.log('shadowReceiver', getShadowReceiverInfo());
+    // eslint-disable-next-line no-console
+    console.log('materials.types', Object.fromEntries(matTypes.entries()));
+    // eslint-disable-next-line no-console
+    console.log('materials.sample', sampleMats.map((m) => ({
+      type: m?.type,
+      transparent: !!m?.transparent,
+      opacity: (m && 'opacity' in m) ? m.opacity : undefined,
+      depthWrite: (m && 'depthWrite' in m) ? m.depthWrite : undefined,
+      depthTest: (m && 'depthTest' in m) ? m.depthTest : undefined,
+      side: (m && 'side' in m) ? m.side : undefined,
+      color: m?.color ? `#${m.color.getHexString?.()}` : undefined,
+    })));
+    // eslint-disable-next-line no-console
+    console.log('visual', { environment: this.visual.environment, tone: this.visual.tone, ao: this.visual.ao });
+    // eslint-disable-next-line no-console
+    console.log('renderer.info', r?.info ? { memory: r.info.memory, programs: r.info.programs?.length } : null);
+    // eslint-disable-next-line no-console
+    console.groupEnd();
+
+    // Post-frame: проверим, появилась ли shadow map после реального рендера
+    // (без повторов — логируем только при активном тесте)
+    try {
+      requestAnimationFrame(() => {
+        if (!this._testPreset?.enabled) return;
+        // eslint-disable-next-line no-console
+        console.groupCollapsed('[Viewer][TestPreset] post-frame shadow map');
+        // eslint-disable-next-line no-console
+        console.log('sun.shadow.map (raf1)', getShadowMapInfo());
+        // eslint-disable-next-line no-console
+        console.groupEnd();
+        requestAnimationFrame(() => {
+          if (!this._testPreset?.enabled) return;
+          // eslint-disable-next-line no-console
+          console.groupCollapsed('[Viewer][TestPreset] post-frame shadow map (raf2)');
+          // eslint-disable-next-line no-console
+          console.log('sun.shadow.map (raf2)', getShadowMapInfo());
+          // eslint-disable-next-line no-console
+          console.groupEnd();
+        });
+      });
+    } catch (_) {}
+  }
+
+  #applyTestPresetToScene() {
+    if (!this.renderer || !this.scene) return;
+
+    // 1) Renderer shadows
+    try { this.renderer.shadowMap.enabled = true; } catch (_) {}
+    try { this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; } catch (_) {}
+
+    // 2) Tone mapping (ACES + sRGB)
+    try {
+      if ('outputColorSpace' in this.renderer && THREE.SRGBColorSpace) {
+        this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+      } else if ('outputEncoding' in this.renderer && THREE.sRGBEncoding) {
+        this.renderer.outputEncoding = THREE.sRGBEncoding;
+      }
+    } catch (_) {}
+    try { this.renderer.toneMapping = THREE.ACESFilmicToneMapping; } catch (_) {}
+    try { this.renderer.toneMappingExposure = 1.0; } catch (_) {}
+
+    // 3) Visual from recommendations
+    try { this.setEnvironmentEnabled(true); } catch (_) {}
+    try { this.setEnvironmentIntensity(0.65); } catch (_) {}
+    try { this.setToneMappingEnabled(true); } catch (_) {}
+    try { this.setExposure(1.0); } catch (_) {}
+    try { this.setAOEnabled(true); } catch (_) {}
+    try { this.setAOIntensity(0.52); } catch (_) {}
+    try { this.setAORadius(8); } catch (_) {}
+    // Цветокор не упоминался — выключаем, чтобы не влиял
+    try { this.setColorCorrectionEnabled(false); } catch (_) {}
+
+    // 4) Materials: рекомендации не требуют — фиксируем "original", чтобы исключить влияние панели
+    try {
+      this.setMaterialPreset('original');
+      this.setMaterialRoughness(null);
+      this.setMaterialMetalness(null);
+    } catch (_) {}
+
+    // 5) Edges/flat shading: фиксируем, чтобы исключить влияние панели
+    try { this.setEdgesVisible(false); } catch (_) {}
+    try { this.setFlatShading(false); } catch (_) {}
+
+    // 6) Shadows: включаем и задаём параметры как в рекомендациях
+    try { this.setShadowGradientEnabled(false); } catch (_) {}
+    try { this.setShadowOpacity(0.30); } catch (_) {}
+    try { this.setShadowSoftness(2.0); } catch (_) {}
+    try { this.setShadowsEnabled(true); } catch (_) {}
+
+    // 7) Lights: directional + ambient (как в примере)
+    if (this.ambientLight) {
+      this.ambientLight.visible = true;
+      this.ambientLight.intensity = 0.4;
+    }
+    if (this.sunLight) {
+      this.sunLight.visible = true;
+      this.sunLight.intensity = 1.0;
+      this.sunLight.castShadow = true;
+      // mapSize: форсируем пересоздание shadow map (иначе WebGLRenderTarget может остаться старого размера)
+      try { this.sunLight.shadow.mapSize.set(4096, 4096); } catch (_) {}
+      try {
+        if (this.sunLight.shadow?.map) {
+          this.sunLight.shadow.map.dispose?.();
+          this.sunLight.shadow.map = null;
+        }
+      } catch (_) {}
+      try { this.sunLight.shadow.needsUpdate = true; } catch (_) {}
+      try { this.sunLight.shadow.bias = -0.0001; } catch (_) {}
+      try { this.sunLight.shadow.normalBias = 0.02; } catch (_) {}
+
+      // Подгоняем shadow-camera под размер модели (если есть), иначе используем дефолтные рамки
+      const model = this.activeModel;
+      if (model) {
+        try {
+          const box = new THREE.Box3().setFromObject(model);
+          const size = box.getSize(new THREE.Vector3());
+          const center = box.getCenter(new THREE.Vector3());
+          const maxDim = Math.max(size.x, size.y, size.z);
+
+          // Важно: DirectionalLight использует target для ориентации. Добавляем target в сцену и целимся в центр модели.
+          try {
+            if (this.sunLight.target && !this.sunLight.target.parent) {
+              this.scene.add(this.sunLight.target);
+            }
+            this.sunLight.target.position.copy(center);
+            this.sunLight.target.updateMatrixWorld?.();
+          } catch (_) {}
+
+          // Позиция солнца: фиксированное направление, масштаб по размеру модели
+          const sunOffset = new THREE.Vector3(1, 2, 1).normalize().multiplyScalar(Math.max(10, maxDim * 1.5));
+          const sunPos = center.clone().add(sunOffset);
+          this.sunLight.position.copy(sunPos);
+          this._sunBaseXZ = { x: this.sunLight.position.x, z: this.sunLight.position.z };
+          try { this.sunLight.updateMatrixWorld?.(); } catch (_) {}
+
+          const cam = this.sunLight.shadow.camera;
+          cam.near = 0.5;
+          cam.far = Math.max(500, maxDim * 10);
+          cam.left = -maxDim;
+          cam.right = maxDim;
+          cam.top = maxDim;
+          cam.bottom = -maxDim;
+          cam.updateProjectionMatrix();
+          try { this.sunLight.shadow.needsUpdate = true; } catch (_) {}
+        } catch (_) {}
+      } else {
+        try {
+          const cam = this.sunLight.shadow.camera;
+          cam.near = 0.5;
+          cam.far = 500;
+          cam.left = -100;
+          cam.right = 100;
+          cam.top = 100;
+          cam.bottom = -100;
+          cam.updateProjectionMatrix();
+          try { this.sunLight.shadow.needsUpdate = true; } catch (_) {}
+        } catch (_) {}
+      }
+    }
+
+    // 8) Самозатенение: все меши модели cast+receive
+    if (this.activeModel) {
+      this.activeModel.traverse?.((node) => {
+        if (!node?.isMesh) return;
+        node.castShadow = true;
+        node.receiveShadow = true;
+      });
+    }
+    // Приёмник теней на земле оставляем (ShadowMaterial), но без градиента
+    if (this.shadowReceiver) {
+      try { this.shadowReceiver.visible = true; } catch (_) {}
+      try { this.shadowReceiver.receiveShadow = true; } catch (_) {}
+      try {
+        if (this.shadowReceiver.material && 'opacity' in this.shadowReceiver.material) {
+          this.shadowReceiver.material.opacity = this.shadowStyle.opacity;
+          this.shadowReceiver.material.needsUpdate = true;
+        }
+      } catch (_) {}
     }
   }
 
@@ -1376,7 +1876,8 @@ export class Viewer {
     switch (preset) {
       case 'matte': return { roughness: 0.90, metalness: 0.00 };
       case 'glossy': return { roughness: 0.05, metalness: 0.00 };
-      case 'plastic': return { roughness: 0.35, metalness: 0.00 };
+      // Пластик не должен быть "металлом": metalness=0, roughness повыше для архитектурного вида
+      case 'plastic': return { roughness: 0.65, metalness: 0.00 };
       case 'concrete': return { roughness: 0.95, metalness: 0.00 };
       default: return { roughness: null, metalness: null };
     }
@@ -1403,6 +1904,12 @@ export class Viewer {
 
     let converted = null;
     try {
+      const origOpacity = ('opacity' in origMat) ? Number(origMat.opacity ?? 1) : 1;
+      const origTransparent = ('transparent' in origMat) ? !!origMat.transparent : false;
+      const hasAlphaMap = ('alphaMap' in origMat) ? !!origMat.alphaMap : false;
+      const hasMap = ('map' in origMat) ? !!origMat.map : false;
+      const looksTransparent = origTransparent || (Number.isFinite(origOpacity) && origOpacity < 0.999) || hasAlphaMap;
+
       if (origMat.isMeshStandardMaterial || origMat.isMeshPhysicalMaterial) {
         converted = origMat.clone();
       } else {
@@ -1417,6 +1924,48 @@ export class Viewer {
         if ('depthWrite' in origMat) converted.depthWrite = !!origMat.depthWrite;
         if ('depthTest' in origMat) converted.depthTest = !!origMat.depthTest;
       }
+      // Прозрачность: стекло/окна (самый частый источник мерцания).
+      // Для стабильности: transparent=true + depthWrite=false, и НЕ форсить DoubleSide без нужды.
+      if (looksTransparent) {
+        const op = Number.isFinite(origOpacity) ? origOpacity : 1;
+        // Бывает, что материал помечен transparent, но opacity почти 1 — делаем его непрозрачным (сильный прирост стабильности).
+        if (op >= 0.995 && !hasAlphaMap) {
+          converted.transparent = false;
+          converted.opacity = 1;
+          converted.depthWrite = true;
+        } else {
+          converted.transparent = true;
+          converted.opacity = Math.min(1, Math.max(0.02, op));
+          converted.depthTest = true;
+          converted.depthWrite = false;
+          const origSide = ('side' in origMat) ? origMat.side : undefined;
+          converted.side = (origSide === THREE.DoubleSide) ? THREE.DoubleSide : THREE.FrontSide;
+        }
+      } else {
+        // IFC часто содержит перевёрнутые нормали/тонкие накладки.
+        // Для устойчивого отображения фасадов делаем НЕпрозрачные материалы двусторонними.
+        converted.side = THREE.DoubleSide;
+      }
+
+      // Чёткость текстур на расстоянии (анизотропия), если есть карты
+      try {
+        const maxAniso = this.renderer?.capabilities?.getMaxAnisotropy?.() || 0;
+        const aniso = Math.min(8, Math.max(0, maxAniso));
+        if (aniso > 1) {
+          const texList = [];
+          if (hasMap && converted.map) texList.push(converted.map);
+          if ('roughnessMap' in converted && converted.roughnessMap) texList.push(converted.roughnessMap);
+          if ('metalnessMap' in converted && converted.metalnessMap) texList.push(converted.metalnessMap);
+          if ('normalMap' in converted && converted.normalMap) texList.push(converted.normalMap);
+          if ('aoMap' in converted && converted.aoMap) texList.push(converted.aoMap);
+          if ('alphaMap' in converted && converted.alphaMap) texList.push(converted.alphaMap);
+          for (const t of texList) {
+            if (!t) continue;
+            t.anisotropy = Math.max(t.anisotropy || 1, aniso);
+            t.needsUpdate = true;
+          }
+        }
+      } catch (_) {}
       // Сохраняем polygonOffset (важно для edges-overlay)
       if ('polygonOffset' in origMat) converted.polygonOffset = !!origMat.polygonOffset;
       if ('polygonOffsetFactor' in origMat) converted.polygonOffsetFactor = Number(origMat.polygonOffsetFactor ?? 0);
