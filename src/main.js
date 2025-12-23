@@ -538,11 +538,13 @@ if (app) {
   const qualLow = document.getElementById("qualLow");
   const qualMed = document.getElementById("qualMed");
   const qualHigh = document.getElementById("qualHigh");
-  const toggleEdges = document.getElementById("toggleEdges");
+  // Нижний тулбар пакета (index.html): Edges
+  const toggleEdges = document.getElementById("ifcToggleEdges");
   const toggleShading = document.getElementById("toggleShading");
-  const clipXBtn = document.getElementById("clipX");
-  const clipYBtn = document.getElementById("clipY");
-  const clipZBtn = document.getElementById("clipZ");
+  // Нижний тулбар пакета (index.html): секущие плоскости
+  const clipXBtn = document.getElementById("ifcClipX");
+  const clipYBtn = document.getElementById("ifcClipY");
+  const clipZBtn = document.getElementById("ifcClipZ");
   const clipXRange = document.getElementById("clipXRange");
   const clipYRange = document.getElementById("clipYRange");
   const clipZRange = document.getElementById("clipZRange");
