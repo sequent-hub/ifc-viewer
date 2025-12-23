@@ -24,6 +24,7 @@ export class IfcViewer {
    * @param {string} [options.ifcUrl] - URL для загрузки IFC файла
    * @param {File} [options.ifcFile] - File объект для загрузки IFC файла
    * @param {string} [options.wasmUrl] - URL для загрузки WASM файла web-ifc
+   * @param {boolean} [options.useTestPreset=true] - Включать ли пресет "Тест" по умолчанию (рекомендованные тени/визуал)
    * @param {boolean} [options.showSidebar=false] - Показывать ли боковую панель с деревом
    * @param {boolean} [options.showControls=false] - Показывать ли панель управления (нижние кнопки)
    * @param {boolean} [options.showToolbar=true] - Показывать ли верхнюю панель инструментов
@@ -51,6 +52,8 @@ export class IfcViewer {
       ifcUrl: options.ifcUrl || null,
       ifcFile: options.ifcFile || null,
       wasmUrl: options.wasmUrl || null,
+      // По умолчанию включаем пресет "Тест" для корректного вида теней (как в демо-настройках)
+      useTestPreset: options.useTestPreset !== false,
       showSidebar: options.showSidebar === true, // по умолчанию false
       showControls: options.showControls === true, // по умолчанию false
       showToolbar: options.showToolbar !== false, // по умолчанию true
@@ -112,6 +115,12 @@ export class IfcViewer {
       this._initViewer();
       this._initIfcService();
       this._initTreeView();
+
+      // Применяем дефолтный пресет пакета (полностью независим от index.html)
+      // Важно: пресет должен примениться ДО загрузки модели, чтобы настройки подхватились при replaceWithModel()
+      if (this.options.useTestPreset && this.viewer?.setTestPresetEnabled) {
+        this.viewer.setTestPresetEnabled(true);
+      }
       
       // Настраиваем обработчики событий
       this._setupEventHandlers();
