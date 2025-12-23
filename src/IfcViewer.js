@@ -505,6 +505,9 @@ export class IfcViewer {
     this._addEventListener('#ifcToggleShadows', 'click', () => {
       this._toggleShadows();
     });
+    this._addEventListener('#ifcToggleProjection', 'click', () => {
+      this._toggleProjection();
+    });
     this._addEventListener('#ifcToggleShading', 'click', () => {
       this._toggleShading();
     });
@@ -716,6 +719,33 @@ export class IfcViewer {
     try { this.viewer.setShadowsEnabled(this.viewerState.shadowsEnabled); } catch (_) {}
     const btn = this.containerElement.querySelector('#ifcToggleShadows');
     if (btn) btn.classList.toggle('btn-active', this.viewerState.shadowsEnabled);
+  }
+
+  /**
+   * Переключает режим проекции (Perspective ↔ Ortho) и меняет иконку по правилу "показываем действие".
+   * @private
+   */
+  _toggleProjection() {
+    if (!this.viewer) return;
+
+    // Иконки: показываем альтернативный режим
+    const ICON_PERSPECTIVE = `
+      <svg width="24" height="24" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+        <path fill="#000000" d="M365.50 333.29 A 0.30 0.30 0.0 0 0 365.95 333.55 L 492.36 259.80 A 0.47 0.47 0.0 0 0 492.51 259.12 Q 489.74 255.31 492.90 252.78 A 0.30 0.30 0.0 0 0 492.83 252.27 C 489.14 250.57 490.13 245.43 493.90 244.50 C 496.33 243.90 501.93 247.88 504.97 249.79 A 1.50 1.48 -85.3 0 1 505.54 250.47 L 505.97 251.53 A 0.72 0.71 76.6 0 0 506.67 251.97 C 509.70 251.84 512.28 254.84 511.15 257.67 Q 510.77 258.62 508.18 260.14 C 355.38 349.68 251.70 410.06 149.28 469.74 A 3.94 3.93 -44.9 0 1 145.31 469.74 Q 7.70 389.45 2.96 386.69 C 0.09 385.02 0.50 382.93 0.50 379.49 Q 0.50 259.79 0.50 128.77 C 0.50 127.21 1.85 125.96 3.27 125.13 Q 68.02 87.24 145.61 41.87 C 146.90 41.11 148.92 41.81 150.33 42.63 Q 219.34 82.64 289.83 124.16 C 291.25 125.00 292.80 126.11 294.76 127.15 Q 299.89 129.89 301.84 131.37 C 305.49 134.15 301.99 140.40 297.26 138.18 Q 295.67 137.42 294.41 136.58 A 0.26 0.26 0.0 0 0 294.00 136.80 L 294.00 209.83 A 0.44 0.44 0.0 0 0 294.36 210.26 Q 340.50 219.23 361.26 223.22 C 366.12 224.15 365.53 227.44 365.51 232.03 Q 365.50 234.52 365.49 251.11 A 0.73 0.73 0.0 0 0 366.22 251.84 L 370.02 251.84 A 3.64 3.64 0.0 0 1 373.66 255.48 L 373.66 256.72 A 3.45 3.44 0.0 0 1 370.21 260.16 L 366.15 260.16 A 0.65 0.65 0.0 0 0 365.50 260.81 L 365.50 333.29 Z"/>
+      </svg>
+    `;
+    const ICON_ORTHO = `
+      <svg width="24" height="24" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+        <path fill="#000000" d="M256.02 48.55 Q 257.33 48.55 258.06 48.94 Q 381.49 115.11 442.91 148.14 Q 445.24 149.39 445.26 152.25 Q 445.52 184.71 445.52 256.00 Q 445.52 327.29 445.26 359.75 Q 445.24 362.61 442.91 363.86 Q 381.49 396.89 258.06 463.06 Q 257.33 463.45 256.02 463.45 Q 254.71 463.45 253.98 463.06 Q 130.55 396.89 69.13 363.86 Q 66.80 362.61 66.78 359.75 Q 66.52 327.29 66.52 256.00 Q 66.52 184.71 66.78 152.25 Q 66.80 149.39 69.13 148.14 Q 130.55 115.11 253.98 48.94 Q 254.71 48.55 256.02 48.55 Z"/>
+      </svg>
+    `;
+
+    const next = this.viewer.toggleProjection?.();
+    const mode = next || this.viewer.getProjectionMode?.() || 'perspective';
+    const btn = this.containerElement.querySelector('#ifcToggleProjection');
+    if (btn) {
+      btn.innerHTML = (mode === 'perspective') ? ICON_ORTHO : ICON_PERSPECTIVE;
+    }
   }
 
   /**

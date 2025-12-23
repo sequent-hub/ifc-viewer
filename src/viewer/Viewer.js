@@ -21,6 +21,19 @@ export class Viewer {
     this.renderer = null;
     this.scene = null;
     this.camera = null;
+    // Переключение проекции (добавляем второй "вид без перспективы", не трогая свет/материалы/постпроцесс)
+    this._projection = {
+      mode: 'perspective', // 'perspective' | 'ortho'
+      /** @type {THREE.PerspectiveCamera|null} */
+      persp: null,
+      /** @type {THREE.OrthographicCamera|null} */
+      ortho: null,
+      // Половина высоты орто-фрустума (top=+h,bottom=-h). Подбираем из текущего perspective-вида.
+      orthoHalfHeight: 10,
+      // Пределы зума для Ortho
+      minZoom: 0.25,
+      maxZoom: 8,
+    };
     this.animationId = null;
     this.controls = null;
     this.zoomListeners = new Set();
@@ -147,6 +160,38 @@ export class Viewer {
     this.animate = this.animate.bind(this);
   }
 
+  _getAspect() {
+    try {
+      const { width, height } = this._getContainerSize();
+      return Math.max(1e-6, width) / Math.max(1e-6, height);
+    } catch (_) {
+      return 1;
+    }
+  }
+
+  _dumpProjectionDebug(label) {
+    try {
+      const cam = this.camera;
+      const tgt = this.controls?.target;
+      const isPersp = !!cam?.isPerspectiveCamera;
+      const isOrtho = !!cam?.isOrthographicCamera;
+      console.log('[Viewer][Projection]', label, {
+        mode: this._projection?.mode,
+        camera: isPersp ? 'perspective' : isOrtho ? 'ortho' : 'unknown',
+        pos: cam?.position ? { x: +cam.position.x.toFixed(3), y: +cam.position.y.toFixed(3), z: +cam.position.z.toFixed(3) } : null,
+        target: tgt ? { x: +tgt.x.toFixed(3), y: +tgt.y.toFixed(3), z: +tgt.z.toFixed(3) } : null,
+        dist: (cam?.position && tgt) ? +cam.position.distanceTo(tgt).toFixed(3) : null,
+        fov: isPersp ? cam.fov : null,
+        zoom: isOrtho ? cam.zoom : null,
+        near: cam?.near,
+        far: cam?.far,
+        composer: !!this._composer,
+        renderPassHasCamera: !!this._renderPass?.camera,
+        ssaoPassHasCamera: !!this._ssaoPass?.camera,
+      });
+    } catch (_) {}
+  }
+
   init() {
     if (!this.container) throw new Error("Viewer: контейнер не найден");
 
@@ -188,6 +233,7 @@ export class Viewer {
     this.camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 1000);
     this.camera.position.set(-22.03, 23.17, 39.12);
     this.camera.lookAt(0, 0, 0);
+    this._projection.persp = this.camera;
 
     // OrbitControls
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
@@ -195,6 +241,30 @@ export class Viewer {
     this.controls.target.set(0, 0, 0);
     this.controls.minDistance = 1;
     this.controls.maxDistance = 20;
+    // Zoom для орто-режима (в перспективе OrbitControls эти поля просто не мешают)
+    this.controls.minZoom = this._projection.minZoom;
+    this.controls.maxZoom = this._projection.maxZoom;
+
+    // Создадим вторую камеру "без перспективы" (orthographic), но не включаем её по умолчанию.
+    // Фрустум подбираем так, чтобы при переключении вид менялся только за счёт перспективных искажений.
+    try {
+      const dist = this.camera.position.distanceTo(this.controls.target);
+      const vFov = (this.camera.fov * Math.PI) / 180;
+      const halfH = Math.max(0.01, dist * Math.tan(vFov / 2));
+      this._projection.orthoHalfHeight = halfH;
+      const ortho = new THREE.OrthographicCamera(
+        -halfH * aspect,
+        halfH * aspect,
+        halfH,
+        -halfH,
+        this.camera.near,
+        this.camera.far
+      );
+      ortho.position.copy(this.camera.position);
+      ortho.zoom = 1;
+      ortho.updateProjectionMatrix();
+      this._projection.ortho = ortho;
+    } catch (_) {}
 
     // Свет
     const amb = new THREE.AmbientLight(0xffffff, 0.6);
@@ -319,9 +389,9 @@ export class Viewer {
     if (!this.container || !this.camera || !this.renderer) return;
     const { width, height } = this._getContainerSize();
     this._updateSize(Math.max(1, width), Math.max(1, height));
-    // Обновим пределы зума под текущий объект без переразмещения камеры
+    // Обновим пределы зума под текущий объект без переразмещения камеры (только в перспективе)
     const subject = this.activeModel || this.demoCube;
-    if (subject) this.applyAdaptiveZoomLimits(subject, { recenter: false });
+    if (subject && this.camera.isPerspectiveCamera) this.applyAdaptiveZoomLimits(subject, { recenter: false });
     // Обновим вспомогательные overlay-виджеты
     if (this.navCube) this.navCube.onResize();
   }
@@ -469,6 +539,14 @@ export class Viewer {
 
   getZoomPercent() {
     if (!this.controls) return 0;
+    if (this.camera?.isOrthographicCamera) {
+      const z = this.camera.zoom || 1;
+      const minZ = this.controls.minZoom ?? this._projection.minZoom;
+      const maxZ = this.controls.maxZoom ?? this._projection.maxZoom;
+      const clampedZ = Math.min(Math.max(z, minZ), maxZ);
+      const t = (clampedZ - minZ) / (maxZ - minZ);
+      return t * 100;
+    }
     const d = this.getDistance();
     const minD = this.controls.minDistance || 1;
     const maxD = this.controls.maxDistance || 20;
@@ -479,11 +557,31 @@ export class Viewer {
 
   zoomIn(factor = 0.9) {
     if (!this.camera || !this.controls) return;
+    if (this.camera.isOrthographicCamera) {
+      const minZ = this.controls.minZoom ?? this._projection.minZoom;
+      const maxZ = this.controls.maxZoom ?? this._projection.maxZoom;
+      const next = (this.camera.zoom || 1) * (1 / factor);
+      this.camera.zoom = Math.min(Math.max(next, minZ), maxZ);
+      this.camera.updateProjectionMatrix();
+      this.controls.update();
+      this._notifyZoomIfChanged(true);
+      return;
+    }
     this.#moveAlongView(factor);
   }
 
   zoomOut(factor = 1.1) {
     if (!this.camera || !this.controls) return;
+    if (this.camera.isOrthographicCamera) {
+      const minZ = this.controls.minZoom ?? this._projection.minZoom;
+      const maxZ = this.controls.maxZoom ?? this._projection.maxZoom;
+      const next = (this.camera.zoom || 1) * (1 / factor);
+      this.camera.zoom = Math.min(Math.max(next, minZ), maxZ);
+      this.camera.updateProjectionMatrix();
+      this.controls.update();
+      this._notifyZoomIfChanged(true);
+      return;
+    }
     this.#moveAlongView(factor);
   }
 
@@ -503,6 +601,8 @@ export class Viewer {
   // Адаптивная настройка пределов зума под габариты объекта
   applyAdaptiveZoomLimits(object3D, options = {}) {
     if (!object3D || !this.camera || !this.controls) return;
+    // Для орто-камеры эта функция (fit по FOV) не применима — здесь мы сознательно не меняем кадр.
+    if (this.camera.isOrthographicCamera) return;
     const padding = options.padding ?? 1.2;      // запас на краях кадра
     const slack = options.slack ?? 2.5;          // во сколько раз можно отъехать дальше «вписанной» дистанции
     const minRatio = options.minRatio ?? 0.05;   // минимальная дистанция как доля от «вписанной»
@@ -583,8 +683,18 @@ export class Viewer {
 
   _updateSize(width, height) {
     if (!this.camera || !this.renderer) return;
-    this.camera.aspect = width / height;
-    this.camera.updateProjectionMatrix();
+    const aspect = width / height;
+    if (this.camera.isPerspectiveCamera) {
+      this.camera.aspect = aspect;
+      this.camera.updateProjectionMatrix();
+    } else if (this.camera.isOrthographicCamera) {
+      const h = this._projection.orthoHalfHeight || 10;
+      this.camera.left = -h * aspect;
+      this.camera.right = h * aspect;
+      this.camera.top = h;
+      this.camera.bottom = -h;
+      this.camera.updateProjectionMatrix();
+    }
     // Третий аргумент false — не менять стилевые размеры, только буфер
     this.renderer.setSize(width, height, false);
     if (this._composer) {
@@ -593,6 +703,93 @@ export class Viewer {
     if (this._ssaoPass?.setSize) {
       try { this._ssaoPass.setSize(width, height); } catch (_) {}
     }
+  }
+
+  // ================= Projection (Perspective / Ortho) =================
+  getProjectionMode() {
+    return this._projection?.mode || 'perspective';
+  }
+
+  setProjectionMode(mode) {
+    const next = (mode === 'ortho') ? 'ortho' : 'perspective';
+    if (!this.camera || !this.controls || !this._projection?.persp || !this._projection?.ortho) return;
+    if (next === this._projection.mode) return;
+
+    this._dumpProjectionDebug('before');
+
+    const target = this.controls.target.clone();
+    const currentPos = this.camera.position.clone();
+    const dirVec = currentPos.clone().sub(target);
+    const dirLen = dirVec.length();
+    const viewDir = dirLen > 1e-6 ? dirVec.multiplyScalar(1 / dirLen) : new THREE.Vector3(0, 0, 1);
+    const aspect = this._getAspect();
+
+    if (next === 'ortho') {
+      // Подбираем фрустум под текущий perspective-вью: halfH = dist * tan(fov/2)
+      const persp = this._projection.persp;
+      const dist = Math.max(0.01, currentPos.distanceTo(target));
+      const vFov = (persp.fov * Math.PI) / 180;
+      const halfH = Math.max(0.01, dist * Math.tan(vFov / 2));
+      this._projection.orthoHalfHeight = halfH;
+
+      const ortho = this._projection.ortho;
+      ortho.left = -halfH * aspect;
+      ortho.right = halfH * aspect;
+      ortho.top = halfH;
+      ortho.bottom = -halfH;
+      ortho.near = this.camera.near;
+      ortho.far = this.camera.far;
+      ortho.position.copy(currentPos);
+      ortho.zoom = 1;
+      ortho.updateProjectionMatrix();
+
+      this.camera = ortho;
+    } else {
+      // Перевод Ortho → Perspective с сохранением масштаба в кадре:
+      // видимая halfHeight = orthoHalfHeight / zoom => dist = halfVisible / tan(fov/2)
+      const persp = this._projection.persp;
+      const ortho = this._projection.ortho;
+      const zoom = ortho.zoom || 1;
+      const halfVisible = Math.max(0.01, (this._projection.orthoHalfHeight || Math.abs(ortho.top) || 10) / zoom);
+      const vFov = (persp.fov * Math.PI) / 180;
+      const dist = Math.max(0.01, halfVisible / Math.tan(vFov / 2));
+
+      persp.near = this.camera.near;
+      persp.far = this.camera.far;
+      persp.aspect = aspect;
+      persp.position.copy(target.clone().add(viewDir.multiplyScalar(dist)));
+      persp.updateProjectionMatrix();
+
+      this.camera = persp;
+    }
+
+    this._projection.mode = next;
+
+    // Переключаем controls на новую камеру
+    this.controls.object = this.camera;
+    this.controls.target.copy(target);
+    this.controls.update();
+
+    // Внутренние зависимости, которые держат ссылку на camera
+    if (this.navCube) this.navCube.mainCamera = this.camera;
+    try {
+      if (this._renderPass) this._renderPass.camera = this.camera;
+      if (this._ssaoPass) this._ssaoPass.camera = this.camera;
+    } catch (_) {}
+    try {
+      ['x', 'y', 'z'].forEach((axis) => {
+        const m = this.clipping?.manipulators?.[axis];
+        if (m) m.camera = this.camera;
+      });
+    } catch (_) {}
+
+    this._dumpProjectionDebug('after');
+  }
+
+  toggleProjection() {
+    const next = (this.getProjectionMode() === 'ortho') ? 'perspective' : 'ortho';
+    this.setProjectionMode(next);
+    return this.getProjectionMode();
   }
 
   _dispatchReady() {
