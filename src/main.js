@@ -185,6 +185,8 @@ if (app) {
     const amb = viewer?.ambientLight;
     const sun = viewer?.sunLight;
     const hemi = viewer?.hemiLight;
+    const recv = viewer?.shadowReceiver;
+    const recvMat = recv?.material;
     // eslint-disable-next-line no-console
     console.log('[Step2] cool lighting', {
       coolEnabled: viewer?._coolLighting?.enabled,
@@ -192,6 +194,12 @@ if (app) {
       ambient: amb ? { visible: amb.visible, intensity: amb.intensity, color: amb.color?.getHexString?.() } : null,
       hemi: hemi ? { visible: hemi.visible, intensity: hemi.intensity, color: hemi.color?.getHexString?.(), ground: hemi.groundColor?.getHexString?.() } : null,
       sun: sun ? { visible: sun.visible, intensity: sun.intensity, color: sun.color?.getHexString?.() } : null,
+      shadowReceiver: recv ? {
+        visible: !!recv.visible,
+        receiveShadow: !!recv.receiveShadow,
+        opacity: ('opacity' in (recvMat || {})) ? recvMat.opacity : undefined,
+        color: recvMat?.color?.getHexString?.(),
+      } : null,
     });
   });
 
@@ -241,11 +249,19 @@ if (app) {
     step4Saturation.addEventListener("input", (e) => applyStep4Saturation(e.target.value));
   }
   step4Dump?.addEventListener("click", () => {
+    const recv = viewer?.shadowReceiver;
+    const recvMat = recv?.material;
     // eslint-disable-next-line no-console
     console.log('[Step4] post', {
       enabled: viewer?._step4?.enabled,
       params: viewer?._step4 ? { contrast: viewer._step4.contrast, saturation: viewer._step4.saturation } : null,
       composer: viewer?._composer ? { passes: viewer._composer.passes?.length } : null,
+      shadowReceiver: recv ? {
+        visible: !!recv.visible,
+        receiveShadow: !!recv.receiveShadow,
+        opacity: ('opacity' in (recvMat || {})) ? recvMat.opacity : undefined,
+        color: recvMat?.color?.getHexString?.(),
+      } : null,
     });
   });
 

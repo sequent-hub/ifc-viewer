@@ -80,6 +80,8 @@ export class Viewer {
       opacity: 0.14,  // прозрачность тени на земле (ShadowMaterial.opacity)
       softness: 0.0,  // мягкость края (DirectionalLight.shadow.radius)
     };
+    // Базовый цвет тени на земле (по умолчанию нейтрально-серый, чтобы можно было сравнивать с "синей" тенью в Шаге 2)
+    this._shadowReceiverBaseColor = new THREE.Color(0x2a2a2a);
 
     // Материалы (пресеты)
     this.materialStyle = {
@@ -1004,7 +1006,7 @@ export class Viewer {
     if (!this.scene || this.shadowReceiver) return;
     // ShadowMaterial рисует только тени, сама плоскость прозрачная.
     // Если тени отключены — визуально ничего не изменится.
-    const mat = new THREE.ShadowMaterial({ opacity: this.shadowStyle.opacity });
+    const mat = new THREE.ShadowMaterial({ opacity: this.shadowStyle.opacity, color: this._shadowReceiverBaseColor.clone() });
     // Градиент тени: модифицируем шейдер только приёмника (не влияет на остальные материалы)
     mat.onBeforeCompile = (shader) => {
       // uniforms
@@ -1095,6 +1097,8 @@ export class Viewer {
     plane.position.set(0, -9999, 0); // спрячем до первого апдейта по модели
     this.scene.add(plane);
     this.shadowReceiver = plane;
+    // Если "холодный свет" (Шаг 2) уже включён — сразу подкрасим тень тем же оттенком
+    try { this.#applyShadowTintFromCoolLighting(); } catch (_) {}
   }
 
   #updateShadowReceiverFromModel(model) {
@@ -1930,6 +1934,7 @@ export class Viewer {
           color: this.hemiLight.color?.clone?.() || null,
           groundColor: this.hemiLight.groundColor?.clone?.() || null,
         } : { existed: false },
+        shadowReceiverColor: (this.shadowReceiver?.material?.color?.clone?.() || null),
       };
 
       // 1) Ambient: холодный общий
@@ -1957,6 +1962,8 @@ export class Viewer {
       this._coolLighting.enabled = true;
       // Применим текущие параметры (hue/amount)
       try { this.#applyCoolLightingParams(); } catch (_) {}
+      // Подкрасим тень на земле тем же холодным оттенком
+      try { this.#applyShadowTintFromCoolLighting(); } catch (_) {}
       return;
     }
 
@@ -1989,6 +1996,15 @@ export class Viewer {
         try { this.hemiLight.dispose?.(); } catch (_) {}
       }
       this.hemiLight = null;
+    }
+
+    // Shadow receiver color restore
+    if (this.shadowReceiver?.material?.color) {
+      try {
+        if (snap.shadowReceiverColor) this.shadowReceiver.material.color.copy(snap.shadowReceiverColor);
+        else this.shadowReceiver.material.color.copy(this._shadowReceiverBaseColor);
+        this.shadowReceiver.material.needsUpdate = true;
+      } catch (_) {}
     }
   }
 
@@ -2041,6 +2057,34 @@ export class Viewer {
         this.hemiLight.color.copy(base.lerp(target, amount));
       } catch (_) {}
     }
+
+    // Тень на земле: подмешиваем тот же холодный оттенок
+    try { this.#applyShadowTintFromCoolLighting(); } catch (_) {}
+  }
+
+  /**
+   * Подкрашивает тень на "земле" (ShadowMaterial приёмника) в холодный оттенок по параметрам Шага 2.
+   * Это НЕ меняет самозатенение на модели — только цвет плоскости-приёмника.
+   */
+  #applyShadowTintFromCoolLighting() {
+    if (!this._coolLighting?.enabled) return;
+    const receiver = this.shadowReceiver;
+    const mat = receiver?.material;
+    if (!receiver || !mat || !mat.color) return;
+
+    const amount = this._coolLighting.params?.amount ?? 1.0;
+
+    // Базовый цвет: нейтрально-серый (или снапшот, если приёмник существовал до включения шага)
+    const base = (this._coolLighting.snapshot?.shadowReceiverColor?.clone?.() || this._shadowReceiverBaseColor.clone());
+    // Целевой "холодный" цвет для тени (фиксируем для визуального подбора): #386fa4
+    const target = new THREE.Color('#386fa4');
+    // Amount из Шага 2 напрямую управляет подмешиванием (0..1)
+    const t = Math.min(1, Math.max(0, amount));
+
+    try {
+      mat.color.copy(base.lerp(target, t));
+      mat.needsUpdate = true;
+    } catch (_) {}
   }
 
   /**
@@ -2320,16 +2364,38 @@ export class Viewer {
       `,
       fragmentShader: `
         uniform sampler2D tDiffuse;
-        uniform float saturation;
-        uniform float contrast;
+        uniform float saturation; // 1.0 = no change
+        uniform float contrast;   // 1.0 = no change
         varying vec2 vUv;
+
+        vec3 rgb2hsv(vec3 c) {
+          vec4 K = vec4(0.0, -1.0/3.0, 2.0/3.0, -1.0);
+          vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
+          vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
+          float d = q.x - min(q.w, q.y);
+          float e = 1.0e-10;
+          return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+        }
+
+        vec3 hsv2rgb(vec3 c) {
+          vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
+          vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+          return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+        }
+
         void main() {
           vec4 color = texture2D(tDiffuse, vUv);
-          // Saturation
-          float gray = dot(color.rgb, vec3(0.299, 0.587, 0.114));
-          color.rgb = mix(vec3(gray), color.rgb, saturation);
-          // Contrast (pivot at 0.5)
-          color.rgb = (color.rgb - 0.5) * contrast + 0.5;
+
+          // Contrast first (pivot at 0.5), then clamp to keep values stable
+          vec3 rgb = (color.rgb - 0.5) * contrast + 0.5;
+          rgb = clamp(rgb, 0.0, 1.0);
+
+          // Saturation in HSV: лучше сохраняет оттенок в тёмных тонах (например, у синеватой тени)
+          vec3 hsv = rgb2hsv(rgb);
+          hsv.y = clamp(hsv.y * saturation, 0.0, 1.0);
+          rgb = hsv2rgb(hsv);
+
+          color.rgb = clamp(rgb, 0.0, 1.0);
           gl_FragColor = color;
         }
       `,
