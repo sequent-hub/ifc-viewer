@@ -160,6 +160,59 @@ export class Viewer {
     this.animate = this.animate.bind(this);
   }
 
+  /**
+   * Меняет FOV перспективной камеры, сохраняя кадрирование (масштаб объекта на экране) по текущему target.
+   * Это позволяет "ослабить перспективу" без резкого зума.
+   * @param {number} fovDeg
+   * @param {{keepFraming?: boolean, log?: boolean}} [opts]
+   */
+  setPerspectiveFov(fovDeg, opts = {}) {
+    const keepFraming = opts.keepFraming !== false;
+    const log = opts.log !== false;
+    if (!this.camera || !this.controls) return;
+    if (!this.camera.isPerspectiveCamera) return;
+
+    const nextFov = Number(fovDeg);
+    if (!Number.isFinite(nextFov)) return;
+    const clamped = Math.min(80, Math.max(10, nextFov));
+
+    const prevFov = this.camera.fov;
+    if (Math.abs(prevFov - clamped) < 1e-6) return;
+
+    const target = this.controls.target.clone();
+    const prevPos = this.camera.position.clone();
+    const prevDist = prevPos.distanceTo(target);
+
+    this.camera.fov = clamped;
+    this.camera.updateProjectionMatrix();
+
+    if (keepFraming) {
+      // dist_new = dist_old * tan(fov_old/2) / tan(fov_new/2)
+      const prev = (prevFov * Math.PI) / 180;
+      const next = (clamped * Math.PI) / 180;
+      const denom = Math.tan(next / 2);
+      const num = Math.tan(prev / 2);
+      if (Number.isFinite(denom) && denom > 1e-9 && Number.isFinite(num)) {
+        const newDist = Math.max(0.01, prevDist * (num / denom));
+        const dir = prevPos.clone().sub(target).normalize();
+        this.camera.position.copy(target.clone().add(dir.multiplyScalar(newDist)));
+        this.camera.updateProjectionMatrix();
+      }
+    }
+
+    this.controls.update();
+    if (log) {
+      try {
+        console.log('[Viewer][FOV]', {
+          prevFov,
+          nextFov: clamped,
+          prevDist: +prevDist.toFixed(3),
+          nextDist: +this.camera.position.distanceTo(target).toFixed(3),
+        });
+      } catch (_) {}
+    }
+  }
+
   _getAspect() {
     try {
       const { width, height } = this._getContainerSize();
@@ -230,8 +283,9 @@ export class Viewer {
     const width = this.container.clientWidth || window.innerWidth;
     const height = this.container.clientHeight || window.innerHeight;
     const aspect = width / height;
-    this.camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 1000);
-    this.camera.position.set(-22.03, 23.17, 39.12);
+    // Перспектива: уменьшаем FOV (меньше "сужение" вдаль)
+    this.camera = new THREE.PerspectiveCamera(20, aspect, 0.1, 1000);
+    this.camera.position.set(-22.03, 3.17, 39.12);
     this.camera.lookAt(0, 0, 0);
     this._projection.persp = this.camera;
 
@@ -857,7 +911,9 @@ export class Viewer {
         if (!this.camera || !this.controls) return;
         // Центрируем точку взгляда на центр модели и ставим камеру в заданные координаты
         this.controls.target.copy(center);
-        this.camera.position.set(-22.03, 23.17, 39.12);
+        this.camera.position.set(-22.03, 3.17, 39.12);
+        // Убедимся, что FOV соответствует целевому искаженению (и сохраним кадрирование)
+        this.setPerspectiveFov(20, { keepFraming: true, log: true });
         try {
           // Если камера слишком близко, отъедем до вписанной дистанции, сохранив направление
           const size = box.getSize(new THREE.Vector3());
