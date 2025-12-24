@@ -9,6 +9,29 @@ if (app) {
   const viewer = new Viewer(app);
   viewer.init();
 
+  // ===== Диагностика (включается через query-параметры) =====
+  // ?debugViewer=1  -> window.__viewer = viewer
+  // ?zoomDebug=1    -> включает логирование zoom-to-cursor
+  // ?zoomCursor=0   -> отключает zoom-to-cursor (для сравнения с OrbitControls)
+  try {
+    const params = new URLSearchParams(location.search);
+    const debugViewer = params.get("debugViewer") === "1" || params.get("zoomDebug") === "1";
+    if (debugViewer) {
+      // eslint-disable-next-line no-undef
+      window.__viewer = viewer;
+    }
+    if (params.get("zoomDebug") === "1") {
+      viewer.setZoomToCursorDebug?.(true);
+      // eslint-disable-next-line no-console
+      console.log("[Viewer] zoom-to-cursor debug enabled");
+    }
+    if (params.get("zoomCursor") === "0") {
+      viewer.setZoomToCursorEnabled?.(false);
+      // eslint-disable-next-line no-console
+      console.log("[Viewer] zoom-to-cursor disabled (zoomCursor=0)");
+    }
+  } catch (_) {}
+
   // ===== Левая панель: временно оставляем только "Тест" =====
   // Остальные контролы (тени/солнце/материалы/визуал/цветокор) будем добавлять пошагово позже.
   // (Старый код управления панелью закомментирован ниже для последующего восстановления при необходимости.)
@@ -532,7 +555,10 @@ if (app) {
 
   // Очистка при HMR (vite)
   if (import.meta.hot) {
-    import.meta.hot.dispose(() => { ifc.dispose(); viewer.dispose(); });
+    import.meta.hot.dispose(() => {
+      ifc.dispose();
+      viewer.dispose();
+    });
   }
 }
 

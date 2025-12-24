@@ -12,6 +12,7 @@ import { BrightnessContrastShader } from "three/examples/jsm/shaders/BrightnessC
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { NavCube } from "./NavCube.js";
 import { SectionManipulator } from "./SectionManipulator.js";
+import { ZoomToCursorController } from "./ZoomToCursorController.js";
 
 export class Viewer {
   constructor(containerElement) {
@@ -169,8 +170,41 @@ export class Viewer {
     this._onControlsChange = null;
     this._onControlsEnd = null;
 
+    // Zoom-to-cursor (wheel): включено по умолчанию, debug выключен
+    this._zoomToCursor = {
+      enabled: true,
+      debug: false,
+      controller: null,
+    };
+
     this.handleResize = this.handleResize.bind(this);
     this.animate = this.animate.bind(this);
+  }
+
+  /**
+   * Включает/выключает zoom-to-cursor (wheel).
+   * @param {boolean} enabled
+   */
+  setZoomToCursorEnabled(enabled) {
+    if (!this._zoomToCursor) return;
+    this._zoomToCursor.enabled = !!enabled;
+  }
+
+  /**
+   * Включает/выключает диагностическое логирование zoom-to-cursor.
+   * @param {boolean} debug
+   */
+  setZoomToCursorDebug(debug) {
+    if (!this._zoomToCursor) return;
+    this._zoomToCursor.debug = !!debug;
+  }
+
+  /**
+   * Возвращает текущие флаги zoom-to-cursor (для диагностики).
+   */
+  getZoomToCursorState() {
+    if (!this._zoomToCursor) return { enabled: false, debug: false };
+    return { enabled: !!this._zoomToCursor.enabled, debug: !!this._zoomToCursor.debug };
   }
 
   /**
@@ -311,6 +345,22 @@ export class Viewer {
     // Zoom для орто-режима (в перспективе OrbitControls эти поля просто не мешают)
     this.controls.minZoom = this._projection.minZoom;
     this.controls.maxZoom = this._projection.maxZoom;
+
+    // Zoom-to-cursor: перехватываем wheel в capture-phase, чтобы OrbitControls не выполнял dolly сам
+    try {
+      this._zoomToCursor.controller = new ZoomToCursorController({
+        domElement: this.renderer.domElement,
+        getCamera: () => this.camera,
+        getControls: () => this.controls,
+        getPickRoot: () => this.activeModel,
+        onZoomChanged: (force) => this._notifyZoomIfChanged(force),
+        isEnabled: () => !!this._zoomToCursor.enabled,
+        isDebug: () => !!this._zoomToCursor.debug,
+      });
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn("ZoomToCursor init failed:", e);
+    }
 
     // Создадим вторую камеру "без перспективы" (orthographic), но не включаем её по умолчанию.
     // Фрустум подбираем так, чтобы при переключении вид менялся только за счёт перспективных искажений.
@@ -523,6 +573,9 @@ export class Viewer {
       try { this.renderer.domElement.removeEventListener('pointerup', this._onPointerUp); } catch(_) {}
       try { this.renderer.domElement.removeEventListener('pointermove', this._onPointerMove); } catch(_) {}
     }
+    // Снимем wheel zoom-to-cursor
+    try { this._zoomToCursor?.controller?.dispose?.(); } catch (_) {}
+    if (this._zoomToCursor) this._zoomToCursor.controller = null;
     if (this.controls) {
       try { this.controls.removeEventListener('start', this._onControlsStart); } catch(_) {}
       try { this.controls.removeEventListener('change', this._onControlsChange); } catch(_) {}
@@ -684,8 +737,8 @@ export class Viewer {
 
     const newMin = Math.max(0.01, fitDist * Math.max(0.0, minRatio));
     const newMax = Math.max(newMin * 1.5, fitDist * Math.max(1.0, slack));
-    this.controls.minDistance = newMin;
     this.controls.maxDistance = newMax;
+    this.controls.minDistance = newMin;
 
     // Настройка near/far для стабильной глубины (уменьшает z-fighting на тонких/накладных деталях).
     // Важно: far должен быть "как можно меньше", но достаточен для maxDistance.
