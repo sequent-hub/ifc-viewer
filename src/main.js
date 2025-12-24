@@ -29,6 +29,13 @@ if (app) {
   // Шаг 3 (фон)
   const step3Background = document.getElementById("step3Background");
   const step3Dump = document.getElementById("step3Dump");
+  // Шаг 4 (пост-обработка: контраст + насыщенность)
+  const step4Post = document.getElementById("step4Post");
+  const step4Contrast = document.getElementById("step4Contrast");
+  const step4ContrastValue = document.getElementById("step4ContrastValue");
+  const step4Saturation = document.getElementById("step4Saturation");
+  const step4SaturationValue = document.getElementById("step4SaturationValue");
+  const step4Dump = document.getElementById("step4Dump");
 
   const setStep1UiEnabled = (enabled) => {
     const on = !!enabled;
@@ -49,6 +56,19 @@ if (app) {
     if (step3Background) step3Background.disabled = !on;
     if (step3Dump) step3Dump.disabled = !on;
     if (!on && step3Background) step3Background.checked = false;
+  };
+  const setStep4UiEnabled = (enabled) => {
+    const on = !!enabled;
+    if (step4Post) step4Post.disabled = !on;
+    const step4On = !!(step4Post && step4Post.checked);
+    if (step4Contrast) step4Contrast.disabled = !on || !step4On;
+    if (step4Saturation) step4Saturation.disabled = !on || !step4On;
+    if (step4Dump) step4Dump.disabled = !on;
+    if (!on) {
+      if (step4Post) step4Post.checked = false;
+      if (step4Contrast) step4Contrast.disabled = true;
+      if (step4Saturation) step4Saturation.disabled = true;
+    }
   };
 
   const applyStep2Hue = (deg) => {
@@ -71,6 +91,19 @@ if (app) {
     try { viewer.setExposure(value); } catch (_) {}
   };
 
+  const applyStep4Contrast = (v) => {
+    const value = Number(v);
+    if (!Number.isFinite(value)) return;
+    if (step4ContrastValue) step4ContrastValue.textContent = value.toFixed(2);
+    try { viewer.setStep4Contrast?.(value); } catch (_) {}
+  };
+  const applyStep4Saturation = (v) => {
+    const value = Number(v);
+    if (!Number.isFinite(value)) return;
+    if (step4SaturationValue) step4SaturationValue.textContent = value.toFixed(2);
+    try { viewer.setStep4Saturation?.(value); } catch (_) {}
+  };
+
   const setTestPresetEnabled = (on) => {
     const enabled = !!on;
     try { viewer.setTestPresetEnabled?.(enabled); } catch (_) {}
@@ -87,6 +120,11 @@ if (app) {
     setStep3UiEnabled(enabled);
     if (!enabled) {
       try { viewer.setStep3BackgroundEnabled?.(false); } catch (_) {}
+    }
+    // Шаг 4 сейчас тоже привязан к "Тест"
+    setStep4UiEnabled(enabled);
+    if (!enabled) {
+      try { viewer.setStep4Enabled?.(false); } catch (_) {}
     }
   };
 
@@ -172,6 +210,42 @@ if (app) {
       enabled: viewer?._step3Background?.enabled,
       type: bg ? (bg.isColor ? 'Color' : bg.isTexture ? 'Texture' : typeof bg) : 'null',
       value: bg?.isColor ? bg.getHexString?.() : null,
+    });
+  });
+
+  // Шаг 4: пост-обработка (финальный pass)
+  if (step4Post) {
+    step4Post.checked = false;
+    step4Post.addEventListener("change", (e) => {
+      const on = !!e.target.checked;
+      try { viewer.setStep4Enabled?.(on); } catch (_) {}
+      // синхронизируем доступность ручек
+      if (step4Contrast) step4Contrast.disabled = !on;
+      if (step4Saturation) step4Saturation.disabled = !on;
+      if (on) {
+        if (step4Contrast) applyStep4Contrast(step4Contrast.value);
+        if (step4Saturation) applyStep4Saturation(step4Saturation.value);
+      }
+    });
+  }
+  if (step4Contrast) {
+    step4Contrast.value = step4Contrast.value || "1.10";
+    applyStep4Contrast(step4Contrast.value);
+    step4Contrast.disabled = true; // пока step4 выключен
+    step4Contrast.addEventListener("input", (e) => applyStep4Contrast(e.target.value));
+  }
+  if (step4Saturation) {
+    step4Saturation.value = step4Saturation.value || "1.10";
+    applyStep4Saturation(step4Saturation.value);
+    step4Saturation.disabled = true; // пока step4 выключен
+    step4Saturation.addEventListener("input", (e) => applyStep4Saturation(e.target.value));
+  }
+  step4Dump?.addEventListener("click", () => {
+    // eslint-disable-next-line no-console
+    console.log('[Step4] post', {
+      enabled: viewer?._step4?.enabled,
+      params: viewer?._step4 ? { contrast: viewer._step4.contrast, saturation: viewer._step4.saturation } : null,
+      composer: viewer?._composer ? { passes: viewer._composer.passes?.length } : null,
     });
   });
 

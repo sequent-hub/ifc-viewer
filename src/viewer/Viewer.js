@@ -117,6 +117,9 @@ export class Viewer {
     this._ssaoPass = null;
     this._hueSatPass = null;
     this._bcPass = null;
+    // Шаг 4: финальная постобработка (контраст/насыщенность) — должна быть последним pass'ом
+    this._step4Pass = null;
+    this._step4 = { enabled: false, saturation: 1.0, contrast: 1.0 };
     this.clipping = {
       enabled: false,
       planes: [
@@ -475,7 +478,7 @@ export class Viewer {
       this.#updateClippingGizmos();
       // Рендер основной сцены
       this.renderer.clear(true, true, true);
-      const useComposer = !!(this._composer && (this.visual?.ao?.enabled || this.visual?.color?.enabled));
+      const useComposer = !!(this._composer && (this.visual?.ao?.enabled || this.visual?.color?.enabled || this._step4?.enabled));
       if (useComposer) {
         this._composer.render();
       } else {
@@ -542,6 +545,7 @@ export class Viewer {
       this._ssaoPass = null;
       this._hueSatPass = null;
       this._bcPass = null;
+      this._step4Pass = null;
     }
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();
@@ -2109,6 +2113,37 @@ export class Viewer {
     this.#applyColorCorrectionUniforms();
   }
 
+  // ===== Шаг 4: финальная постобработка (контраст/насыщенность) =====
+  setStep4Enabled(enabled) {
+    const next = !!enabled;
+    this._step4.enabled = next;
+    if (next) this.#ensureComposer();
+    if (this._step4Pass) this._step4Pass.enabled = next;
+    this.#applyStep4Uniforms();
+  }
+
+  setStep4Saturation(value) {
+    const v = Number(value);
+    if (!Number.isFinite(v)) return;
+    // 1.0 = без изменений, <1.0 = менее насыщенно, >1.0 = более насыщенно
+    this._step4.saturation = Math.min(3.0, Math.max(0.0, v));
+    this.#applyStep4Uniforms();
+  }
+
+  setStep4Contrast(value) {
+    const v = Number(value);
+    if (!Number.isFinite(v)) return;
+    // 1.0 = без изменений, <1.0 = ниже контраст, >1.0 = выше контраст
+    this._step4.contrast = Math.min(3.0, Math.max(0.0, v));
+    this.#applyStep4Uniforms();
+  }
+
+  #applyStep4Uniforms() {
+    if (!this._step4Pass?.uniforms) return;
+    if (this._step4Pass.uniforms.saturation) this._step4Pass.uniforms.saturation.value = this._step4.saturation ?? 1.0;
+    if (this._step4Pass.uniforms.contrast) this._step4Pass.uniforms.contrast.value = this._step4.contrast ?? 1.0;
+  }
+
   #applyColorCorrectionUniforms() {
     if (this._hueSatPass?.uniforms) {
       this._hueSatPass.uniforms.hue.value = this.visual.color.hue ?? 0.0;
@@ -2268,6 +2303,41 @@ export class Viewer {
     this._composer.addPass(this._bcPass);
 
     this.#applyColorCorrectionUniforms();
+
+    // Шаг 4: финальный цветовой pass (должен применяться в самом конце конвейера)
+    const step4Shader = {
+      uniforms: {
+        tDiffuse: { value: null },
+        saturation: { value: this._step4?.saturation ?? 1.0 },
+        contrast: { value: this._step4?.contrast ?? 1.0 },
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform float saturation;
+        uniform float contrast;
+        varying vec2 vUv;
+        void main() {
+          vec4 color = texture2D(tDiffuse, vUv);
+          // Saturation
+          float gray = dot(color.rgb, vec3(0.299, 0.587, 0.114));
+          color.rgb = mix(vec3(gray), color.rgb, saturation);
+          // Contrast (pivot at 0.5)
+          color.rgb = (color.rgb - 0.5) * contrast + 0.5;
+          gl_FragColor = color;
+        }
+      `,
+    };
+    this._step4Pass = new ShaderPass(step4Shader);
+    this._step4Pass.enabled = !!this._step4?.enabled;
+    this._composer.addPass(this._step4Pass);
+    this.#applyStep4Uniforms();
     try { this._composer.setSize(w, h); } catch (_) {}
   }
 
