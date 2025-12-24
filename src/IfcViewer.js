@@ -121,6 +121,15 @@ export class IfcViewer {
       // Важно: пресет должен примениться ДО загрузки модели, чтобы настройки подхватились при replaceWithModel()
       if (this.options.useTestPreset && this.viewer?.setTestPresetEnabled) {
         this.viewer.setTestPresetEnabled(true);
+        // Дефолты пакета (подобранные значения для Autodesk-like вида)
+        // В пакете применяются всегда при включённом useTestPreset (по умолчанию true).
+        try { this.viewer.setExposure?.(1.19); } catch (_) {}
+        try { this.viewer.setCoolLightingEnabled?.(true); } catch (_) {}
+        try { this.viewer.setCoolLightingHue?.(240); } catch (_) {}
+        try { this.viewer.setCoolLightingAmount?.(1.00); } catch (_) {}
+        try { this.viewer.setStep4Enabled?.(true); } catch (_) {}
+        try { this.viewer.setStep4Contrast?.(1.35); } catch (_) {}
+        try { this.viewer.setStep4Saturation?.(1.60); } catch (_) {}
       }
       
       // Настраиваем обработчики событий

@@ -134,7 +134,8 @@ if (app) {
 
   // Шаг 1: exposure
   if (step1Exposure) {
-    step1Exposure.value = "1.00";
+    // дефолтное положение для подбора
+    step1Exposure.value = "1.19";
     applyStep1Exposure(step1Exposure.value);
     step1Exposure.addEventListener("input", (e) => applyStep1Exposure(e.target.value));
   }
@@ -170,12 +171,14 @@ if (app) {
     });
   }
   if (step2Hue) {
-    step2Hue.value = "210";
+    // дефолтное положение для подбора
+    step2Hue.value = "240";
     applyStep2Hue(step2Hue.value);
     step2Hue.disabled = true; // пока step2 выключен
     step2Hue.addEventListener("input", (e) => applyStep2Hue(e.target.value));
   }
   if (step2Blue) {
+    // дефолтное положение для подбора
     step2Blue.value = "1.00";
     applyStep2Blue(step2Blue.value);
     step2Blue.disabled = true; // пока step2 выключен
@@ -237,13 +240,15 @@ if (app) {
     });
   }
   if (step4Contrast) {
-    step4Contrast.value = step4Contrast.value || "1.10";
+    // дефолтное положение для подбора
+    step4Contrast.value = step4Contrast.value || "1.35";
     applyStep4Contrast(step4Contrast.value);
     step4Contrast.disabled = true; // пока step4 выключен
     step4Contrast.addEventListener("input", (e) => applyStep4Contrast(e.target.value));
   }
   if (step4Saturation) {
-    step4Saturation.value = step4Saturation.value || "1.10";
+    // дефолтное положение для подбора
+    step4Saturation.value = step4Saturation.value || "1.60";
     applyStep4Saturation(step4Saturation.value);
     step4Saturation.disabled = true; // пока step4 выключен
     step4Saturation.addEventListener("input", (e) => applyStep4Saturation(e.target.value));
