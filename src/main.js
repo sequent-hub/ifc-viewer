@@ -19,12 +19,40 @@ if (app) {
   const step1Exposure = document.getElementById("step1Exposure");
   const step1ExposureValue = document.getElementById("step1ExposureValue");
   const step1Dump = document.getElementById("step1Dump");
+  // Шаг 2 (свет): холодный оттенок
+  const step2CoolLighting = document.getElementById("step2CoolLighting");
+  const step2Hue = document.getElementById("step2Hue");
+  const step2HueValue = document.getElementById("step2HueValue");
+  const step2Blue = document.getElementById("step2Blue");
+  const step2BlueValue = document.getElementById("step2BlueValue");
+  const step2Dump = document.getElementById("step2Dump");
 
   const setStep1UiEnabled = (enabled) => {
     const on = !!enabled;
     if (step1ToneToggle) step1ToneToggle.checked = on;
     if (step1Exposure) step1Exposure.disabled = !on;
     if (step1Dump) step1Dump.disabled = !on;
+  };
+  const setStep2UiEnabled = (enabled) => {
+    const on = !!enabled;
+    if (step2CoolLighting) step2CoolLighting.disabled = !on;
+    if (step2Hue) step2Hue.disabled = !on || !(step2CoolLighting && step2CoolLighting.checked);
+    if (step2Blue) step2Blue.disabled = !on || !(step2CoolLighting && step2CoolLighting.checked);
+    if (step2Dump) step2Dump.disabled = !on;
+    if (!on && step2CoolLighting) step2CoolLighting.checked = false;
+  };
+
+  const applyStep2Hue = (deg) => {
+    const v = Math.round(Number(deg));
+    if (!Number.isFinite(v)) return;
+    if (step2HueValue) step2HueValue.textContent = String(v);
+    try { viewer.setCoolLightingHue?.(v); } catch (_) {}
+  };
+  const applyStep2Blue = (amount) => {
+    const v = Number(amount);
+    if (!Number.isFinite(v)) return;
+    if (step2BlueValue) step2BlueValue.textContent = v.toFixed(2);
+    try { viewer.setCoolLightingAmount?.(v); } catch (_) {}
   };
 
   const applyStep1Exposure = (v) => {
@@ -41,6 +69,11 @@ if (app) {
     // Шаг 1 сейчас привязан к "Тест"
     setStep1UiEnabled(enabled);
     if (enabled && step1Exposure) applyStep1Exposure(step1Exposure.value);
+    // Шаг 2 сейчас тоже привязан к "Тест"
+    setStep2UiEnabled(enabled);
+    if (!enabled) {
+      try { viewer.setCoolLightingEnabled?.(false); } catch (_) {}
+    }
   };
 
   // По умолчанию "Тест" включён и применяется сразу (до загрузки IFC)
@@ -65,6 +98,48 @@ if (app) {
         toneMapping: r?.toneMapping,
         toneMappingExposure: r?.toneMappingExposure,
       },
+    });
+  });
+
+  // Шаг 2: холодный свет
+  if (step2CoolLighting) {
+    step2CoolLighting.checked = false;
+    step2CoolLighting.addEventListener("change", (e) => {
+      const on = !!e.target.checked;
+      try { viewer.setCoolLightingEnabled?.(on); } catch (_) {}
+      // при включении применим текущие значения ручек
+      if (on) {
+        if (step2Hue) applyStep2Hue(step2Hue.value);
+        if (step2Blue) applyStep2Blue(step2Blue.value);
+      }
+      // синхронизируем доступность ручек
+      if (step2Hue) step2Hue.disabled = !on;
+      if (step2Blue) step2Blue.disabled = !on;
+    });
+  }
+  if (step2Hue) {
+    step2Hue.value = "210";
+    applyStep2Hue(step2Hue.value);
+    step2Hue.disabled = true; // пока step2 выключен
+    step2Hue.addEventListener("input", (e) => applyStep2Hue(e.target.value));
+  }
+  if (step2Blue) {
+    step2Blue.value = "1.00";
+    applyStep2Blue(step2Blue.value);
+    step2Blue.disabled = true; // пока step2 выключен
+    step2Blue.addEventListener("input", (e) => applyStep2Blue(e.target.value));
+  }
+  step2Dump?.addEventListener("click", () => {
+    const amb = viewer?.ambientLight;
+    const sun = viewer?.sunLight;
+    const hemi = viewer?.hemiLight;
+    // eslint-disable-next-line no-console
+    console.log('[Step2] cool lighting', {
+      coolEnabled: viewer?._coolLighting?.enabled,
+      params: viewer?._coolLighting?.params,
+      ambient: amb ? { visible: amb.visible, intensity: amb.intensity, color: amb.color?.getHexString?.() } : null,
+      hemi: hemi ? { visible: hemi.visible, intensity: hemi.intensity, color: hemi.color?.getHexString?.(), ground: hemi.groundColor?.getHexString?.() } : null,
+      sun: sun ? { visible: sun.visible, intensity: sun.intensity, color: sun.color?.getHexString?.() } : null,
     });
   });
 

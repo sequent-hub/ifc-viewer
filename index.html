@@ -56,6 +56,44 @@
           <div style="height:10px;"></div>
           <button class="btn btn-sm" id="step1Dump" style="width:100%;">Dump step1 (console)</button>
 
+          <div style="height:16px;"></div>
+          <div style="font-size:12px; font-weight:600; opacity:0.75; margin-bottom:10px;">Шаг 2: Холодное освещение</div>
+
+          <label style="display:flex; align-items:center; gap:10px; user-select:none; margin-bottom:8px;">
+            <input id="step2CoolLighting" type="checkbox" />
+            <span>Включить холодный свет</span>
+          </label>
+
+          <div style="font-size:12px; opacity:0.8; margin-bottom:6px;">
+            Оттенок (hue): <span id="step2HueValue">210</span>
+          </div>
+          <input
+            id="step2Hue"
+            type="range"
+            min="190"
+            max="240"
+            step="1"
+            value="210"
+            style="width:100%;"
+          />
+
+          <div style="height:10px;"></div>
+          <div style="font-size:12px; opacity:0.8; margin-bottom:6px;">
+            Сколько синего: <span id="step2BlueValue">1.00</span>
+          </div>
+          <input
+            id="step2Blue"
+            type="range"
+            min="0.00"
+            max="1.00"
+            step="0.01"
+            value="1.00"
+            style="width:100%;"
+          />
+
+          <div style="height:10px;"></div>
+          <button class="btn btn-sm" id="step2Dump" style="width:100%;">Dump step2 (console)</button>
+
           <!-- Остальные контролы панели временно отключены (будем добавлять по шагам, начиная с "Тест") -->
           <!--
           (legacy controls were here: shadows/sun/materials/env/tone/ao/color/etc)

@@ -56,6 +56,8 @@ export class Viewer {
     this.sunLight = null;
     /** @type {THREE.AmbientLight|null} */
     this.ambientLight = null;
+    /** @type {THREE.HemisphereLight|null} */
+    this.hemiLight = null;
     // Базовые координаты солнца (чтобы менять только высоту по Y)
     this._sunBaseXZ = { x: 5, z: 5 };
     // Параметры градиента тени на земле (модифицирует только ShadowMaterial приёмника)
@@ -101,6 +103,9 @@ export class Viewer {
     this._rtQuality = { enabled: false, snapshot: null };
     // Пресет "Тест": полностью изолированная настройка (тени+самозатенение+визуал из рекомендаций)
     this._testPreset = { enabled: false, snapshot: null };
+
+    // Шаг 2: холодное освещение (отдельно от пресета "Тест", но обычно используется вместе с ним)
+    this._coolLighting = { enabled: false, snapshot: null, params: { hueDeg: 210, amount: 1.0 } };
     this._baselineRenderer = null;
     this._pmrem = null;
     this._roomEnvTex = null;
@@ -1892,6 +1897,143 @@ export class Viewer {
     if (!Number.isFinite(v)) return;
     this.visual.tone.exposure = Math.min(3.0, Math.max(0.1, v));
     this.#applyToneSettings();
+  }
+
+  /**
+   * Шаг 2: включает/выключает холодное освещение (HemisphereLight + холодный AmbientLight),
+   * сохраняя и восстанавливая исходные параметры.
+   * @param {boolean} enabled
+   */
+  setCoolLightingEnabled(enabled) {
+    const next = !!enabled;
+    if (next === this._coolLighting.enabled) return;
+
+    if (next) {
+      // Снимем снапшот, чтобы можно было восстановить
+      this._coolLighting.snapshot = {
+        ambient: this.ambientLight ? {
+          visible: this.ambientLight.visible,
+          intensity: this.ambientLight.intensity,
+          color: this.ambientLight.color?.clone?.() || null,
+        } : null,
+        hemi: this.hemiLight ? {
+          existed: true,
+          visible: this.hemiLight.visible,
+          intensity: this.hemiLight.intensity,
+          color: this.hemiLight.color?.clone?.() || null,
+          groundColor: this.hemiLight.groundColor?.clone?.() || null,
+        } : { existed: false },
+      };
+
+      // 1) Ambient: холодный общий
+      if (this.ambientLight) {
+        try { this.ambientLight.visible = true; } catch (_) {}
+        try { this.ambientLight.color?.setHex?.(0xd0e0f0); } catch (_) {}
+        try { this.ambientLight.intensity = 0.4; } catch (_) {}
+      }
+
+      // 2) Hemisphere: добавляем/включаем
+      if (!this.hemiLight && this.scene) {
+        try {
+          const hemi = new THREE.HemisphereLight(0xc0d8f0, 0x444444, 0.6);
+          this.scene.add(hemi);
+          this.hemiLight = hemi;
+        } catch (_) {}
+      }
+      if (this.hemiLight) {
+        try { this.hemiLight.visible = true; } catch (_) {}
+        try { this.hemiLight.color?.setHex?.(0xc0d8f0); } catch (_) {}
+        try { this.hemiLight.groundColor?.setHex?.(0x444444); } catch (_) {}
+        try { this.hemiLight.intensity = 0.6; } catch (_) {}
+      }
+
+      this._coolLighting.enabled = true;
+      // Применим текущие параметры (hue/amount)
+      try { this.#applyCoolLightingParams(); } catch (_) {}
+      return;
+    }
+
+    // Выключение: восстановление
+    const snap = this._coolLighting.snapshot;
+    this._coolLighting.enabled = false;
+    this._coolLighting.snapshot = null;
+    if (!snap) return;
+
+    // Ambient restore
+    if (this.ambientLight && snap.ambient) {
+      try { this.ambientLight.visible = !!snap.ambient.visible; } catch (_) {}
+      try { if (snap.ambient.color) this.ambientLight.color.copy(snap.ambient.color); } catch (_) {}
+      try { this.ambientLight.intensity = snap.ambient.intensity; } catch (_) {}
+    }
+
+    // Hemisphere restore / dispose if created by us
+    if (snap.hemi?.existed) {
+      // Был — вернём параметры
+      if (this.hemiLight) {
+        try { this.hemiLight.visible = !!snap.hemi.visible; } catch (_) {}
+        try { if (snap.hemi.color) this.hemiLight.color.copy(snap.hemi.color); } catch (_) {}
+        try { if (snap.hemi.groundColor) this.hemiLight.groundColor.copy(snap.hemi.groundColor); } catch (_) {}
+        try { this.hemiLight.intensity = snap.hemi.intensity; } catch (_) {}
+      }
+    } else {
+      // Не было — удалим созданный
+      if (this.hemiLight && this.scene) {
+        try { this.scene.remove(this.hemiLight); } catch (_) {}
+        try { this.hemiLight.dispose?.(); } catch (_) {}
+      }
+      this.hemiLight = null;
+    }
+  }
+
+  /**
+   * Оттенок "холодного" цвета (hue в градусах). Рекомендуемый диапазон: 190..240.
+   * @param {number} hueDeg
+   */
+  setCoolLightingHue(hueDeg) {
+    const v = Number(hueDeg);
+    if (!Number.isFinite(v)) return;
+    // Разрешим шире, но UI ограничивает "холодным" диапазоном
+    this._coolLighting.params.hueDeg = Math.round(Math.min(360, Math.max(0, v)));
+    this.#applyCoolLightingParams();
+  }
+
+  /**
+   * "Сколько синего добавить" (0..1). Это не экспозиция — влияет только на оттенок (смешивание базового и холодного).
+   * @param {number} amount
+   */
+  setCoolLightingAmount(amount) {
+    const v = Number(amount);
+    if (!Number.isFinite(v)) return;
+    this._coolLighting.params.amount = Math.min(1, Math.max(0, v));
+    this.#applyCoolLightingParams();
+  }
+
+  #applyCoolLightingParams() {
+    if (!this._coolLighting?.enabled) return;
+    const snap = this._coolLighting.snapshot;
+    if (!snap) return;
+
+    const hue = (this._coolLighting.params?.hueDeg ?? 210) / 360;
+    const amount = this._coolLighting.params?.amount ?? 1.0;
+
+    // Целевой "холодный" цвет: светлый, с небольшим насыщением, но с регулируемым hue
+    const target = new THREE.Color().setHSL(hue, 0.22, 0.88);
+
+    // Ambient: смешиваем исходный цвет с target
+    if (this.ambientLight && snap.ambient?.color) {
+      try {
+        const base = snap.ambient.color.clone();
+        this.ambientLight.color.copy(base.lerp(target, amount));
+      } catch (_) {}
+    }
+
+    // Hemisphere sky: смешиваем исходный цвет с target, ground оставляем как есть
+    if (this.hemiLight && snap.hemi?.color) {
+      try {
+        const base = snap.hemi.color.clone();
+        this.hemiLight.color.copy(base.lerp(target, amount));
+      } catch (_) {}
+    }
   }
 
   setAOEnabled(enabled) {
