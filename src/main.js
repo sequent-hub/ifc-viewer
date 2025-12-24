@@ -26,6 +26,9 @@ if (app) {
   const step2Blue = document.getElementById("step2Blue");
   const step2BlueValue = document.getElementById("step2BlueValue");
   const step2Dump = document.getElementById("step2Dump");
+  // Шаг 3 (фон)
+  const step3Background = document.getElementById("step3Background");
+  const step3Dump = document.getElementById("step3Dump");
 
   const setStep1UiEnabled = (enabled) => {
     const on = !!enabled;
@@ -40,6 +43,12 @@ if (app) {
     if (step2Blue) step2Blue.disabled = !on || !(step2CoolLighting && step2CoolLighting.checked);
     if (step2Dump) step2Dump.disabled = !on;
     if (!on && step2CoolLighting) step2CoolLighting.checked = false;
+  };
+  const setStep3UiEnabled = (enabled) => {
+    const on = !!enabled;
+    if (step3Background) step3Background.disabled = !on;
+    if (step3Dump) step3Dump.disabled = !on;
+    if (!on && step3Background) step3Background.checked = false;
   };
 
   const applyStep2Hue = (deg) => {
@@ -73,6 +82,11 @@ if (app) {
     setStep2UiEnabled(enabled);
     if (!enabled) {
       try { viewer.setCoolLightingEnabled?.(false); } catch (_) {}
+    }
+    // Шаг 3 сейчас тоже привязан к "Тест"
+    setStep3UiEnabled(enabled);
+    if (!enabled) {
+      try { viewer.setStep3BackgroundEnabled?.(false); } catch (_) {}
     }
   };
 
@@ -140,6 +154,24 @@ if (app) {
       ambient: amb ? { visible: amb.visible, intensity: amb.intensity, color: amb.color?.getHexString?.() } : null,
       hemi: hemi ? { visible: hemi.visible, intensity: hemi.intensity, color: hemi.color?.getHexString?.(), ground: hemi.groundColor?.getHexString?.() } : null,
       sun: sun ? { visible: sun.visible, intensity: sun.intensity, color: sun.color?.getHexString?.() } : null,
+    });
+  });
+
+  // Шаг 3: фон сцены
+  if (step3Background) {
+    step3Background.checked = false;
+    step3Background.addEventListener("change", (e) => {
+      const on = !!e.target.checked;
+      try { viewer.setStep3BackgroundEnabled?.(on); } catch (_) {}
+    });
+  }
+  step3Dump?.addEventListener("click", () => {
+    const bg = viewer?.scene?.background;
+    // eslint-disable-next-line no-console
+    console.log('[Step3] background', {
+      enabled: viewer?._step3Background?.enabled,
+      type: bg ? (bg.isColor ? 'Color' : bg.isTexture ? 'Texture' : typeof bg) : 'null',
+      value: bg?.isColor ? bg.getHexString?.() : null,
     });
   });
 

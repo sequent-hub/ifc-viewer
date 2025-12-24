@@ -106,6 +106,9 @@ export class Viewer {
 
     // Шаг 2: холодное освещение (отдельно от пресета "Тест", но обычно используется вместе с ним)
     this._coolLighting = { enabled: false, snapshot: null, params: { hueDeg: 210, amount: 1.0 } };
+
+    // Шаг 3: фон сцены (как в Autodesk)
+    this._step3Background = { enabled: false, snapshot: null, colorHex: 0xe8eef4 };
     this._baselineRenderer = null;
     this._pmrem = null;
     this._roomEnvTex = null;
@@ -2034,6 +2037,31 @@ export class Viewer {
         this.hemiLight.color.copy(base.lerp(target, amount));
       } catch (_) {}
     }
+  }
+
+  /**
+   * Шаг 3: включает/выключает фон сцены (scene.background) и восстанавливает предыдущее значение.
+   * @param {boolean} enabled
+   */
+  setStep3BackgroundEnabled(enabled) {
+    const next = !!enabled;
+    if (next === this._step3Background.enabled) return;
+    if (!this.scene) return;
+
+    if (next) {
+      // Снимем, что было до (Color|Texture|null)
+      const prev = this.scene.background ?? null;
+      this._step3Background.snapshot = { background: prev };
+      try { this.scene.background = new THREE.Color(this._step3Background.colorHex); } catch (_) {}
+      this._step3Background.enabled = true;
+      return;
+    }
+
+    const snap = this._step3Background.snapshot;
+    this._step3Background.enabled = false;
+    this._step3Background.snapshot = null;
+    if (!snap) return;
+    try { this.scene.background = snap.background ?? null; } catch (_) {}
   }
 
   setAOEnabled(enabled) {
