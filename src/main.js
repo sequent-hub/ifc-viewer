@@ -14,15 +14,59 @@ if (app) {
   // (Старый код управления панелью закомментирован ниже для последующего восстановления при необходимости.)
 
   const testPresetToggle = document.getElementById("testPresetToggle");
+  // Шаг 1 (Tone mapping): в текущей версии он входит в пресет "Тест", но exposure можно подстроить.
+  const step1ToneToggle = document.getElementById("step1ToneToggle");
+  const step1Exposure = document.getElementById("step1Exposure");
+  const step1ExposureValue = document.getElementById("step1ExposureValue");
+  const step1Dump = document.getElementById("step1Dump");
+
+  const setStep1UiEnabled = (enabled) => {
+    const on = !!enabled;
+    if (step1ToneToggle) step1ToneToggle.checked = on;
+    if (step1Exposure) step1Exposure.disabled = !on;
+    if (step1Dump) step1Dump.disabled = !on;
+  };
+
+  const applyStep1Exposure = (v) => {
+    const value = Number(v);
+    if (!Number.isFinite(value)) return;
+    if (step1ExposureValue) step1ExposureValue.textContent = value.toFixed(2);
+    try { viewer.setExposure(value); } catch (_) {}
+  };
+
   const setTestPresetEnabled = (on) => {
     const enabled = !!on;
     try { viewer.setTestPresetEnabled?.(enabled); } catch (_) {}
     if (testPresetToggle) testPresetToggle.checked = enabled;
+    // Шаг 1 сейчас привязан к "Тест"
+    setStep1UiEnabled(enabled);
+    if (enabled && step1Exposure) applyStep1Exposure(step1Exposure.value);
   };
 
   // По умолчанию "Тест" включён и применяется сразу (до загрузки IFC)
   setTestPresetEnabled(true);
   testPresetToggle?.addEventListener("change", (e) => setTestPresetEnabled(!!e.target.checked));
+
+  // Шаг 1: exposure
+  if (step1Exposure) {
+    step1Exposure.value = "1.00";
+    applyStep1Exposure(step1Exposure.value);
+    step1Exposure.addEventListener("input", (e) => applyStep1Exposure(e.target.value));
+  }
+  // Шаг 1: dump
+  step1Dump?.addEventListener("click", () => {
+    const r = viewer?.renderer;
+    // eslint-disable-next-line no-console
+    console.log('[Step1] tone', {
+      visualTone: viewer?.visual?.tone,
+      renderer: {
+        outputColorSpace: r?.outputColorSpace,
+        outputEncoding: r?.outputEncoding,
+        toneMapping: r?.toneMapping,
+        toneMappingExposure: r?.toneMappingExposure,
+      },
+    });
+  });
 
   /*
    * ===== LEGACY: старые настройки левой панели (временно не используем) =====

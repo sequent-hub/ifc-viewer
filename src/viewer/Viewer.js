@@ -1890,7 +1890,7 @@ export class Viewer {
   setExposure(exposure) {
     const v = Number(exposure);
     if (!Number.isFinite(v)) return;
-    this.visual.tone.exposure = Math.min(2.5, Math.max(0.1, v));
+    this.visual.tone.exposure = Math.min(3.0, Math.max(0.1, v));
     this.#applyToneSettings();
   }
 
