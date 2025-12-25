@@ -13,6 +13,7 @@ import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment
 import { NavCube } from "./NavCube.js";
 import { SectionManipulator } from "./SectionManipulator.js";
 import { ZoomToCursorController } from "./ZoomToCursorController.js";
+import { MiddleMousePanController } from "./MiddleMousePanController.js";
 
 export class Viewer {
   constructor(containerElement) {
@@ -177,6 +178,13 @@ export class Viewer {
       controller: null,
     };
 
+    // MMB-pan (wheel-click drag): включено по умолчанию, debug выключен
+    this._mmbPan = {
+      enabled: true,
+      debug: false,
+      controller: null,
+    };
+
     this.handleResize = this.handleResize.bind(this);
     this.animate = this.animate.bind(this);
   }
@@ -205,6 +213,32 @@ export class Viewer {
   getZoomToCursorState() {
     if (!this._zoomToCursor) return { enabled: false, debug: false };
     return { enabled: !!this._zoomToCursor.enabled, debug: !!this._zoomToCursor.debug };
+  }
+
+  /**
+   * Включает/выключает MMB-pan (нажатое колесо + drag).
+   * @param {boolean} enabled
+   */
+  setMiddleMousePanEnabled(enabled) {
+    if (!this._mmbPan) return;
+    this._mmbPan.enabled = !!enabled;
+  }
+
+  /**
+   * Включает/выключает диагностическое логирование MMB-pan.
+   * @param {boolean} debug
+   */
+  setMiddleMousePanDebug(debug) {
+    if (!this._mmbPan) return;
+    this._mmbPan.debug = !!debug;
+  }
+
+  /**
+   * Возвращает текущие флаги MMB-pan (для диагностики).
+   */
+  getMiddleMousePanState() {
+    if (!this._mmbPan) return { enabled: false, debug: false };
+    return { enabled: !!this._mmbPan.enabled, debug: !!this._mmbPan.debug };
   }
 
   /**
@@ -360,6 +394,28 @@ export class Viewer {
     } catch (e) {
       // eslint-disable-next-line no-console
       console.warn("ZoomToCursor init failed:", e);
+    }
+
+    // MMB-pan: перехватываем pointerdown в capture-phase, чтобы OrbitControls не делал dolly на MMB
+    try {
+      this._mmbPan.controller = new MiddleMousePanController({
+        domElement: this.renderer.domElement,
+        getCamera: () => this.camera,
+        getControls: () => this.controls,
+        isEnabled: () => !!this._mmbPan.enabled,
+        isDebug: () => !!this._mmbPan.debug,
+        // Не стартуем пан, если нажали на overlay NavCube (иначе "тащит" камеру при клике по кубу)
+        shouldIgnoreEvent: (e) => {
+          try {
+            return !!(this.navCube && typeof this.navCube._isInsideOverlay === "function" && this.navCube._isInsideOverlay(e.clientX, e.clientY));
+          } catch (_) {
+            return false;
+          }
+        },
+      });
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn("MMB-pan init failed:", e);
     }
 
     // Создадим вторую камеру "без перспективы" (orthographic), но не включаем её по умолчанию.
@@ -576,6 +632,9 @@ export class Viewer {
     // Снимем wheel zoom-to-cursor
     try { this._zoomToCursor?.controller?.dispose?.(); } catch (_) {}
     if (this._zoomToCursor) this._zoomToCursor.controller = null;
+    // Снимем MMB-pan
+    try { this._mmbPan?.controller?.dispose?.(); } catch (_) {}
+    if (this._mmbPan) this._mmbPan.controller = null;
     if (this.controls) {
       try { this.controls.removeEventListener('start', this._onControlsStart); } catch(_) {}
       try { this.controls.removeEventListener('change', this._onControlsChange); } catch(_) {}
@@ -824,6 +883,9 @@ export class Viewer {
     if (this._ssaoPass?.setSize) {
       try { this._ssaoPass.setSize(width, height); } catch (_) {}
     }
+
+    // Если активен MMB-pan (viewOffset), нужно переустановить его под новый размер
+    try { this._mmbPan?.controller?.applyCurrentOffset?.(width, height); } catch (_) {}
   }
 
   // ================= Projection (Perspective / Ortho) =================
@@ -890,6 +952,9 @@ export class Viewer {
     this.controls.object = this.camera;
     this.controls.target.copy(target);
     this.controls.update();
+
+    // ViewOffset (MMB-pan) должен примениться к новой камере, если он включён
+    try { this._mmbPan?.controller?.applyCurrentOffset?.(); } catch (_) {}
 
     // Внутренние зависимости, которые держат ссылку на camera
     if (this.navCube) this.navCube.mainCamera = this.camera;
