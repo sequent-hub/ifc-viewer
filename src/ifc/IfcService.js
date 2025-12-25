@@ -89,6 +89,7 @@ export class IfcService {
     //    Ожидаемый итоговый URL после SetWasmPath(path):
     //      path + 'web-ifc.wasm'
     paths.push(
+      '/wasm/v0.0.74/',           // Версионированный путь (избегает проблем кэша у пользователей)
       '/wasm/',                  // Стандартный путь: public/wasm/web-ifc.wasm
       '/node_modules/web-ifc/',  // Прямо из node_modules
       '/',                       // Корень dev-сервера
