@@ -81,6 +81,21 @@ export class MiddleMousePanController {
   }
 
   /**
+   * Добавляет смещение viewOffset в пикселях (в координатах camera.setViewOffset).
+   * Используется для внутренней компенсации (например, чтобы убрать "скачок" при смене pivot).
+   * @param {number} dxPx
+   * @param {number} dyPx
+   */
+  addOffsetPx(dxPx, dyPx) {
+    const dx = Number(dxPx);
+    const dy = Number(dyPx);
+    if (!Number.isFinite(dx) || !Number.isFinite(dy)) return;
+    this._offsetPx.x += dx;
+    this._offsetPx.y += dy;
+    this.applyCurrentOffset();
+  }
+
+  /**
    * Переустанавливает текущий viewOffset (например, после resize / смены камеры).
    * @param {number} [width]
    * @param {number} [height]

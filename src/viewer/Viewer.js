@@ -158,6 +158,9 @@ export class Viewer {
     // Визуализация оси вращения
     this.rotationAxisLine = null;
     this._isLmbDown = false;
+    // OrbitControls 'start' может прийти раньше нашего bubble pointerdown.
+    // Поэтому сохраняем кнопку последнего pointerdown в capture-phase.
+    this._lastPointerDownButton = null;
     this._wasRotating = false;
     this._prevViewDir = null;
     this._smoothedAxis = null;
@@ -215,6 +218,82 @@ export class Viewer {
   getZoomToCursorState() {
     if (!this._zoomToCursor) return { enabled: false, debug: false };
     return { enabled: !!this._zoomToCursor.enabled, debug: !!this._zoomToCursor.debug };
+  }
+
+  /**
+   * Возвращает "домашнюю" точку вращения для текущей модели:
+   * центр bbox со смещением вниз по Y (как при первичной загрузке).
+   * @returns {THREE.Vector3|null}
+   */
+  #getDefaultPivotForActiveModel() {
+    const subject = this.activeModel || this.demoCube;
+    if (!subject) return null;
+    try {
+      const box = new THREE.Box3().setFromObject(subject);
+      const center = box.getCenter(new THREE.Vector3());
+      const size = box.getSize(new THREE.Vector3());
+      const pivot = center.clone();
+      // Держим модель "выше" в кадре, как при replaceWithModel()
+      const verticalBias = size.y * 0.30; // 30% высоты
+      pivot.y = center.y - verticalBias;
+      return pivot;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /**
+   * После zoom-to-cursor target может сместиться к точке под курсором (например, к углу),
+   * и вращение начнёт происходить вокруг этой точки.
+   * Здесь мы возвращаем pivot к "домашнему" центру модели перед началом LMB-вращения,
+   * сохраняя кадр (camera смещается на тот же delta).
+   */
+  #rebaseRotatePivotToModelCenterIfNeeded() {
+    if (!this.camera || !this.controls) return;
+    const desired = this.#getDefaultPivotForActiveModel();
+    if (!desired) return;
+
+    const current = this.controls.target;
+    const dx = desired.x - current.x;
+    const dy = desired.y - current.y;
+    const dz = desired.z - current.z;
+    const dist2 = dx * dx + dy * dy + dz * dz;
+    // Порог: чтобы не дергать pivot от микросдвигов зума
+    if (dist2 < 1e-6) return;
+
+    // Важно: нельзя "двигать модель к оси" визуально. Поэтому:
+    // 1) запоминаем положение старого target на экране
+    // 2) меняем pivot (controls.target) на центр модели
+    // 3) компенсируем экранный сдвиг через viewOffset (MMB-pan controller), чтобы картинка не дернулась
+    const dom = this.renderer?.domElement;
+    const rect = dom?.getBoundingClientRect?.();
+    const w = rect?.width || 0;
+    const h = rect?.height || 0;
+    const canProject = w > 1 && h > 1;
+
+    const oldTarget = this.controls.target.clone();
+    let p0 = null;
+    if (canProject) {
+      try { this.camera.updateMatrixWorld?.(true); } catch (_) {}
+      try { p0 = oldTarget.clone().project(this.camera); } catch (_) { p0 = null; }
+    }
+
+    try { this.controls.target.copy(desired); } catch (_) {}
+    try { this.controls.update(); } catch (_) {}
+
+    if (canProject && p0) {
+      let p1 = null;
+      try { this.camera.updateMatrixWorld?.(true); } catch (_) {}
+      try { p1 = oldTarget.clone().project(this.camera); } catch (_) { p1 = null; }
+      if (p1) {
+        // NDC -> px. Y: NDC вверх, а viewOffset.y увеличением поднимает картинку (см. MMB-pan).
+        const dNdcX = (p1.x - p0.x);
+        const dNdcY = (p1.y - p0.y);
+        const dxPx = dNdcX * (w / 2);
+        const dyPx = -dNdcY * (h / 2);
+        try { this._mmbPan?.controller?.addOffsetPx?.(dxPx, dyPx); } catch (_) {}
+      }
+    }
   }
 
   /**
@@ -489,8 +568,15 @@ export class Viewer {
     });
 
     // Визуальная ось вращения: события мыши и контролов
-    this._onPointerDown = (e) => { if (e.button === 0) this._isLmbDown = true; };
-    this._onPointerUp = (e) => { if (e.button === 0) { this._isLmbDown = false; this.#hideRotationAxisLine(); } };
+    this._onPointerDown = (e) => {
+      this._lastPointerDownButton = e?.button;
+      if (e.button === 0) this._isLmbDown = true;
+    };
+    this._onPointerUp = (e) => {
+      // Сбросим "последнюю кнопку" на отпускании, чтобы не использовать устаревшее значение.
+      this._lastPointerDownButton = null;
+      if (e.button === 0) { this._isLmbDown = false; this.#hideRotationAxisLine(); }
+    };
     this._onPointerMove = (e) => {
       const rect = this.renderer?.domElement?.getBoundingClientRect?.();
       if (!rect) return;
@@ -502,13 +588,17 @@ export class Viewer {
       this._recentPointerDelta = dx + dy;
       this._lastPointer = now;
     };
-    this.renderer.domElement.addEventListener('pointerdown', this._onPointerDown, { passive: true });
+    // Capture-phase: чтобы успеть выставить флаги до OrbitControls (его start может прийти раньше bubble pointerdown)
+    this.renderer.domElement.addEventListener('pointerdown', this._onPointerDown, { capture: true, passive: true });
     this.renderer.domElement.addEventListener('pointerup', this._onPointerUp, { passive: true });
     this.renderer.domElement.addEventListener('pointermove', this._onPointerMove, { passive: true });
 
     this._onControlsStart = () => {
       // Инициализируем предыдущий вектор направления вида
       if (!this.camera || !this.controls) return;
+      // Если стартовали вращение ЛКМ после zoom-to-cursor, то target мог сместиться к "углу".
+      // Возвращаем pivot к центру модели (как при загрузке), сохраняя кадр.
+      if (this._lastPointerDownButton === 0) this.#rebaseRotatePivotToModelCenterIfNeeded();
       const dir = this.camera.position.clone().sub(this.controls.target).normalize();
       this._prevViewDir = dir;
       this._smoothedAxis = null;
