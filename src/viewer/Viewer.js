@@ -14,6 +14,7 @@ import { NavCube } from "./NavCube.js";
 import { SectionManipulator } from "./SectionManipulator.js";
 import { ZoomToCursorController } from "./ZoomToCursorController.js";
 import { MiddleMousePanController } from "./MiddleMousePanController.js";
+import { RightMouseModelMoveController } from "./RightMouseModelMoveController.js";
 
 export class Viewer {
   constructor(containerElement) {
@@ -190,6 +191,14 @@ export class Viewer {
       controller: null,
     };
 
+    // RMB: перемещение модели относительно "оси" (pivot), pivot остаётся на месте
+    this._rmbModelMove = {
+      enabled: true,
+      debug: false,
+      controller: null,
+      pivotAnchor: null, // THREE.Vector3|null (фиксированная ось после ПКМ)
+    };
+
     this.handleResize = this.handleResize.bind(this);
     this.animate = this.animate.bind(this);
   }
@@ -243,6 +252,20 @@ export class Viewer {
   }
 
   /**
+   * Возвращает целевой pivot для ЛКМ-вращения:
+   * - если модель двигали ПКМ, используем фиксированную ось (pivotAnchor)
+   * - иначе используем "домашний" pivot (центр bbox + verticalBias)
+   * @returns {THREE.Vector3|null}
+   */
+  #getDesiredPivotForRotate() {
+    try {
+      const fixed = this._rmbModelMove?.pivotAnchor;
+      if (fixed) return fixed.clone();
+    } catch (_) {}
+    return this.#getDefaultPivotForActiveModel();
+  }
+
+  /**
    * После zoom-to-cursor target может сместиться к точке под курсором (например, к углу),
    * и вращение начнёт происходить вокруг этой точки.
    * Здесь мы возвращаем pivot к "домашнему" центру модели перед началом LMB-вращения,
@@ -250,7 +273,7 @@ export class Viewer {
    */
   #rebaseRotatePivotToModelCenterIfNeeded() {
     if (!this.camera || !this.controls) return;
-    const desired = this.#getDefaultPivotForActiveModel();
+    const desired = this.#getDesiredPivotForRotate();
     if (!desired) return;
 
     const current = this.controls.target;
@@ -499,6 +522,31 @@ export class Viewer {
       console.warn("MMB-pan init failed:", e);
     }
 
+    // RMB model move: перехватываем ПКМ и двигаем МОДЕЛЬ (activeModel), не трогая pivot (target)
+    try {
+      this._rmbModelMove.controller = new RightMouseModelMoveController({
+        domElement: this.renderer.domElement,
+        getCamera: () => this.camera,
+        getControls: () => this.controls,
+        getModel: () => this.activeModel,
+        isEnabled: () => !!this._rmbModelMove.enabled,
+        isDebug: () => !!this._rmbModelMove.debug,
+        shouldIgnoreEvent: (e) => {
+          try {
+            return !!(this.navCube && typeof this.navCube._isInsideOverlay === "function" && this.navCube._isInsideOverlay(e.clientX, e.clientY));
+          } catch (_) {
+            return false;
+          }
+        },
+        onRmbStart: (pivot) => {
+          try { this._rmbModelMove.pivotAnchor = pivot?.clone?.() || null; } catch (_) { this._rmbModelMove.pivotAnchor = null; }
+        },
+      });
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn("RMB-model-move init failed:", e);
+    }
+
     // Создадим вторую камеру "без перспективы" (orthographic), но не включаем её по умолчанию.
     // Фрустум подбираем так, чтобы при переключении вид менялся только за счёт перспективных искажений.
     try {
@@ -728,6 +776,9 @@ export class Viewer {
     // Снимем MMB-pan
     try { this._mmbPan?.controller?.dispose?.(); } catch (_) {}
     if (this._mmbPan) this._mmbPan.controller = null;
+    // Снимем RMB model move
+    try { this._rmbModelMove?.controller?.dispose?.(); } catch (_) {}
+    if (this._rmbModelMove) this._rmbModelMove.controller = null;
     if (this.controls) {
       try { this.controls.removeEventListener('start', this._onControlsStart); } catch(_) {}
       try { this.controls.removeEventListener('change', this._onControlsChange); } catch(_) {}
@@ -1178,6 +1229,9 @@ export class Viewer {
             };
           }
         } catch (_) {}
+
+        // После загрузки модели сбрасываем "фиксированную ось" от ПКМ
+        try { if (this._rmbModelMove) this._rmbModelMove.pivotAnchor = null; } catch (_) {}
       });
     } catch(_) {}
   }
@@ -3027,6 +3081,9 @@ export class Viewer {
         m.updateMatrixWorld?.(true);
       }
     } catch (_) {}
+
+    // Home: сбрасываем "фиксированную ось" от ПКМ
+    try { if (this._rmbModelMove) this._rmbModelMove.pivotAnchor = null; } catch (_) {}
 
     // Визуальные настройки
     this.setEdgesVisible(this._home.edgesVisible);
