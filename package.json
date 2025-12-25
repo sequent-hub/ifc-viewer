@@ -13,6 +13,7 @@
   },
   "files": [
     "src/",
+    "scripts/",
     "README.md"
   ],
   "keywords": ["ifc", "3d", "viewer", "bim", "three.js", "web-ifc"],
