@@ -11,12 +11,17 @@ if (app) {
 
   // ===== Диагностика (включается через query-параметры) =====
   // ?debugViewer=1  -> window.__viewer = viewer
+  // ?debugViewer=1  -> window.__ifcService = ifc
   // ?zoomDebug=1    -> включает логирование zoom-to-cursor
   // ?zoomCursor=0   -> отключает zoom-to-cursor (для сравнения с OrbitControls)
+  let __debugViewerEnabled = false;
+  let __startupParams = null;
   try {
     const params = new URLSearchParams(location.search);
+    __startupParams = params;
     const debugViewer = params.get("debugViewer") === "1" || params.get("zoomDebug") === "1";
     if (debugViewer) {
+      __debugViewerEnabled = true;
       // eslint-disable-next-line no-undef
       window.__viewer = viewer;
     }
@@ -304,8 +309,28 @@ if (app) {
    * - realtime-quality UI lock + test UI lock snapshots
    */
   // IFC загрузка
-  const ifc = new IfcService(viewer);
+  // ?wasm=/wasm/  -> переопределяет директорию, из которой web-ifc будет грузить web-ifc.wasm
+  // ВАЖНО: параметр должен указывать ДИРЕКТОРИЮ (web-ifc сам добавляет 'web-ifc.wasm')
+  let wasmOverride = null;
+  try {
+    const p = __startupParams || new URLSearchParams(location.search);
+    const w = p.get('wasm');
+    if (w != null && w !== '') {
+      wasmOverride = String(w);
+      // нормализуем: web-ifc ожидает путь-директорию
+      if (!wasmOverride.endsWith('/')) wasmOverride += '/';
+    }
+  } catch (_) {}
+
+  const ifc = new IfcService(viewer, wasmOverride);
   ifc.init();
+  // Экспортируем сервис только после инициализации (иначе ifc ещё не определён)
+  if (__debugViewerEnabled) {
+    try {
+      // eslint-disable-next-line no-undef
+      window.__ifcService = ifc;
+    } catch (_) {}
+  }
   const ifcTreeEl = document.getElementById("ifcTree");
   const ifcInfoEl = document.getElementById("ifcInfo");
   const ifcTree = ifcTreeEl ? new IfcTreeView(ifcTreeEl) : null;

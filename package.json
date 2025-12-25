@@ -22,6 +22,7 @@
   },
   "publishConfig": { "access": "public" },
   "scripts": {
+    "postinstall": "node scripts/copy-web-ifc-wasm.mjs",
     "dev": "vite",
     "build": "vite build", 
     "preview": "vite preview",
@@ -32,6 +33,6 @@
   },
   "dependencies": {
     "three": "^0.149.0",
-    "web-ifc": "^0.0.39"
+    "web-ifc": "^0.0.74"
   }
 }

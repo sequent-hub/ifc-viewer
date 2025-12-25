@@ -22,6 +22,7 @@ export class IfcService {
     this.selectionMaterial = null;
     this.selectionCustomID = 'ifc-selection';
     this.isolateMode = false;
+    this._webIfcConfig = null; // для диагностики: фактически применённый конфиг web-ifc
   }
 
   init() {
@@ -104,15 +105,70 @@ export class IfcService {
    */
   _setupWebIfcConfig() {
     try {
-      this.loader.ifcManager.applyWebIfcConfig?.({
+      // ВАЖНО: web-ifc (>=0.0.74) принимает только LoaderSettings (см. web-ifc-api.d.ts).
+      // Ранее используемые флаги вроде USE_FAST_BOOLS/SMALL_TRIANGLE_THRESHOLD библиотекой web-ifc не используются.
+      const config = {
         COORDINATE_TO_ORIGIN: true,
-        USE_FAST_BOOLS: true,
-        // Порог игнорирования очень мелких полигонов (уменьшаем шум)
-        SMALL_TRIANGLE_THRESHOLD: 1e-9,
-      });
+        CIRCLE_SEGMENTS: 12,
+        // Tolerances: см. web-ifc CreateSettings defaults
+        TOLERANCE_PLANE_INTERSECTION: 1e-4,
+        TOLERANCE_PLANE_DEVIATION: 1e-4,
+        TOLERANCE_BACK_DEVIATION_DISTANCE: 1e-4,
+        TOLERANCE_INSIDE_OUTSIDE_PERIMETER: 1e-10,
+        TOLERANCE_SCALAR_EQUALITY: 1e-4,
+        PLANE_REFIT_ITERATIONS: 1,
+        BOOLEAN_UNION_THRESHOLD: 150,
+      };
+
+      // Диагностика / A-B: allow override via query params
+      try {
+        if (typeof window !== 'undefined' && window?.location?.search != null) {
+          const params = new URLSearchParams(window.location.search);
+          // ?coordToOrigin=0/1 -> COORDINATE_TO_ORIGIN
+          const cto = params.get('coordToOrigin');
+          if (cto === '0') config.COORDINATE_TO_ORIGIN = false;
+          if (cto === '1') config.COORDINATE_TO_ORIGIN = true;
+
+          // ?circleSeg=NUMBER -> CIRCLE_SEGMENTS
+          const cs = params.get('circleSeg');
+          if (cs != null && cs !== '') {
+            const n = Number(cs);
+            if (Number.isFinite(n) && n >= 3) config.CIRCLE_SEGMENTS = Math.round(n);
+          }
+
+          // Tolerances / iterations / threshold
+          const setNum = (key, name, min = -Infinity, max = Infinity) => {
+            const raw = params.get(name);
+            if (raw == null || raw === '') return;
+            const n = Number(raw);
+            if (!Number.isFinite(n)) return;
+            config[key] = Math.min(max, Math.max(min, n));
+          };
+          setNum('TOLERANCE_PLANE_INTERSECTION', 'tolPlaneInter', 0);
+          setNum('TOLERANCE_PLANE_DEVIATION', 'tolPlaneDev', 0);
+          setNum('TOLERANCE_BACK_DEVIATION_DISTANCE', 'tolBackDev', 0);
+          setNum('TOLERANCE_INSIDE_OUTSIDE_PERIMETER', 'tolInside', 0);
+          setNum('TOLERANCE_SCALAR_EQUALITY', 'tolScalar', 0);
+          setNum('PLANE_REFIT_ITERATIONS', 'planeRefit', 0, 1000);
+          setNum('BOOLEAN_UNION_THRESHOLD', 'boolUnion', 0, 1e9);
+        }
+      } catch (_) {}
+
+      this._webIfcConfig = { ...config };
+      this.loader.ifcManager.applyWebIfcConfig?.(config);
+
+      // eslint-disable-next-line no-console
+      console.log('IfcService: web-ifc config applied', this._webIfcConfig);
     } catch (error) {
       console.warn('IfcService: не удалось применить конфигурацию web-ifc:', error.message);
     }
+  }
+
+  /**
+   * Возвращает фактически применённый web-ifc config (для диагностики).
+   */
+  getWebIfcConfig() {
+    return this._webIfcConfig ? { ...this._webIfcConfig } : null;
   }
 
 

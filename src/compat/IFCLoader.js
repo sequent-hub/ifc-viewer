@@ -5,6 +5,87 @@ import { mergeBufferGeometries } from 'three/examples/jsm/utils/BufferGeometryUt
 
 const nullIfcManagerErrorMessage = 'IfcManager is null!';
 
+// ===== Diagnostics / optional geometry cleanup (query-params) =====
+function __getQueryParam(name) {
+  try {
+    if (typeof window === 'undefined' || window?.location?.search == null) return null;
+    const params = new URLSearchParams(window.location.search);
+    const v = params.get(name);
+    return (v == null) ? null : String(v);
+  } catch (_) {
+    return null;
+  }
+}
+
+function __parseBoolParam(name) {
+  const v = __getQueryParam(name);
+  if (v == null) return false;
+  const s = v.toLowerCase();
+  return v === '1' || s === 'true' || s === 'yes';
+}
+
+function __parseNumberParam(name, fallback) {
+  const v = __getQueryParam(name);
+  if (v == null || v === '') return fallback;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+/**
+ * Removes duplicate triangles from indexed geometry by comparing quantized vertex positions.
+ * Query params:
+ *   ?dedupe=1
+ *   ?dedupeEps=1e-5
+ */
+function __dedupeTrianglesByPosition(geom, eps) {
+  try {
+    const posAttr = geom?.attributes?.position;
+    const idxAttr = geom?.index;
+    if (!posAttr?.array || !idxAttr?.array) return { changed: false, removed: 0, kept: 0 };
+
+    const pos = posAttr.array;
+    const idx = idxAttr.array;
+    const triCount = Math.floor(idx.length / 3);
+    if (triCount <= 0) return { changed: false, removed: 0, kept: 0 };
+
+    const q = (v) => Math.round(v / eps);
+    const vkey = (vi) => {
+      const x = q(pos[vi * 3]);
+      const y = q(pos[vi * 3 + 1]);
+      const z = q(pos[vi * 3 + 2]);
+      return `${x},${y},${z}`;
+    };
+
+    const seen = new Set();
+    const out = new Uint32Array(idx.length);
+    let outI = 0;
+    let removed = 0;
+
+    for (let i = 0; i < idx.length; i += 3) {
+      const a = idx[i], b = idx[i + 1], c = idx[i + 2];
+      const ka = vkey(a), kb = vkey(b), kc = vkey(c);
+      const arr = [ka, kb, kc];
+      arr.sort();
+      const k = `${arr[0]}|${arr[1]}|${arr[2]}`;
+      if (seen.has(k)) {
+        removed++;
+        continue;
+      }
+      seen.add(k);
+      out[outI++] = a;
+      out[outI++] = b;
+      out[outI++] = c;
+    }
+
+    if (removed === 0) return { changed: false, removed: 0, kept: triCount };
+
+    geom.setIndex(new BufferAttribute(out.subarray(0, outI), 1));
+    return { changed: true, removed, kept: Math.floor(outI / 3) };
+  } catch (_) {
+    return { changed: false, removed: 0, kept: 0 };
+  }
+}
+
 class IFCModel extends Mesh {
 
   constructor() {
@@ -167,6 +248,19 @@ class IFCParser {
       this.streamMesh(modelID, mesh);
     });
     this.notifyLoadingEnded();
+
+    // A/B диагностика: отключить общий merge (между материалами), чтобы проверить,
+    // теряются ли треугольники на стадии mergeBufferGeometries(geometries, true).
+    // ?mergeMode=perMaterial  -> создаём IFCModel-обёртку с дочерними Mesh по материалам
+    let mergeMode = 'combined';
+    try {
+      if (typeof window !== 'undefined' && window?.location?.search != null) {
+        const params = new URLSearchParams(window.location.search);
+        const v = params.get('mergeMode');
+        if (v) mergeMode = String(v);
+      }
+    } catch (_) {}
+
     const geometries = [];
     const materials = [];
     Object.keys(this.geometriesByMaterials).forEach((key) => {
@@ -175,7 +269,61 @@ class IFCParser {
       materials.push(this.geometriesByMaterials[key].material);
       geometries.push(merged);
     });
+
+    const dedupeEnabled = __parseBoolParam('dedupe');
+    const dedupeEps = Math.max(1e-12, __parseNumberParam('dedupeEps', 1e-5));
+
+    if (mergeMode === 'perMaterial') {
+      // ВАЖНО: не делаем общий merge; вместо этого создаём IFCModel (Mesh) без геометрии
+      // и добавляем внутрь дочерние Mesh по каждому материалу.
+      const root = new IFCModel(new BufferGeometry(), new MeshLambertMaterial({ transparent: true, opacity: 0 }));
+      try { root.material.depthWrite = false; } catch (_) {}
+      try { root.material.depthTest = false; } catch (_) {}
+      root.name = 'ifc-model-perMaterial';
+      try { root.userData.__mergeMode = 'perMaterial'; } catch (_) {}
+      // Сохраним modelID как у обычного IFCModel, но подменим на текущий
+      root.modelID = this.currentModelID;
+      root.mesh = root;
+
+      for (let i = 0; i < geometries.length; i++) {
+        const g = geometries[i];
+        const m = materials[i];
+        if (!g || !m) continue;
+        if (dedupeEnabled) {
+          const r = __dedupeTrianglesByPosition(g, dedupeEps);
+          if (r.changed) {
+            // eslint-disable-next-line no-console
+            console.log('[IFCLoader][dedupe][perMaterial]', { part: i, eps: dedupeEps, removed: r.removed, kept: r.kept });
+          }
+        }
+        const child = new Mesh(g, m);
+        child.name = `ifc-material-part-${i}`;
+        root.add(child);
+      }
+
+      // В этой ветке не используем BVH по объединённой геометрии (её нет).
+      // Память: освободим оригинальные (до-merge) геометрии, но НЕ трогаем merged-геометрию (она в child Mesh).
+      try {
+        Object.keys(this.geometriesByMaterials).forEach((materialID) => {
+          const bucket = this.geometriesByMaterials[materialID];
+          const list = bucket?.geometries || [];
+          list.forEach((g) => g && g.dispose && g.dispose());
+          if (bucket) bucket.geometries = [];
+        });
+        this.geometriesByMaterials = {};
+      } catch (_) {
+        // fallback: оставим как есть
+      }
+      this.state.models[this.currentModelID].mesh = root;
+      return root;
+    }
+
     const combinedGeometry = mergeBufferGeometries(geometries, true);
+    if (dedupeEnabled) {
+      const r = __dedupeTrianglesByPosition(combinedGeometry, dedupeEps);
+      // eslint-disable-next-line no-console
+      console.log('[IFCLoader][dedupe][combined]', { eps: dedupeEps, removed: r.removed, kept: r.kept });
+    }
     this.cleanUpGeometryMemory(geometries);
     if (this.BVH)
       this.BVH.applyThreeMeshBVH(combinedGeometry);
