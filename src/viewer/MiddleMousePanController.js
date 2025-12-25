@@ -52,6 +52,35 @@ export class MiddleMousePanController {
   }
 
   /**
+   * Сбрасывает MMB-pan смещение (возвращает вид как без viewOffset).
+   * Используется Home-кнопкой.
+   */
+  reset() {
+    this._offsetPx.x = 0;
+    this._offsetPx.y = 0;
+    const camera = this.getCamera?.();
+    if (!camera) return;
+
+    try {
+      if (typeof camera.clearViewOffset === "function") {
+        camera.clearViewOffset();
+        camera.updateProjectionMatrix();
+        return;
+      }
+    } catch (_) {}
+
+    // Fallback: setViewOffset(…, 0,0, …) с текущим размером
+    try {
+      const rect = this.domElement.getBoundingClientRect?.();
+      if (!rect || rect.width <= 0 || rect.height <= 0) return;
+      const w = Math.max(1, Math.floor(rect.width));
+      const h = Math.max(1, Math.floor(rect.height));
+      camera.setViewOffset(w, h, 0, 0, w, h);
+      camera.updateProjectionMatrix();
+    } catch (_) {}
+  }
+
+  /**
    * Переустанавливает текущий viewOffset (например, после resize / смены камеры).
    * @param {number} [width]
    * @param {number} [height]

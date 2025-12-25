@@ -151,6 +151,8 @@ export class Viewer {
       flatShading: true,
       quality: 'medium',
       clipEnabled: [Infinity, Infinity, Infinity],
+      // Трансформ модели (для сброса ПКМ-сдвигов)
+      modelTransform: null, // { position: Vector3, quaternion: Quaternion, scale: Vector3 }
     };
 
     // Визуализация оси вращения
@@ -551,6 +553,7 @@ export class Viewer {
     this._home.flatShading = this.flatShading;
     this._home.quality = this.quality;
     this._home.clipEnabled = this.clipping.planes.map(p => p.constant);
+    // Модель может быть ещё не загружена — modelTransform снимем после replaceWithModel()
 
     // Сигнал о готовности после первого кадра
     requestAnimationFrame(() => {
@@ -1073,6 +1076,18 @@ export class Viewer {
         this._home.flatShading = this.flatShading;
         this._home.quality = this.quality;
         this._home.clipEnabled = this.clipping.planes.map(p => p.constant);
+
+        // Снимем исходный трансформ модели для Home (ПКМ-сдвиги должны сбрасываться)
+        try {
+          const m = this.activeModel;
+          if (m) {
+            this._home.modelTransform = {
+              position: m.position.clone(),
+              quaternion: m.quaternion.clone(),
+              scale: m.scale.clone(),
+            };
+          }
+        } catch (_) {}
       });
     } catch(_) {}
   }
@@ -2903,9 +2918,26 @@ export class Viewer {
   // Вернуть стартовый вид
   goHome() {
     if (!this.camera || !this.controls) return;
+
+    // Сброс MMB-pan (viewOffset), чтобы оси/вид вернулись как при загрузке
+    try { this._mmbPan?.controller?.reset?.(); } catch (_) {}
+
     // Камера и прицел
     this.controls.target.copy(this._home.target);
     this.camera.position.copy(this._home.cameraPos);
+
+    // Сброс трансформа модели (ПКМ-сдвиг): вернуть как при загрузке
+    try {
+      const mt = this._home?.modelTransform;
+      const m = this.activeModel;
+      if (m && mt && mt.position && mt.quaternion && mt.scale) {
+        m.position.copy(mt.position);
+        m.quaternion.copy(mt.quaternion);
+        m.scale.copy(mt.scale);
+        m.updateMatrixWorld?.(true);
+      }
+    } catch (_) {}
+
     // Визуальные настройки
     this.setEdgesVisible(this._home.edgesVisible);
     this.setFlatShading(this._home.flatShading);
