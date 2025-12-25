@@ -154,6 +154,10 @@ export class Viewer {
       clipEnabled: [Infinity, Infinity, Infinity],
       // Трансформ модели (для сброса ПКМ-сдвигов)
       modelTransform: null, // { position: Vector3, quaternion: Quaternion, scale: Vector3 }
+      // Положение "земли/тени" (чтобы Home возвращал тень вместе с моделью)
+      shadowReceiverPos: null, // THREE.Vector3|null
+      sunTargetPos: null,      // THREE.Vector3|null
+      shadowGradCenterXZ: null // THREE.Vector2|null
     };
 
     // Визуализация оси вращения
@@ -540,6 +544,31 @@ export class Viewer {
         },
         onRmbStart: (pivot) => {
           try { this._rmbModelMove.pivotAnchor = pivot?.clone?.() || null; } catch (_) { this._rmbModelMove.pivotAnchor = null; }
+        },
+        onRmbMove: (delta) => {
+          // Двигаем "тень/землю/солнце" вместе с моделью, чтобы тень не отрывалась и не клипалась.
+          try {
+            if (!delta) return;
+            if (this.shadowReceiver?.position?.add) {
+              this.shadowReceiver.position.add(delta);
+              this.shadowReceiver.updateMatrixWorld?.(true);
+            }
+            if (this.shadowGradient?.buildingCenterXZ?.add) {
+              this.shadowGradient.buildingCenterXZ.add(new THREE.Vector2(delta.x || 0, delta.z || 0));
+              this.#applyShadowGradientUniforms();
+            }
+            if (this.sunLight) {
+              try { this.sunLight.position.add(delta); } catch (_) {}
+              try {
+                if (this.sunLight.target) {
+                  this.sunLight.target.position.add(delta);
+                  this.sunLight.target.updateMatrixWorld?.(true);
+                }
+              } catch (_) {}
+              try { this.sunLight.updateMatrixWorld?.(true); } catch (_) {}
+              try { this.sunLight.shadow && (this.sunLight.shadow.needsUpdate = true); } catch (_) {}
+            }
+          } catch (_) {}
         },
       });
     } catch (e) {
@@ -1229,6 +1258,17 @@ export class Viewer {
             };
           }
         } catch (_) {}
+
+        // Снимем исходное положение тени/земли, чтобы Home возвращал их вместе с моделью
+        try {
+          this._home.shadowReceiverPos = this.shadowReceiver?.position?.clone?.() || null;
+        } catch (_) { this._home.shadowReceiverPos = null; }
+        try {
+          this._home.sunTargetPos = this.sunLight?.target?.position?.clone?.() || null;
+        } catch (_) { this._home.sunTargetPos = null; }
+        try {
+          this._home.shadowGradCenterXZ = this.shadowGradient?.buildingCenterXZ?.clone?.() || null;
+        } catch (_) { this._home.shadowGradCenterXZ = null; }
 
         // После загрузки модели сбрасываем "фиксированную ось" от ПКМ
         try { if (this._rmbModelMove) this._rmbModelMove.pivotAnchor = null; } catch (_) {}
@@ -3081,6 +3121,30 @@ export class Viewer {
         m.updateMatrixWorld?.(true);
       }
     } catch (_) {}
+
+    // Home: вернуть тень/землю/солнце в исходное положение (единое целое с моделью)
+    try {
+      const p = this._home?.shadowReceiverPos;
+      if (this.shadowReceiver && p) {
+        this.shadowReceiver.position.copy(p);
+        this.shadowReceiver.updateMatrixWorld?.(true);
+      }
+    } catch (_) {}
+    try {
+      const p = this._home?.sunTargetPos;
+      if (this.sunLight?.target && p) {
+        this.sunLight.target.position.copy(p);
+        this.sunLight.target.updateMatrixWorld?.(true);
+      }
+    } catch (_) {}
+    try {
+      const c = this._home?.shadowGradCenterXZ;
+      if (this.shadowGradient?.buildingCenterXZ && c) {
+        this.shadowGradient.buildingCenterXZ.copy(c);
+        this.#applyShadowGradientUniforms();
+      }
+    } catch (_) {}
+    try { if (this.sunLight) this.sunLight.shadow && (this.sunLight.shadow.needsUpdate = true); } catch (_) {}
 
     // Home: сбрасываем "фиксированную ось" от ПКМ
     try { if (this._rmbModelMove) this._rmbModelMove.pivotAnchor = null; } catch (_) {}

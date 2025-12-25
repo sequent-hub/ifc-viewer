@@ -19,6 +19,7 @@ export class RightMouseModelMoveController {
    * @param {(e: PointerEvent) => boolean} [deps.shouldIgnoreEvent]
    * @param {() => boolean} [deps.isDebug]
    * @param {(pivotWorld: THREE.Vector3) => void} [deps.onRmbStart]
+   * @param {(deltaWorld: THREE.Vector3) => void} [deps.onRmbMove]
    */
   constructor(deps) {
     this.domElement = deps.domElement;
@@ -29,6 +30,7 @@ export class RightMouseModelMoveController {
     this.shouldIgnoreEvent = deps.shouldIgnoreEvent || (() => false);
     this.isDebug = deps.isDebug || (() => false);
     this.onRmbStart = typeof deps.onRmbStart === "function" ? deps.onRmbStart : null;
+    this.onRmbMove = typeof deps.onRmbMove === "function" ? deps.onRmbMove : null;
 
     this._activePointerId = null;
     this._last = { x: 0, y: 0 };
@@ -171,6 +173,7 @@ export class RightMouseModelMoveController {
 
     model.position.add(this._vDelta);
     model.updateMatrixWorld?.(true);
+    try { this.onRmbMove && this.onRmbMove(this._vDelta); } catch (_) {}
 
     if (this.isDebug()) {
       try {
