@@ -13,6 +13,8 @@ import { FXAAShader } from "three/examples/jsm/shaders/FXAAShader.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { NavCube } from "./NavCube.js";
 import { SectionManipulator } from "./SectionManipulator.js";
+import { SectionCapsRenderer } from "./SectionCapsRenderer.js";
+import { SectionCapsPass } from "./SectionCapsPass.js";
 import { ZoomToCursorController } from "./ZoomToCursorController.js";
 import { MiddleMousePanController } from "./MiddleMousePanController.js";
 import { RightMouseModelMoveController } from "./RightMouseModelMoveController.js";
@@ -126,6 +128,9 @@ export class Viewer {
     // Шаг 4: финальная постобработка (контраст/насыщенность) — должна быть последним pass'ом
     this._step4Pass = null;
     this._step4 = { enabled: false, saturation: 1.0, contrast: 1.0 };
+    // Сечение: заливка "внутренностей" (cap) через stencil buffer
+    this._sectionCaps = new SectionCapsRenderer({ color: 0x212121 });
+    this._sectionCapsPass = null;
     this.clipping = {
       enabled: false,
       planes: [
@@ -449,7 +454,8 @@ export class Viewer {
     // Рендерер
     // logarithmicDepthBuffer: уменьшает z-fighting на почти копланарных поверхностях (часто в IFC).
     // Это заметно снижает "мигание" тонких накладных деталей на фасадах.
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, logarithmicDepthBuffer: true });
+    // stencil: нужен для отрисовки "cap" по контуру сечения
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, logarithmicDepthBuffer: true, stencil: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.autoClear = false; // управляем очисткой вручную для мульти-проходов
     // Тени по умолчанию выключены (включаются только через setShadowsEnabled)
@@ -775,6 +781,17 @@ export class Viewer {
         this._composer.render();
       } else {
         this.renderer.render(this.scene, this.camera);
+        // Cap (закрытие среза) в режиме без композера
+        try {
+          const subject = this.activeModel || this.demoCube;
+          this._sectionCaps?.render?.({
+            renderer: this.renderer,
+            scene: this.scene,
+            camera: this.camera,
+            subject,
+            activePlanes,
+          });
+        } catch (_) {}
       }
       // Рендер оверлея манипуляторов без глобального клиппинга поверх
       const prevLocal = this.renderer.localClippingEnabled;
@@ -2884,7 +2901,9 @@ export class Viewer {
     const { width, height } = this._getContainerSize();
     const w = Math.max(1, Math.floor(width));
     const h = Math.max(1, Math.floor(height));
-    this._composer = new EffectComposer(this.renderer);
+    // Нужен stencil buffer в render targets композера для "cap" сечения
+    const rt = new THREE.WebGLRenderTarget(w, h, { depthBuffer: true, stencilBuffer: true });
+    this._composer = new EffectComposer(this.renderer, rt);
     this._renderPass = new RenderPass(this.scene, this.camera);
     this._composer.addPass(this._renderPass);
     this._ssaoPass = new SSAOPass(this.scene, this.camera, w, h);
@@ -2963,6 +2982,16 @@ export class Viewer {
     this._composer.addPass(this._step4Pass);
     this.#applyStep4Uniforms();
     
+    // Cap (закрытие сечения) — перед FXAA, чтобы сгладить край заливки
+    this._sectionCapsPass = new SectionCapsPass({
+      capsRenderer: this._sectionCaps,
+      getScene: () => this.scene,
+      getCamera: () => this.camera,
+      getSubject: () => (this.activeModel || this.demoCube),
+      getActivePlanes: () => (this.clipping?.planes || []),
+    });
+    this._composer.addPass(this._sectionCapsPass);
+
     // FXAA pass для устранения "лесенки" на кривых линиях (aliasing)
     this._fxaaPass = new ShaderPass(FXAAShader);
     this._fxaaPass.material.uniforms['resolution'].value.x = 1 / w;
