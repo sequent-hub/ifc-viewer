@@ -148,10 +148,10 @@ export class Viewer {
     this._sectionClippingActive = false;
     /** @type {WeakMap<THREE.Mesh, any>} */
     this._sectionOriginalMaterial = new WeakMap();
-    // +50% яркости при активном сечении (комнаты светлее)
-    this._sectionLightBoost = { mul: 1.5, snapshot: null };
-    // При активном сечении: AO выключаем (убирает "сетку"), а контраст возвращаем лёгкой цветокоррекцией
-    this._sectionPostBoost = { snapshot: null, brightness: 0.03, contrast: 0.15 };
+    // Локальная подсветка "внутри": без теней, с малой дальностью (чтобы не пересвечивать фасад/внешнюю тень)
+    this._interiorAssist = { light: null, box: null, enabled: false, lastBoxAt: 0 };
+    // Пост-эффекты только "внутри": AO OFF (убирает "сетку"), чуть контраста (без глобального пересвета)
+    this._interiorPost = { snapshot: null, contrast: 0.12 };
 
     // Snapshot начального состояния для Home
     this._home = {
@@ -628,6 +628,9 @@ export class Viewer {
     this.setSunHeight(5.9);
     this.setShadowsEnabled(this.shadowsEnabled);
 
+    // Локальная подсветка "внутри" (по умолчанию скрыта)
+    this.#ensureInteriorAssistLight();
+
     // Демонстрационный куб отключён для чистого прелоадера
     // Оставим сцену пустой до загрузки модели
     // Добавим метод фокусировки объекта
@@ -755,6 +758,8 @@ export class Viewer {
     }
 
     if (this.controls) this.controls.update();
+    // "Внутренняя" подсветка/пост-эффекты: включаются только когда камера внутри модели
+    this.#updateInteriorAssist();
     this._notifyZoomIfChanged();
     if (this.renderer && this.camera && this.scene) {
       // Применим ТОЛЬКО активные (конечные) плоскости отсечения
@@ -1960,69 +1965,9 @@ export class Viewer {
     if (next === this._sectionClippingActive) return;
     this._sectionClippingActive = next;
 
-    // 0) Светлее при сечении (+50%)
-    try {
-      if (this._sectionClippingActive) {
-        if (!this._sectionLightBoost.snapshot) {
-          this._sectionLightBoost.snapshot = {
-            sunIntensity: this.sunLight?.intensity ?? null,
-            ambientIntensity: this.ambientLight?.intensity ?? null,
-          };
-        }
-        if (this.sunLight && Number.isFinite(this._sectionLightBoost.snapshot.sunIntensity)) {
-          this.sunLight.intensity = this._sectionLightBoost.snapshot.sunIntensity * this._sectionLightBoost.mul;
-        }
-        if (this.ambientLight && Number.isFinite(this._sectionLightBoost.snapshot.ambientIntensity)) {
-          this.ambientLight.intensity = this._sectionLightBoost.snapshot.ambientIntensity * this._sectionLightBoost.mul;
-        }
-      } else {
-        const snap = this._sectionLightBoost.snapshot;
-        if (snap) {
-          if (this.sunLight && Number.isFinite(snap.sunIntensity)) this.sunLight.intensity = snap.sunIntensity;
-          if (this.ambientLight && Number.isFinite(snap.ambientIntensity)) this.ambientLight.intensity = snap.ambientIntensity;
-        }
-        this._sectionLightBoost.snapshot = null;
-      }
-    } catch (_) {}
-
-    // 0.5) Пост-эффекты: AO OFF + лёгкий контраст (только при сечении)
-    try {
-      if (this._sectionClippingActive) {
-        if (!this._sectionPostBoost.snapshot) {
-          this._sectionPostBoost.snapshot = {
-            ao: { ...this.visual.ao },
-            color: { ...this.visual.color },
-          };
-        }
-        // AO OFF
-        this.setAOEnabled(false);
-        // Color correction ON (без изменения hue/saturation)
-        this.setColorCorrectionEnabled(true);
-        this.setColorBrightness(this._sectionPostBoost.brightness);
-        this.setColorContrast(this._sectionPostBoost.contrast);
-      } else {
-        const snap = this._sectionPostBoost.snapshot;
-        if (snap) {
-          // Restore AO
-          this.setAOEnabled(!!snap.ao?.enabled);
-          if (typeof snap.ao?.intensity === 'number') this.setAOIntensity(snap.ao.intensity);
-          if (typeof snap.ao?.radius === 'number') this.setAORadius(snap.ao.radius);
-          if (typeof snap.ao?.minDistance === 'number') this.visual.ao.minDistance = snap.ao.minDistance;
-          if (typeof snap.ao?.maxDistance === 'number') this.visual.ao.maxDistance = snap.ao.maxDistance;
-          if (this._ssaoPass) {
-            this._ssaoPass.minDistance = this.visual.ao.minDistance;
-            this._ssaoPass.maxDistance = this.visual.ao.maxDistance;
-          }
-          // Restore color correction
-          this.setColorCorrectionEnabled(!!snap.color?.enabled);
-          if (typeof snap.color?.hue === 'number') this.setColorHue(snap.color.hue);
-          if (typeof snap.color?.saturation === 'number') this.setColorSaturation(snap.color.saturation);
-          if (typeof snap.color?.brightness === 'number') this.setColorBrightness(snap.color.brightness);
-          if (typeof snap.color?.contrast === 'number') this.setColorContrast(snap.color.contrast);
-        }
-        this._sectionPostBoost.snapshot = null;
-      }
-    } catch (_) {}
+    // Важно: никаких глобальных усилений света/яркости на само включение сечения.
+    // Подсветка делается локально и только когда камера "внутри".
+    try { this.#updateInteriorAssist(true); } catch (_) {}
 
     // 1) self-shadowing (комнаты/стены)
     if (this.activeModel) {
@@ -2041,6 +1986,110 @@ export class Viewer {
     // 3) форсируем апдейт теней
     try { if (this.sunLight?.shadow) this.sunLight.shadow.needsUpdate = true; } catch (_) {}
     try { if (this.renderer?.shadowMap) this.renderer.shadowMap.needsUpdate = true; } catch (_) {}
+  }
+
+  #ensureInteriorAssistLight() {
+    if (!this.scene) return;
+    if (this._interiorAssist.light) return;
+    try {
+      // Небольшой "fill light" около камеры. Без теней, чтобы не ломать внешнюю тень.
+      const light = new THREE.PointLight(0xffffff, 0.9, 6.5, 2.0);
+      light.castShadow = false;
+      light.visible = false;
+      light.name = 'interior-assist-light';
+      this.scene.add(light);
+      this._interiorAssist.light = light;
+    } catch (_) {
+      this._interiorAssist.light = null;
+    }
+  }
+
+  #isCameraInsideModelBox() {
+    const model = this.activeModel;
+    if (!model || !this.camera) return false;
+    const now = performance?.now?.() ?? Date.now();
+    // Обновляем bbox не чаще ~4 раза/сек (достаточно; модель обычно статична)
+    if (!this._interiorAssist.box || (now - (this._interiorAssist.lastBoxAt || 0)) > 250) {
+      try {
+        this._interiorAssist.box = new THREE.Box3().setFromObject(model);
+        this._interiorAssist.lastBoxAt = now;
+      } catch (_) {
+        this._interiorAssist.box = null;
+      }
+    }
+    const box = this._interiorAssist.box;
+    if (!box) return false;
+    const p = this.camera.position;
+    const eps = 0.05;
+    return (
+      p.x > (box.min.x + eps) && p.x < (box.max.x - eps) &&
+      p.y > (box.min.y + eps) && p.y < (box.max.y - eps) &&
+      p.z > (box.min.z + eps) && p.z < (box.max.z - eps)
+    );
+  }
+
+  #updateInteriorAssist(force = false) {
+    if (!this._sectionClippingActive) {
+      if (this._interiorAssist.enabled || force) {
+        this._interiorAssist.enabled = false;
+        if (this._interiorAssist.light) this._interiorAssist.light.visible = false;
+        this.#restoreInteriorPost();
+      }
+      return;
+    }
+
+    this.#ensureInteriorAssistLight();
+    const inside = this.#isCameraInsideModelBox();
+    if (inside !== this._interiorAssist.enabled || force) {
+      this._interiorAssist.enabled = inside;
+      if (this._interiorAssist.light) this._interiorAssist.light.visible = inside;
+      if (inside) this.#applyInteriorPost();
+      else this.#restoreInteriorPost();
+    }
+    // Следуем за камерой, если активны
+    if (inside && this._interiorAssist.light) {
+      try { this._interiorAssist.light.position.copy(this.camera.position); } catch (_) {}
+    }
+  }
+
+  #applyInteriorPost() {
+    // AO OFF + лёгкий контраст только "внутри"
+    if (!this._interiorPost.snapshot) {
+      this._interiorPost.snapshot = {
+        ao: { ...this.visual.ao },
+        color: { ...this.visual.color },
+      };
+    }
+    try { this.setAOEnabled(false); } catch (_) {}
+    try {
+      this.setColorCorrectionEnabled(true);
+      this.setColorContrast(this._interiorPost.contrast);
+      // brightness не трогаем, чтобы не пересвечивать
+    } catch (_) {}
+  }
+
+  #restoreInteriorPost() {
+    const snap = this._interiorPost.snapshot;
+    if (!snap) return;
+    try {
+      this.setAOEnabled(!!snap.ao?.enabled);
+      if (typeof snap.ao?.intensity === 'number') this.setAOIntensity(snap.ao.intensity);
+      if (typeof snap.ao?.radius === 'number') this.setAORadius(snap.ao.radius);
+      if (typeof snap.ao?.minDistance === 'number') this.visual.ao.minDistance = snap.ao.minDistance;
+      if (typeof snap.ao?.maxDistance === 'number') this.visual.ao.maxDistance = snap.ao.maxDistance;
+      if (this._ssaoPass) {
+        this._ssaoPass.minDistance = this.visual.ao.minDistance;
+        this._ssaoPass.maxDistance = this.visual.ao.maxDistance;
+      }
+    } catch (_) {}
+    try {
+      this.setColorCorrectionEnabled(!!snap.color?.enabled);
+      if (typeof snap.color?.hue === 'number') this.setColorHue(snap.color.hue);
+      if (typeof snap.color?.saturation === 'number') this.setColorSaturation(snap.color.saturation);
+      if (typeof snap.color?.brightness === 'number') this.setColorBrightness(snap.color.brightness);
+      if (typeof snap.color?.contrast === 'number') this.setColorContrast(snap.color.contrast);
+    } catch (_) {}
+    this._interiorPost.snapshot = null;
   }
 
   /**
