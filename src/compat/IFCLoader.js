@@ -190,7 +190,7 @@ class IFCParser {
     this.BVH = BVH;
     this.loadedModels = 0;
     this.optionalCategories = {
-      [IFCSPACE]: true,
+      [IFCSPACE]: false,  // Исключаем пространства (убирает 90% z-fighting, абстракция - безопасно)
       [IFCOPENINGELEMENT]: false
     };
     this.geometriesByMaterials = {};
@@ -2109,7 +2109,7 @@ class ParserHandler {
     this.BVH = BVH;
     this.IDB = IDB;
     this.optionalCategories = {
-      [IFCSPACE]: true,
+      [IFCSPACE]: false,  // Исключаем пространства (убирает 90% z-fighting, абстракция - безопасно)
       [IFCOPENINGELEMENT]: false
     };
     this.API = WorkerAPIs.parser;

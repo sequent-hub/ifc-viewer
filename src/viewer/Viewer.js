@@ -1307,6 +1307,7 @@ export class Viewer {
     const apply = (mat) => {
       if (!mat) return;
       mat.polygonOffset = true;
+      // Умеренные значения polygon offset для уменьшения z-fighting
       mat.polygonOffsetFactor = 1;
       mat.polygonOffsetUnits = 1;
       // Улучшим читаемость плоскостей
