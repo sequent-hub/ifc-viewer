@@ -9,6 +9,7 @@ import { SSAOPass } from "three/examples/jsm/postprocessing/SSAOPass.js";
 import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
 import { HueSaturationShader } from "three/examples/jsm/shaders/HueSaturationShader.js";
 import { BrightnessContrastShader } from "three/examples/jsm/shaders/BrightnessContrastShader.js";
+import { FXAAShader } from "three/examples/jsm/shaders/FXAAShader.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { NavCube } from "./NavCube.js";
 import { SectionManipulator } from "./SectionManipulator.js";
@@ -143,6 +144,10 @@ export class Viewer {
         z: null,
       },
     };
+    // Состояние "есть ли активное сечение" (нужно, чтобы сечение влияло на тени/освещение).
+    this._sectionClippingActive = false;
+    /** @type {WeakMap<THREE.Mesh, any>} */
+    this._sectionOriginalMaterial = new WeakMap();
 
     // Snapshot начального состояния для Home
     this._home = {
@@ -1056,6 +1061,13 @@ export class Viewer {
     if (this._ssaoPass?.setSize) {
       try { this._ssaoPass.setSize(width, height); } catch (_) {}
     }
+    // Обновляем FXAA resolution при изменении размера
+    if (this._fxaaPass) {
+      try {
+        this._fxaaPass.material.uniforms['resolution'].value.x = 1 / Math.max(1, width);
+        this._fxaaPass.material.uniforms['resolution'].value.y = 1 / Math.max(1, height);
+      } catch (_) {}
+    }
 
     // Если активен MMB-pan (viewOffset), нужно переустановить его под новый размер
     try { this._mmbPan?.controller?.applyCurrentOffset?.(width, height); } catch (_) {}
@@ -1184,8 +1196,8 @@ export class Viewer {
       if (node.isMesh) {
         // Тени управляются единообразно через setShadowsEnabled()
         node.castShadow = !!this.shadowsEnabled;
-        // Самозатенение включается только в пресете "Тест"
-        node.receiveShadow = !!this.shadowsEnabled && !!this._testPreset?.enabled;
+        // Самозатенение: в тест-пресете ИЛИ при активном сечении
+        node.receiveShadow = this.#getModelReceiveShadowEnabled();
         // Стекло/прозрачность: рендерим после непрозрачных (уменьшает мерцание сортировки)
         try {
           const mats = Array.isArray(node.material) ? node.material : [node.material];
@@ -1199,6 +1211,8 @@ export class Viewer {
 
     // Материальный пресет (если выбран не original)
     this.#applyMaterialStyleToModel(object3D);
+    // Синхронизируем "сечение → shadow-pass" для материалов после назначения пресета
+    this.#applyClipShadowsToModelMaterials();
 
     // Настроим пределы зума и сфокусируемся на новой модели
     this.applyAdaptiveZoomLimits(object3D, { padding: 1.2, slack: 2.5, minRatio: 0.05, recenter: true });
@@ -1679,10 +1693,12 @@ export class Viewer {
       this.activeModel.traverse?.((node) => {
         if (!node?.isMesh) return;
         node.castShadow = next;
-        // Самозатенение включается только в пресете "Тест"
-        node.receiveShadow = next && !!this._testPreset?.enabled;
+        // Самозатенение: в тест-пресете ИЛИ при активном сечении
+        node.receiveShadow = this.#getModelReceiveShadowEnabled();
       });
     }
+    // Если тени переключили — синхронизируем shadow-pass клиппинга
+    this.#applyClipShadowsToModelMaterials();
   }
 
   /**
@@ -1847,9 +1863,116 @@ export class Viewer {
       this.activeModel.traverse?.((node) => {
         if (!node?.isMesh) return;
         node.castShadow = !!this.shadowsEnabled;
-        node.receiveShadow = false;
+        node.receiveShadow = this.#getModelReceiveShadowEnabled();
       });
     }
+    this.#applyClipShadowsToModelMaterials();
+  }
+
+  #getModelReceiveShadowEnabled() {
+    // Самозатенение нужно для корректного освещения при сечении (видны комнаты внутри).
+    return !!this.shadowsEnabled && (this._sectionClippingActive || !!this._testPreset?.enabled);
+  }
+
+  #getClipShadowsEnabled() {
+    // Чтобы внешняя тень менялась при движении сечения, клиппинг должен участвовать в shadow-pass.
+    return !!this.shadowsEnabled && !!this._sectionClippingActive;
+  }
+
+  #applyClipShadowsToModelMaterials() {
+    const model = this.activeModel || this.demoCube;
+    if (!model) return;
+    const enabled = this.#getClipShadowsEnabled();
+    const touched = new Set();
+    // ВАЖНО: НЕ использовать renderer.clippingPlanes (там каждый кадр создаётся новый массив).
+    // Для shadow-pass материал должен держать актуальный список активных плоскостей.
+    const activePlanes = enabled
+      ? (this.clipping?.planes || []).filter((p) => p && isFinite(p.constant))
+      : null;
+    model.traverse?.((node) => {
+      if (!node?.isMesh) return;
+      const mats = Array.isArray(node.material) ? node.material : [node.material];
+      for (const m of mats) {
+        if (!m || touched.has(m)) continue;
+        touched.add(m);
+        try {
+          // Важно: для shadow-pass надёжнее использовать LOCAL clipping (material.clippingPlanes) + clipShadows.
+          // Иначе часть сборок three может не применять global renderer.clippingPlanes к shadow map.
+          if ('clippingPlanes' in m) m.clippingPlanes = activePlanes;
+          if ('clipShadows' in m) m.clipShadows = enabled;
+          // Тени “среза” и внутренняя отрисовка часто требуют double-side (в IFC нормали бывают проблемные).
+          if (enabled && 'side' in m && m.side !== THREE.DoubleSide) m.side = THREE.DoubleSide;
+          m.needsUpdate = true; // пересобрать шейдеры (включая depth/shadow варианты)
+        } catch (_) {}
+      }
+    });
+  }
+
+  #applySectionMaterialPolicy() {
+    // При активном сечении переводим неосвещаемые материалы в MeshStandardMaterial,
+    // чтобы внутри появились свет/тени. При выключении — возвращаем оригиналы.
+    const model = this.activeModel || this.demoCube;
+    if (!model) return;
+
+    if (!this._sectionClippingActive) {
+      model.traverse?.((node) => {
+        if (!node?.isMesh) return;
+        const orig = this._sectionOriginalMaterial.get(node);
+        if (orig) node.material = orig;
+      });
+      return;
+    }
+
+    model.traverse?.((node) => {
+      if (!node?.isMesh) return;
+      const cur = node.material;
+      if (!cur) return;
+      // Трогаем только "неосвещаемые" материалы (они не показывают тени на стенах).
+      const arr = Array.isArray(cur) ? cur : [cur];
+      const hasBasic = arr.some((m) => !!m?.isMeshBasicMaterial);
+      if (!hasBasic) return;
+
+      if (!this._sectionOriginalMaterial.has(node)) {
+        this._sectionOriginalMaterial.set(node, cur);
+      }
+
+      const convert = (m) => {
+        if (!m?.isMeshBasicMaterial) return m;
+        const cm = this.#getConvertedMaterial(m); // -> MeshStandardMaterial с сохранением color/map/alpha
+        // Делаем "архитектурный" вид по умолчанию: матовый, без металла
+        try { if ('roughness' in cm) cm.roughness = 0.9; } catch (_) {}
+        try { if ('metalness' in cm) cm.metalness = 0.0; } catch (_) {}
+        try { cm.needsUpdate = true; } catch (_) {}
+        return cm;
+      };
+
+      node.material = Array.isArray(cur) ? cur.map(convert) : convert(cur);
+    });
+  }
+
+  #syncSectionClippingState() {
+    const active = this.clipping?.planes?.some((p) => p && isFinite(p.constant));
+    const next = !!active;
+    if (next === this._sectionClippingActive) return;
+    this._sectionClippingActive = next;
+
+    // 1) self-shadowing (комнаты/стены)
+    if (this.activeModel) {
+      this.activeModel.traverse?.((node) => {
+        if (!node?.isMesh) return;
+        try { node.receiveShadow = this.#getModelReceiveShadowEnabled(); } catch (_) {}
+      });
+    }
+
+    // 1.5) materials: ensure they react to light/shadows when section is active
+    this.#applySectionMaterialPolicy();
+
+    // 2) clipping in shadow pass (крыша перестаёт участвовать в тени)
+    this.#applyClipShadowsToModelMaterials();
+
+    // 3) форсируем апдейт теней
+    try { if (this.sunLight?.shadow) this.sunLight.shadow.needsUpdate = true; } catch (_) {}
+    try { if (this.renderer?.shadowMap) this.renderer.shadowMap.needsUpdate = true; } catch (_) {}
   }
 
   /**
@@ -2722,6 +2845,14 @@ export class Viewer {
     this._step4Pass.enabled = !!this._step4?.enabled;
     this._composer.addPass(this._step4Pass);
     this.#applyStep4Uniforms();
+    
+    // FXAA pass для устранения "лесенки" на кривых линиях (aliasing)
+    this._fxaaPass = new ShaderPass(FXAAShader);
+    this._fxaaPass.material.uniforms['resolution'].value.x = 1 / w;
+    this._fxaaPass.material.uniforms['resolution'].value.y = 1 / h;
+    this._fxaaPass.enabled = true;  // Включен всегда для сглаживания
+    this._composer.addPass(this._fxaaPass);
+    
     try { this._composer.setSize(w, h); } catch (_) {}
   }
 
@@ -3020,6 +3151,9 @@ export class Viewer {
       plane.constant = Infinity;
       this.#setGizmoVisible(axis, false);
     }
+
+    // Сечение → тени/освещение
+    this.#syncSectionClippingState();
   }
 
   // Устанавливает позицию секущей плоскости по нормализованному значению [0..1] в пределах габаритов модели

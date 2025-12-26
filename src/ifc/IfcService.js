@@ -113,7 +113,7 @@ export class IfcService {
       // Ранее используемые флаги вроде USE_FAST_BOOLS/SMALL_TRIANGLE_THRESHOLD библиотекой web-ifc не используются.
       const config = {
         COORDINATE_TO_ORIGIN: true,
-        CIRCLE_SEGMENTS: 12,
+        CIRCLE_SEGMENTS: 32,  // Увеличено с 12 до 32 для гладких кривых (уменьшает "лесенку")
         // Tolerances: см. web-ifc CreateSettings defaults
         TOLERANCE_PLANE_INTERSECTION: 1e-4,
         TOLERANCE_PLANE_DEVIATION: 1e-4,
