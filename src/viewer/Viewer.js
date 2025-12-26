@@ -148,6 +148,8 @@ export class Viewer {
     this._sectionClippingActive = false;
     /** @type {WeakMap<THREE.Mesh, any>} */
     this._sectionOriginalMaterial = new WeakMap();
+    // +50% яркости при активном сечении (комнаты светлее)
+    this._sectionLightBoost = { mul: 1.5, snapshot: null };
 
     // Snapshot начального состояния для Home
     this._home = {
@@ -1955,6 +1957,31 @@ export class Viewer {
     const next = !!active;
     if (next === this._sectionClippingActive) return;
     this._sectionClippingActive = next;
+
+    // 0) Светлее при сечении (+50%)
+    try {
+      if (this._sectionClippingActive) {
+        if (!this._sectionLightBoost.snapshot) {
+          this._sectionLightBoost.snapshot = {
+            sunIntensity: this.sunLight?.intensity ?? null,
+            ambientIntensity: this.ambientLight?.intensity ?? null,
+          };
+        }
+        if (this.sunLight && Number.isFinite(this._sectionLightBoost.snapshot.sunIntensity)) {
+          this.sunLight.intensity = this._sectionLightBoost.snapshot.sunIntensity * this._sectionLightBoost.mul;
+        }
+        if (this.ambientLight && Number.isFinite(this._sectionLightBoost.snapshot.ambientIntensity)) {
+          this.ambientLight.intensity = this._sectionLightBoost.snapshot.ambientIntensity * this._sectionLightBoost.mul;
+        }
+      } else {
+        const snap = this._sectionLightBoost.snapshot;
+        if (snap) {
+          if (this.sunLight && Number.isFinite(snap.sunIntensity)) this.sunLight.intensity = snap.sunIntensity;
+          if (this.ambientLight && Number.isFinite(snap.ambientIntensity)) this.ambientLight.intensity = snap.ambientIntensity;
+        }
+        this._sectionLightBoost.snapshot = null;
+      }
+    } catch (_) {}
 
     // 1) self-shadowing (комнаты/стены)
     if (this.activeModel) {
