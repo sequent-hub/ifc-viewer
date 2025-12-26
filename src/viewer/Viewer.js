@@ -150,6 +150,8 @@ export class Viewer {
     this._sectionOriginalMaterial = new WeakMap();
     // +50% яркости при активном сечении (комнаты светлее)
     this._sectionLightBoost = { mul: 1.5, snapshot: null };
+    // При активном сечении: AO выключаем (убирает "сетку"), а контраст возвращаем лёгкой цветокоррекцией
+    this._sectionPostBoost = { snapshot: null, brightness: 0.03, contrast: 0.15 };
 
     // Snapshot начального состояния для Home
     this._home = {
@@ -1980,6 +1982,45 @@ export class Viewer {
           if (this.ambientLight && Number.isFinite(snap.ambientIntensity)) this.ambientLight.intensity = snap.ambientIntensity;
         }
         this._sectionLightBoost.snapshot = null;
+      }
+    } catch (_) {}
+
+    // 0.5) Пост-эффекты: AO OFF + лёгкий контраст (только при сечении)
+    try {
+      if (this._sectionClippingActive) {
+        if (!this._sectionPostBoost.snapshot) {
+          this._sectionPostBoost.snapshot = {
+            ao: { ...this.visual.ao },
+            color: { ...this.visual.color },
+          };
+        }
+        // AO OFF
+        this.setAOEnabled(false);
+        // Color correction ON (без изменения hue/saturation)
+        this.setColorCorrectionEnabled(true);
+        this.setColorBrightness(this._sectionPostBoost.brightness);
+        this.setColorContrast(this._sectionPostBoost.contrast);
+      } else {
+        const snap = this._sectionPostBoost.snapshot;
+        if (snap) {
+          // Restore AO
+          this.setAOEnabled(!!snap.ao?.enabled);
+          if (typeof snap.ao?.intensity === 'number') this.setAOIntensity(snap.ao.intensity);
+          if (typeof snap.ao?.radius === 'number') this.setAORadius(snap.ao.radius);
+          if (typeof snap.ao?.minDistance === 'number') this.visual.ao.minDistance = snap.ao.minDistance;
+          if (typeof snap.ao?.maxDistance === 'number') this.visual.ao.maxDistance = snap.ao.maxDistance;
+          if (this._ssaoPass) {
+            this._ssaoPass.minDistance = this.visual.ao.minDistance;
+            this._ssaoPass.maxDistance = this.visual.ao.maxDistance;
+          }
+          // Restore color correction
+          this.setColorCorrectionEnabled(!!snap.color?.enabled);
+          if (typeof snap.color?.hue === 'number') this.setColorHue(snap.color.hue);
+          if (typeof snap.color?.saturation === 'number') this.setColorSaturation(snap.color.saturation);
+          if (typeof snap.color?.brightness === 'number') this.setColorBrightness(snap.color.brightness);
+          if (typeof snap.color?.contrast === 'number') this.setColorContrast(snap.color.contrast);
+        }
+        this._sectionPostBoost.snapshot = null;
       }
     } catch (_) {}
 
