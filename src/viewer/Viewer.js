@@ -455,14 +455,13 @@ export class Viewer {
     // logarithmicDepthBuffer: уменьшает z-fighting на почти копланарных поверхностях (часто в IFC).
     // Это заметно снижает "мигание" тонких накладных деталей на фасадах.
     // stencil: нужен для отрисовки "cap" по контуру сечения
-    // ВАЖНО: фон всегда должен быть чисто белым и не зависеть от CSS-окружения (модалки/страницы).
-    // Поэтому делаем рендер НЕпрозрачным (alpha: false) и задаём белый clearColor.
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, logarithmicDepthBuffer: true, stencil: true });
+    // Фон должен выглядеть белым всегда, но при этом сохраняем прежнее поведение рендера (прозрачный canvas),
+    // чтобы не менять визуальное смешивание (тени/пост-эффекты) относительно версии "до белого фона".
+    // Белизна обеспечивается фоном контейнера (IfcViewer.js), а canvas остаётся прозрачным.
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, logarithmicDepthBuffer: true, stencil: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.autoClear = false; // управляем очисткой вручную для мульти-проходов
-    try {
-      this.renderer.setClearColor(0xffffff, 1);
-    } catch (_) {}
+    try { this.renderer.setClearColor(0xffffff, 0); } catch (_) {}
     // Тени по умолчанию выключены (включаются только через setShadowsEnabled)
     this.renderer.shadowMap.enabled = false;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -485,8 +484,8 @@ export class Viewer {
 
     // Сцена
     this.scene = new THREE.Scene();
-    // Гарантируем белый фон сцены (в том числе для composer/pass-ов).
-    try { this.scene.background = new THREE.Color(0xffffff); } catch (_) {}
+    // Оставляем фон сцены прозрачным (белый фон задаётся контейнером).
+    try { this.scene.background = null; } catch (_) {}
     // Оверлей-сцена для секущих манипуляторов (без клиппинга)
     this.sectionOverlayScene = new THREE.Scene();
 
@@ -2674,12 +2673,12 @@ export class Viewer {
    * @param {boolean} enabled
    */
   setStep3BackgroundEnabled(enabled) {
-    // По требованиям: фон ВСЕГДА чисто белый, и шаг 3 не должен менять фон сцены.
-    // Поэтому игнорируем "включение" и принудительно удерживаем белый фон.
+    // По требованиям: фон ВСЕГДА белый (за счёт контейнера), и шаг 3 не должен менять фон сцены.
+    // Поэтому игнорируем "включение" и удерживаем background прозрачным.
     if (!this.scene) return;
     this._step3Background.enabled = false;
     this._step3Background.snapshot = null;
-    try { this.scene.background = new THREE.Color(0xffffff); } catch (_) {}
+    try { this.scene.background = null; } catch (_) {}
   }
 
   setAOEnabled(enabled) {
