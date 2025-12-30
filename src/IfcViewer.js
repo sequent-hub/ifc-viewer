@@ -301,7 +301,7 @@ export class IfcViewer {
   _createInterface() {
     // Основная разметка просмотрщика
     const html = `
-      <div class="ifc-viewer-container" style="width: 100%; height: 100%; position: relative; display: flex; flex-direction: column; border:0px red solid;">
+      <div class="ifc-viewer-container" style="width: 100%; height: 100%; position: relative; display: flex; flex-direction: column; background: #ffffff; border:0px red solid;">
        <!-- Прелоадер -->
         <div id="ifcPreloader" class="absolute inset-0 bg-base-100 flex items-center justify-center z-50">
           <div class="text-center">
@@ -352,7 +352,7 @@ export class IfcViewer {
         </div>              
 
         <!-- Основной контейнер просмотрщика -->
-        <div id="ifcViewerMain" class="w-full flex-1 relative"></div>
+        <div id="ifcViewerMain" class="w-full flex-1 relative bg-base-100" style="background: #ffffff;"></div>
 
         <!-- Боковая панель (временно скрыта) -->
         <div id="ifcSidebar" class="absolute left-0 top-0 h-full w-80 bg-base-200 shadow-lg transform -translate-x-full transition-transform duration-300 pointer-events-none z-40" style="display: none;">

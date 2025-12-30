@@ -455,9 +455,14 @@ export class Viewer {
     // logarithmicDepthBuffer: уменьшает z-fighting на почти копланарных поверхностях (часто в IFC).
     // Это заметно снижает "мигание" тонких накладных деталей на фасадах.
     // stencil: нужен для отрисовки "cap" по контуру сечения
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, logarithmicDepthBuffer: true, stencil: true });
+    // ВАЖНО: фон всегда должен быть чисто белым и не зависеть от CSS-окружения (модалки/страницы).
+    // Поэтому делаем рендер НЕпрозрачным (alpha: false) и задаём белый clearColor.
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, logarithmicDepthBuffer: true, stencil: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.autoClear = false; // управляем очисткой вручную для мульти-проходов
+    try {
+      this.renderer.setClearColor(0xffffff, 1);
+    } catch (_) {}
     // Тени по умолчанию выключены (включаются только через setShadowsEnabled)
     this.renderer.shadowMap.enabled = false;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -480,6 +485,8 @@ export class Viewer {
 
     // Сцена
     this.scene = new THREE.Scene();
+    // Гарантируем белый фон сцены (в том числе для composer/pass-ов).
+    try { this.scene.background = new THREE.Color(0xffffff); } catch (_) {}
     // Оверлей-сцена для секущих манипуляторов (без клиппинга)
     this.sectionOverlayScene = new THREE.Scene();
 
@@ -2667,24 +2674,12 @@ export class Viewer {
    * @param {boolean} enabled
    */
   setStep3BackgroundEnabled(enabled) {
-    const next = !!enabled;
-    if (next === this._step3Background.enabled) return;
+    // По требованиям: фон ВСЕГДА чисто белый, и шаг 3 не должен менять фон сцены.
+    // Поэтому игнорируем "включение" и принудительно удерживаем белый фон.
     if (!this.scene) return;
-
-    if (next) {
-      // Снимем, что было до (Color|Texture|null)
-      const prev = this.scene.background ?? null;
-      this._step3Background.snapshot = { background: prev };
-      try { this.scene.background = new THREE.Color(this._step3Background.colorHex); } catch (_) {}
-      this._step3Background.enabled = true;
-      return;
-    }
-
-    const snap = this._step3Background.snapshot;
     this._step3Background.enabled = false;
     this._step3Background.snapshot = null;
-    if (!snap) return;
-    try { this.scene.background = snap.background ?? null; } catch (_) {}
+    try { this.scene.background = new THREE.Color(0xffffff); } catch (_) {}
   }
 
   setAOEnabled(enabled) {
