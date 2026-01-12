@@ -9,10 +9,16 @@ import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
  * - If normals are missing, we compute vertex normals.
  */
 export class StlModelLoader {
-  constructor() {
+  /**
+   * @param {{ rotateXNeg90?: boolean }} [options]
+   * rotateXNeg90:
+   * - Some STL assets are authored Z-up; viewer is Y-up. This rotates into Y-up.
+   */
+  constructor(options = {}) {
     this.id = 'stl';
     this.extensions = ['.stl'];
     this._loader = new STLLoader();
+    this._rotateXNeg90 = options.rotateXNeg90 !== false; // default true
   }
 
   /**
@@ -27,6 +33,13 @@ export class StlModelLoader {
     const buf = await file.arrayBuffer();
     const geom = this._loader.parse(buf);
     const mesh = this._makeMesh(geom);
+    // Axis fix BEFORE Viewer.replaceWithModel(): ensures bbox/shadowReceiver computed correctly.
+    if (this._rotateXNeg90) {
+      try {
+        mesh.rotation.x = -Math.PI / 2;
+        mesh.updateMatrixWorld?.(true);
+      } catch (_) {}
+    }
 
     try {
       logger?.log?.('[StlModelLoader] parsed', {
@@ -54,6 +67,12 @@ export class StlModelLoader {
     logger?.log?.('[StlModelLoader] loadUrl', { url });
     const geom = await this._loader.loadAsync(url);
     const mesh = this._makeMesh(geom);
+    if (this._rotateXNeg90) {
+      try {
+        mesh.rotation.x = -Math.PI / 2;
+        mesh.updateMatrixWorld?.(true);
+      } catch (_) {}
+    }
     return {
       object3D: mesh,
       format: this.id,
