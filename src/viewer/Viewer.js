@@ -249,7 +249,7 @@ export class Viewer {
 
   /**
    * Возвращает "домашнюю" точку вращения для текущей модели:
-   * центр bbox со смещением вниз по Y (как при первичной загрузке).
+   * центр bbox (совпадает с кадрированием при первичной загрузке).
    * @returns {THREE.Vector3|null}
    */
   #getDefaultPivotForActiveModel() {
@@ -258,12 +258,7 @@ export class Viewer {
     try {
       const box = new THREE.Box3().setFromObject(subject);
       const center = box.getCenter(new THREE.Vector3());
-      const size = box.getSize(new THREE.Vector3());
-      const pivot = center.clone();
-      // Держим модель "выше" в кадре, как при replaceWithModel()
-      const verticalBias = size.y * 0.30; // 30% высоты
-      pivot.y = center.y - verticalBias;
-      return pivot;
+      return center.clone();
     } catch (_) {
       return null;
     }
@@ -272,7 +267,7 @@ export class Viewer {
   /**
    * Возвращает целевой pivot для ЛКМ-вращения:
    * - если модель двигали ПКМ, используем фиксированную ось (pivotAnchor)
-   * - иначе используем "домашний" pivot (центр bbox + verticalBias)
+   * - иначе используем "домашний" pivot (центр bbox)
    * @returns {THREE.Vector3|null}
    */
   #getDesiredPivotForRotate() {
@@ -1032,6 +1027,160 @@ export class Viewer {
     }
   }
 
+  /**
+   * Кадрирует объект так, чтобы он гарантированно помещался в "безопасной области" кадра.
+   * Идея безопасной области задаётся сеткой: например 4×4, и объект должен занимать
+   * не больше spanCols×spanRows в центре (по умолчанию 2×2, т.е. ~50% по ширине/высоте).
+   *
+   * - Для Perspective: подбираем дистанцию через bbox и текущий aspect + FOV.
+   * - Для Ortho: подбираем zoom (и при необходимости расширяем orthoHalfHeight), чтобы bbox поместился.
+   *
+   * @param {THREE.Object3D} object3D
+   * @param {Object} [opts]
+   * @param {number} [opts.gridCols=4]
+   * @param {number} [opts.gridRows=4]
+   * @param {number} [opts.spanCols=2]
+   * @param {number} [opts.spanRows=2]
+   * @param {number} [opts.extraPadding=1.05] - доп. запас поверх математического fit (>=1)
+   * @param {number} [opts.perspectiveFov=20] - целевой FOV для perspective
+   * @param {THREE.Vector3} [opts.viewDir] - направление от цели к камере (front-right-top)
+   * @param {boolean} [opts.log=false]
+   * @returns {{center:THREE.Vector3,size:THREE.Vector3,padding:number,mode:string}|null}
+   */
+  frameObjectToViewportGrid(object3D, opts = {}) {
+    if (!object3D || !this.camera || !this.controls) return null;
+
+    const {
+      gridCols = 4,
+      gridRows = 4,
+      spanCols = 2,
+      spanRows = 2,
+      extraPadding = 1.05,
+      perspectiveFov = 20,
+      viewDir = null,
+      log = false,
+    } = opts || {};
+
+    const box = new THREE.Box3().setFromObject(object3D);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+
+    const safeRX = Math.max(1e-6, Math.min(1, Number(spanCols) / Math.max(1, Number(gridCols))));
+    const safeRY = Math.max(1e-6, Math.min(1, Number(spanRows) / Math.max(1, Number(gridRows))));
+    const safeR = Math.max(1e-6, Math.min(safeRX, safeRY));
+    const padding = Math.max(1.0, (1 / safeR) * Math.max(1.0, Number(extraPadding) || 1.0));
+
+    // Направление вида: по умолчанию "front-right-top" в текущей сцене.
+    // Важно: в некоторых IFC/сценах "front/right" может не совпадать со знаками мировых осей,
+    // поэтому вектор легко переопределяется через opts.viewDir.
+    let dir = null;
+    if (viewDir && viewDir.isVector3) dir = viewDir.clone();
+    else dir = new THREE.Vector3(-1, 0.6, 1);
+    const dirLen = dir.length();
+    if (dirLen > 1e-6) dir.multiplyScalar(1 / dirLen);
+    else dir.set(0, 0.2, 1).normalize();
+    const dirN = dir.clone(); // нормализованный (для логов и вычислений без мутаций)
+
+    // Строго по центру bbox
+    this.controls.target.copy(center);
+
+    const aspect = this._getAspect?.() || (this.camera.aspect || 1);
+
+    if (this.camera.isPerspectiveCamera) {
+      const fov = Number.isFinite(Number(perspectiveFov)) ? Number(perspectiveFov) : this.camera.fov;
+      if (Number.isFinite(fov) && fov > 1e-3 && fov < 179) {
+        this.camera.fov = fov;
+        this.camera.updateProjectionMatrix();
+      }
+      try {
+        if (this.camera.aspect !== aspect) {
+          this.camera.aspect = aspect;
+          this.camera.updateProjectionMatrix();
+        }
+      } catch (_) {}
+
+      const dist = this.#computeFitDistanceForSize(size, padding);
+      this.camera.position.copy(center.clone().add(dirN.clone().multiplyScalar(dist)));
+      this.camera.updateProjectionMatrix();
+      this.controls.update();
+
+      if (log) {
+        // eslint-disable-next-line no-console
+        console.log('[Viewer] frameObjectToViewportGrid(persp)', {
+          grid: { gridCols, gridRows, spanCols, spanRows, safeRX, safeRY, padding },
+          bbox: {
+            size: { x: +size.x.toFixed(3), y: +size.y.toFixed(3), z: +size.z.toFixed(3) },
+            center: { x: +center.x.toFixed(3), y: +center.y.toFixed(3), z: +center.z.toFixed(3) },
+          },
+          camera: { fov: this.camera.fov, aspect: this.camera.aspect, dist: +dist.toFixed(3) },
+          viewDir: { x: +dirN.x.toFixed(3), y: +dirN.y.toFixed(3), z: +dirN.z.toFixed(3) },
+        });
+      }
+
+      return { center, size, padding, mode: 'perspective' };
+    }
+
+    if (this.camera.isOrthographicCamera) {
+      const safeSizeX = Math.max(1e-6, size.x);
+      const safeSizeY = Math.max(1e-6, size.y);
+      const fitHeight = Math.max(safeSizeY, safeSizeX / Math.max(1e-6, aspect));
+      const neededHalfVisible = (fitHeight * padding) / 2;
+
+      let halfH = this._projection?.orthoHalfHeight || Math.abs(this.camera.top) || 10;
+      halfH = Math.max(0.01, halfH);
+
+      const minZoom = this.controls?.minZoom ?? this._projection?.minZoom ?? 0.25;
+      const maxZoom = this.controls?.maxZoom ?? this._projection?.maxZoom ?? 8;
+
+      let zoomFit = halfH / Math.max(1e-6, neededHalfVisible);
+
+      if (zoomFit < minZoom) {
+        halfH = Math.max(halfH, neededHalfVisible * minZoom);
+        try { this._projection.orthoHalfHeight = halfH; } catch (_) {}
+        try {
+          this.camera.left = -halfH * aspect;
+          this.camera.right = halfH * aspect;
+          this.camera.top = halfH;
+          this.camera.bottom = -halfH;
+        } catch (_) {}
+        zoomFit = halfH / Math.max(1e-6, neededHalfVisible);
+      }
+
+      const zoom = Math.min(maxZoom, zoomFit);
+      this.camera.zoom = Math.max(1e-6, zoom);
+
+      const dist = Math.max(1.0, size.length());
+      this.camera.position.copy(center.clone().add(dirN.clone().multiplyScalar(dist)));
+
+      this.camera.updateProjectionMatrix();
+      this.controls.update();
+
+      if (log) {
+        // eslint-disable-next-line no-console
+        console.log('[Viewer] frameObjectToViewportGrid(ortho)', {
+          grid: { gridCols, gridRows, spanCols, spanRows, safeRX, safeRY, padding },
+          bbox: {
+            size: { x: +size.x.toFixed(3), y: +size.y.toFixed(3), z: +size.z.toFixed(3) },
+            center: { x: +center.x.toFixed(3), y: +center.y.toFixed(3), z: +center.z.toFixed(3) },
+          },
+          ortho: {
+            aspect: +aspect.toFixed(3),
+            halfH: +halfH.toFixed(3),
+            neededHalfVisible: +neededHalfVisible.toFixed(3),
+            zoom: +this.camera.zoom.toFixed(3),
+            minZoom,
+            maxZoom,
+          },
+          viewDir: { x: +dirN.x.toFixed(3), y: +dirN.y.toFixed(3), z: +dirN.z.toFixed(3) },
+        });
+      }
+
+      return { center, size, padding, mode: 'ortho' };
+    }
+
+    return { center, size, padding, mode: 'unknown' };
+  }
+
   // Вычисляет дистанцию до объекта, при которой он полностью помещается в кадр
   #computeFitDistanceForSize(size, padding = 1.2) {
     // Защита от нулевых размеров
@@ -1246,44 +1395,42 @@ export class Viewer {
     // Синхронизируем "сечение → shadow-pass" для материалов после назначения пресета
     this.#applyClipShadowsToModelMaterials();
 
-    // Настроим пределы зума и сфокусируемся на новой модели
-    this.applyAdaptiveZoomLimits(object3D, { padding: 1.2, slack: 2.5, minRatio: 0.05, recenter: true });
+    // Настроим пределы зума под габариты модели (кадрирование делаем отдельно ниже, на следующем кадре).
+    // Здесь важно в первую очередь "оздоровить" near/far под размер модели.
+    this.applyAdaptiveZoomLimits(object3D, { padding: 2.1, slack: 2.5, minRatio: 0.05, recenter: false });
 
     // Если "Тест" активен, сразу применим его к только что загруженной модели (самозатенение + shadow camera по bbox)
     if (this._testPreset?.enabled) {
       try { this.#applyTestPresetToScene(); } catch (_) {}
     }
 
-    // На следующем кадре отъедем на 2x от вписанной дистанции (точно по размеру модели)
+    // На следующем кадре выставим кадрирование "в безопасной зоне" (2×2 из 4×4) и ракурс front-right-top.
     try {
-      const box = new THREE.Box3().setFromObject(object3D);
-      const center = box.getCenter(new THREE.Vector3());
       requestAnimationFrame(() => {
         if (!this.camera || !this.controls) return;
-        // Центрируем точку взгляда на центр модели и ставим камеру в заданные координаты
-        this.controls.target.copy(center);
-        this.camera.position.set(-22.03, 3.17, 39.12);
-        // Убедимся, что FOV соответствует целевому искаженению (и сохраним кадрирование)
-        this.setPerspectiveFov(20, { keepFraming: true, log: true });
+        // Логирование включается через ?frameDebug=1
+        let log = false;
         try {
-          // Если камера слишком близко, отъедем до вписанной дистанции, сохранив направление
-          const size = box.getSize(new THREE.Vector3());
-          const fitDistExact = this.#computeFitDistanceForSize(size, 1.2);
-          const dirVec = this.camera.position.clone().sub(center);
-          const dist = dirVec.length();
-          if (dist < fitDistExact && dist > 1e-6) {
-            const dirNorm = dirVec.multiplyScalar(1 / dist);
-            this.camera.position.copy(center.clone().add(dirNorm.multiplyScalar(fitDistExact)));
-          }
-          // Поднимем модель в кадре: сместим точку прицеливания немного вниз по Y
-          const verticalBias = size.y * 0.30; // 30% высоты
-          this.controls.target.y = center.y - verticalBias;
-        } catch(_) {}
-        // После ручной перестановки камеры ещё раз "оздоровим" near/far под модель,
-        // чтобы не ловить z-fighting на фасадных накладках.
-        try { this.applyAdaptiveZoomLimits(object3D, { padding: 1.2, slack: 2.5, minRatio: 0.05, recenter: false }); } catch (_) {}
-        this.camera.updateProjectionMatrix();
-        this.controls.update();
+          const params = new URLSearchParams(window.location.search);
+          log = params.get('frameDebug') === '1';
+        } catch (_) {}
+
+        // Кадрируем строго по центру bbox и с запасом (2×2 из 4×4 => padding≈2.0, +extraPadding)
+        try {
+          this.frameObjectToViewportGrid?.(object3D, {
+            gridCols: 4,
+            gridRows: 4,
+            spanCols: 2,
+            spanRows: 2,
+            extraPadding: 1.05,
+            perspectiveFov: 20,
+            viewDir: new THREE.Vector3(-1, 0.6, 1), // front-right-top
+            log,
+          });
+        } catch (_) {}
+
+        // После выставления камеры — ещё раз подстроим near/far и лимиты зума под новый кадр.
+        try { this.applyAdaptiveZoomLimits(object3D, { padding: 2.1, slack: 2.5, minRatio: 0.05, recenter: false }); } catch (_) {}
 
         // Снимем актуальный «домашний» вид после всех корректировок
         this._home.cameraPos = this.camera.position.clone();

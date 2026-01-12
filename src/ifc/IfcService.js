@@ -289,7 +289,6 @@ export class IfcService {
         const model = await this._loadModelWithFallback(url);
         // Показать модель вместо демо-куба
         if (this.viewer.replaceWithModel) this.viewer.replaceWithModel(model);
-        if (this.viewer.focusObject) this.viewer.focusObject(model);
         this.lastModel = model;
         this.lastFileName = file?.name || null;
         // Сообщим, что модель загружена
@@ -318,7 +317,6 @@ export class IfcService {
       if (!model || !model.geometry) throw new Error('IFC model returned without geometry');
       
       if (this.viewer.replaceWithModel) this.viewer.replaceWithModel(model);
-      if (this.viewer.focusObject) this.viewer.focusObject(model);
       this.lastModel = model;
       
       try {
