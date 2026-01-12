@@ -162,6 +162,8 @@ export class Viewer {
     this._home = {
       cameraPos: null,
       target: new THREE.Vector3(0, 0, 0),
+      // FOV для перспективы (часть "масштаба" кадра)
+      perspFov: null,
       edgesVisible: false,
       flatShading: true,
       quality: 'medium',
@@ -660,7 +662,8 @@ export class Viewer {
       sizePx: 96,
       marginPx: 10,
       opacity: 0.6,
-      onHome: () => this.goHome(),
+      // Home-кнопка NavCube: возвращаем ТОЛЬКО камеру (не трогаем инструменты/сечения/стили)
+      onHome: () => this.goHomeViewOnly(),
     });
 
     // Визуальная ось вращения: события мыши и контролов
@@ -735,6 +738,7 @@ export class Viewer {
     // Сохраним Home-снапшот после инициализации
     this._home.cameraPos = this.camera.position.clone();
     this._home.target = this.controls.target.clone();
+    this._home.perspFov = (this.camera && this.camera.isPerspectiveCamera) ? this.camera.fov : (this._projection?.persp?.fov ?? 20);
     this._home.edgesVisible = this.edgesVisible;
     this._home.flatShading = this.flatShading;
     this._home.quality = this.quality;
@@ -1435,6 +1439,7 @@ export class Viewer {
         // Снимем актуальный «домашний» вид после всех корректировок
         this._home.cameraPos = this.camera.position.clone();
         this._home.target = this.controls.target.clone();
+        this._home.perspFov = (this.camera && this.camera.isPerspectiveCamera) ? this.camera.fov : (this._projection?.persp?.fov ?? this._home.perspFov ?? 20);
         this._home.edgesVisible = this.edgesVisible;
         this._home.flatShading = this.flatShading;
         this._home.quality = this.quality;
@@ -3583,6 +3588,88 @@ export class Viewer {
     });
     this.camera.updateProjectionMatrix();
     this.controls.update();
+  }
+
+  /**
+   * Home (view only): возвращает ТОЛЬКО ракурс и масштаб (камера/target/zoom),
+   * не сбрасывая активные инструменты (сечения/рёбра/тени/проекция/качество и т.п.).
+   */
+  goHomeViewOnly() {
+    if (!this.camera || !this.controls) return;
+
+    // Сброс MMB-pan (viewOffset) — это часть "положения на экране"
+    try { this._mmbPan?.controller?.reset?.(); } catch (_) {}
+
+    const homeTarget = this._home?.target;
+    const homePos = this._home?.cameraPos;
+    if (!homeTarget || !homePos) return;
+
+    // Прицел
+    try { this.controls.target.copy(homeTarget); } catch (_) {}
+
+    // Восстановление масштаба:
+    // - perspective: FOV + position
+    // - ortho: zoom (подбираем так, чтобы видимый halfHeight соответствовал "домашнему" перспективному кадру)
+    const homeFov = (this._home?.perspFov ?? this._projection?.persp?.fov ?? 20);
+
+    if (this.camera.isPerspectiveCamera) {
+      if (Number.isFinite(homeFov) && homeFov > 1e-3 && homeFov < 179) {
+        this.camera.fov = homeFov;
+      }
+      this.camera.position.copy(homePos);
+      this.camera.updateProjectionMatrix();
+      this.controls.update();
+      return;
+    }
+
+    if (this.camera.isOrthographicCamera) {
+      // Ориентация/направление — как в домашнем виде (через homePos относительно target)
+      const dirVec = homePos.clone().sub(homeTarget);
+      let dist = dirVec.length();
+      if (!(dist > 1e-6)) dist = 1.0;
+      const dirN = dirVec.multiplyScalar(1 / dist);
+
+      // Ставим камеру на ту же дистанцию/направление — для Ortho это влияет на "ракурс", но не на масштаб
+      this.camera.position.copy(homeTarget.clone().add(dirN.clone().multiplyScalar(dist)));
+
+      // Хотим, чтобы видимый halfHeight совпадал с тем, что был бы в перспективе:
+      // halfVisible = dist * tan(fov/2)
+      const vFov = (Number(homeFov) * Math.PI) / 180;
+      const halfVisible = Math.max(0.01, dist * Math.tan(vFov / 2));
+
+      const aspect = this._getAspect?.() || (this.camera.aspect || 1);
+      let halfH = this._projection?.orthoHalfHeight || Math.abs(this.camera.top) || 10;
+      halfH = Math.max(0.01, halfH);
+
+      const minZoom = this.controls?.minZoom ?? this._projection?.minZoom ?? 0.25;
+      const maxZoom = this.controls?.maxZoom ?? this._projection?.maxZoom ?? 8;
+
+      let zoomFit = halfH / Math.max(1e-6, halfVisible);
+      if (zoomFit < minZoom) {
+        // Расширим фрустум так, чтобы при minZoom кадр влезал
+        halfH = Math.max(halfH, halfVisible * minZoom);
+        try { this._projection.orthoHalfHeight = halfH; } catch (_) {}
+        try {
+          this.camera.left = -halfH * aspect;
+          this.camera.right = halfH * aspect;
+          this.camera.top = halfH;
+          this.camera.bottom = -halfH;
+        } catch (_) {}
+        zoomFit = halfH / Math.max(1e-6, halfVisible);
+      }
+
+      const zoom = Math.min(maxZoom, zoomFit);
+      this.camera.zoom = Math.max(1e-6, zoom);
+
+      this.camera.updateProjectionMatrix();
+      this.controls.update();
+      return;
+    }
+
+    // На неизвестной камере просто восстановим позицию
+    try { this.camera.position.copy(homePos); } catch (_) {}
+    try { this.camera.updateProjectionMatrix(); } catch (_) {}
+    try { this.controls.update(); } catch (_) {}
   }
 
   // ================= Вспомогательное: ось вращения =================
