@@ -18,3 +18,4 @@ export { ModelLoaderRegistry } from "./model-loading/ModelLoaderRegistry.js";
 export { IfcModelLoader } from "./model-loading/loaders/IfcModelLoader.js";
 export { FbxModelLoader } from "./model-loading/loaders/FbxModelLoader.js";
 export { GltfModelLoader } from "./model-loading/loaders/GltfModelLoader.js";
+export { ObjModelLoader } from "./model-loading/loaders/ObjModelLoader.js";

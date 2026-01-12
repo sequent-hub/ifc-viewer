@@ -6,6 +6,7 @@ import { ModelLoaderRegistry } from "./model-loading/ModelLoaderRegistry.js";
 import { IfcModelLoader } from "./model-loading/loaders/IfcModelLoader.js";
 import { FbxModelLoader } from "./model-loading/loaders/FbxModelLoader.js";
 import { GltfModelLoader } from "./model-loading/loaders/GltfModelLoader.js";
+import { ObjModelLoader } from "./model-loading/loaders/ObjModelLoader.js";
 
 // Инициализация three.js Viewer в контейнере #app
 const app = document.getElementById("app");
@@ -346,19 +347,24 @@ if (app) {
   const modelLoaders = new ModelLoaderRegistry()
     .register(new IfcModelLoader(ifc))
     .register(new FbxModelLoader())
-    .register(new GltfModelLoader());
+    .register(new GltfModelLoader())
+    .register(new ObjModelLoader());
 
   const uploadBtn = document.getElementById("uploadBtn");
   const ifcInput = document.getElementById("ifcInput");
   if (uploadBtn && ifcInput) {
     try { ifcInput.accept = modelLoaders.getAcceptString(); } catch (_) {}
+    try { ifcInput.multiple = true; } catch (_) {}
     uploadBtn.addEventListener("click", () => ifcInput.click());
     ifcInput.addEventListener("change", async (e) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
+      const files = Array.from(e.target.files || []).filter(Boolean);
+      if (!files.length) return;
       let result = null;
       try {
-        result = await modelLoaders.loadFile(file, { viewer, wasmUrl: wasmOverride, logger: console });
+        // Multi-file: e.g. OBJ+MTL (+textures)
+        result = (files.length > 1)
+          ? await modelLoaders.loadFiles(files, { viewer, wasmUrl: wasmOverride, logger: console })
+          : await modelLoaders.loadFile(files[0], { viewer, wasmUrl: wasmOverride, logger: console });
         activeCapabilities = result?.capabilities || null;
       } catch (err) {
         console.error('Model load error', err);
@@ -388,7 +394,7 @@ if (app) {
         // Не-IFC: очищаем дерево, показываем базовую инфу
         if (ifcTree) ifcTree.render(null);
         if (ifcInfoEl) {
-          const name = result?.name || file?.name || '—';
+          const name = result?.name || files[0]?.name || '—';
           const format = result?.format || '—';
           ifcInfoEl.innerHTML = `
             <div class="flex items-center justify-between">

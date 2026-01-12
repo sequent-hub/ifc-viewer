@@ -17,6 +17,7 @@ import { ModelLoaderRegistry } from "./model-loading/ModelLoaderRegistry.js";
 import { IfcModelLoader } from "./model-loading/loaders/IfcModelLoader.js";
 import { FbxModelLoader } from "./model-loading/loaders/FbxModelLoader.js";
 import { GltfModelLoader } from "./model-loading/loaders/GltfModelLoader.js";
+import { ObjModelLoader } from "./model-loading/loaders/ObjModelLoader.js";
 import './style.css';
 
 
@@ -199,6 +200,19 @@ export class IfcViewer {
           wasmUrl: this.options.wasmUrl,
           logger: console,
         });
+      } else if (Array.isArray(loadSource) || (typeof FileList !== 'undefined' && loadSource instanceof FileList)) {
+        const files = Array.from(loadSource).filter(Boolean);
+        result = (files.length > 1)
+          ? await this.modelLoaders.loadFiles(files, {
+            viewer: this.viewer,
+            wasmUrl: this.options.wasmUrl,
+            logger: console,
+          })
+          : await this.modelLoaders.loadFile(files[0], {
+            viewer: this.viewer,
+            wasmUrl: this.options.wasmUrl,
+            logger: console,
+          });
       } else if (loadSource instanceof File) {
         result = await this.modelLoaders.loadFile(loadSource, {
           viewer: this.viewer,
@@ -504,12 +518,16 @@ export class IfcViewer {
     this.modelLoaders = new ModelLoaderRegistry()
       .register(new IfcModelLoader(this.ifcService))
       .register(new FbxModelLoader())
-      .register(new GltfModelLoader());
+      .register(new GltfModelLoader())
+      .register(new ObjModelLoader());
 
     // Если в интерфейсе есть file input — настроим accept
     try {
       const input = this.containerElement.querySelector('#ifcFileInput');
-      if (input) input.accept = this.modelLoaders.getAcceptString();
+      if (input) {
+        input.accept = this.modelLoaders.getAcceptString();
+        input.multiple = true;
+      }
     } catch (_) {}
   }
 
@@ -553,9 +571,9 @@ export class IfcViewer {
     });
 
     this._addEventListener('#ifcFileInput', 'change', async (e) => {
-      const file = e.target.files?.[0];
-      if (file) {
-        await this.loadModel(file);
+      const files = e.target.files;
+      if (files && files.length) {
+        await this.loadModel(files); // FileList (multi-file supported)
         e.target.value = ''; // Очистка input
       }
     });

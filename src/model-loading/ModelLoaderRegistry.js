@@ -9,7 +9,9 @@
  * Loader contract (duck-typing, documented via JSDoc):
  * - loader.id: string (e.g. "ifc", "fbx")
  * - loader.extensions: string[] (lowercase, with leading dot, e.g. [".ifc",".ifczip"])
+ * - loader.associatedExtensions?: string[] (optional; affects accept= only, not loader selection)
  * - loader.loadFile(file, ctx): Promise<LoadResult>
+ * - loader.loadFiles?(files, ctx): Promise<LoadResult> (optional, for multi-file cases like OBJ+MTL)
  * - loader.loadUrl(url, ctx): Promise<LoadResult>
  *
  * LoadResult:
@@ -53,6 +55,7 @@ export class ModelLoaderRegistry {
     const out = new Set();
     for (const l of this._loaders) {
       for (const ext of (l.extensions || [])) out.add(String(ext).toLowerCase());
+      for (const ext of (l.associatedExtensions || [])) out.add(String(ext).toLowerCase());
     }
     return Array.from(out).sort();
   }
@@ -115,6 +118,67 @@ export class ModelLoaderRegistry {
       return result;
     } catch (e) {
       logger?.error?.('[ModelLoaderRegistry] loadFile error', { name, loader: loader.id, error: e });
+      throw e;
+    }
+  }
+
+  /**
+   * Loads a model from multiple selected files (e.g. .obj + .mtl + textures).
+   *
+   * Rules:
+   * - Choose ONE "primary" model file among the selection by best extension match.
+   * - Pass all selected files to loader via ctx.files.
+   * - If the chosen loader supports loadFiles(), it will be used; otherwise falls back to loadFile(primary).
+   *
+   * @param {File[]|FileList} files
+   * @param {{ viewer?: any, logger?: any }} [ctx]
+   */
+  async loadFiles(files, ctx = {}) {
+    const arr = Array.from(files || []).filter(Boolean);
+    const logger = ctx?.logger || console;
+    if (!arr.length) throw new Error('Нет выбранных файлов');
+
+    // Find best primary file among selection
+    let best = null;
+    let bestLoader = null;
+    let bestLen = -1;
+
+    for (const f of arr) {
+      const name = f?.name || '';
+      const l = this.getLoaderForName(name);
+      if (!l) continue;
+      // score: longest extension match
+      const lower = name.toLowerCase();
+      for (const ext of (l.extensions || [])) {
+        const e = String(ext).toLowerCase();
+        if (e && lower.endsWith(e) && e.length > bestLen) {
+          best = f;
+          bestLoader = l;
+          bestLen = e.length;
+        }
+      }
+    }
+
+    if (!best || !bestLoader) {
+      throw new Error(`Формат не поддерживается: ${arr.map((f) => f?.name).filter(Boolean).join(', ')}`);
+    }
+
+    const t0 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    const names = arr.map((f) => f?.name).filter(Boolean);
+
+    try {
+      logger?.log?.('[ModelLoaderRegistry] loadFiles', { primary: best.name, loader: bestLoader.id, files: names });
+      const nextCtx = { ...ctx, files: arr };
+      const result = (typeof bestLoader.loadFiles === 'function')
+        ? await bestLoader.loadFiles(arr, nextCtx)
+        : await bestLoader.loadFile(best, nextCtx);
+
+      this._validateResult(result, bestLoader.id);
+      this._maybeReplaceInViewer(result, ctx);
+      this._logResultSummary(result, t0, logger);
+      return result;
+    } catch (e) {
+      logger?.error?.('[ModelLoaderRegistry] loadFiles error', { primary: best.name, loader: bestLoader.id, files: names, error: e });
       throw e;
     }
   }
