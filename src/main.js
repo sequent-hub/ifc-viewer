@@ -396,11 +396,16 @@ if (app) {
         if (ifcInfoEl) {
           const name = result?.name || files[0]?.name || '—';
           const format = result?.format || '—';
+          const missing = Array.isArray(result?.capabilities?.missingAssets) ? result.capabilities.missingAssets : [];
+          const missingHtml = missing.length
+            ? `<div class="mt-1 opacity-70">missing: ${missing.slice(0, 10).map((x) => String(x)).join(', ')}${missing.length > 10 ? '…' : ''}</div>`
+            : '';
           ifcInfoEl.innerHTML = `
             <div class="flex items-center justify-between">
               <div>
                 <div class="font-medium text-xs">${name}</div>
                 <div class="opacity-70">format: ${format}</div>
+                ${missingHtml}
               </div>
             </div>`;
         }

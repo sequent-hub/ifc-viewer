@@ -700,11 +700,16 @@ export class IfcViewer {
 
     const name = this.currentLoadResult?.name || '—';
     const format = this.currentLoadResult?.format || '—';
+    const missing = Array.isArray(this.currentLoadResult?.capabilities?.missingAssets) ? this.currentLoadResult.capabilities.missingAssets : [];
+    const missingHtml = missing.length
+      ? `<div class="opacity-70 mt-1">missing: ${missing.slice(0, 10).map((x) => String(x)).join(', ')}${missing.length > 10 ? '…' : ''}</div>`
+      : '';
     infoElement.innerHTML = `
       <div class="flex items-center justify-between">
         <div>
           <div class="font-medium text-xs">${name}</div>
           <div class="opacity-70">format: ${format}</div>
+          ${missingHtml}
         </div>
       </div>
     `;
