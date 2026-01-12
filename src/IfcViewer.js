@@ -20,6 +20,7 @@ import { GltfModelLoader } from "./model-loading/loaders/GltfModelLoader.js";
 import { ObjModelLoader } from "./model-loading/loaders/ObjModelLoader.js";
 import { TdsModelLoader } from "./model-loading/loaders/TdsModelLoader.js";
 import { StlModelLoader } from "./model-loading/loaders/StlModelLoader.js";
+import { DaeModelLoader } from "./model-loading/loaders/DaeModelLoader.js";
 import './style.css';
 
 
@@ -523,7 +524,8 @@ export class IfcViewer {
       .register(new GltfModelLoader())
       .register(new ObjModelLoader())
       .register(new TdsModelLoader())
-      .register(new StlModelLoader());
+      .register(new StlModelLoader())
+      .register(new DaeModelLoader());
 
     // Если в интерфейсе есть file input — настроим accept
     try {
