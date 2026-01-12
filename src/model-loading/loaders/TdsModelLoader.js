@@ -10,11 +10,17 @@ import { TDSLoader } from "three/examples/jsm/loaders/TDSLoader.js";
  *   - .3ds + textures -> resolve textures by basename via LoadingManager URL modifier
  */
 export class TdsModelLoader {
-  constructor() {
+  /**
+   * @param {{ rotateXNeg90?: boolean }} [options]
+   * rotateXNeg90:
+   * - Many 3DS assets are effectively Z-up; this rotates them into Y-up (viewer default).
+   */
+  constructor(options = {}) {
     this.id = '3ds';
     this.extensions = ['.3ds'];
     // For file picker convenience (accept=): allow selecting common texture formats.
     this.associatedExtensions = ['.png', '.jpg', '.jpeg', '.webp', '.bmp', '.gif', '.tga'];
+    this._rotateXNeg90 = options.rotateXNeg90 !== false; // default true
   }
 
   async loadFile(file, ctx) {
@@ -93,6 +99,14 @@ export class TdsModelLoader {
 
       // parse() accepts ArrayBuffer
       const obj = loader.parse(buf, '');
+
+      // Axis fix BEFORE Viewer.replaceWithModel(): ensures bbox/shadowReceiver computed correctly.
+      if (this._rotateXNeg90) {
+        try {
+          obj.rotation.x = -Math.PI / 2;
+          obj.updateMatrixWorld?.(true);
+        } catch (_) {}
+      }
 
       // Wait for async texture loads (if any) before revoking blob URLs.
       await this._waitManagerIdle(manager, 2500);
