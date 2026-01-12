@@ -1,4 +1,6 @@
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { KTX2Loader } from "three/examples/jsm/loaders/KTX2Loader.js";
+import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 
 /**
  * glTF / GLB loader.
@@ -10,10 +12,21 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
  *   external resources will likely be missing. We log a warning in that case.
  */
 export class GltfModelLoader {
-  constructor() {
+  /**
+   * @param {{ basisTranscoderPath?: string, basisTranscoderCdnPath?: string }} [options]
+   */
+  constructor(options = {}) {
     this.id = 'gltf';
     this.extensions = ['.gltf', '.glb'];
+    this._options = {
+      // 1) Try local (consumer can host these files), 2) fallback to CDN.
+      basisTranscoderPath: options.basisTranscoderPath || '/three/basis/',
+      basisTranscoderCdnPath: options.basisTranscoderCdnPath || 'https://unpkg.com/three@0.149.0/examples/jsm/libs/basis/',
+    };
+    /** @type {KTX2Loader|null} */
+    this._ktx2 = null;
     this._loader = new GLTFLoader();
+    try { this._loader.setMeshoptDecoder?.(MeshoptDecoder); } catch (_) {}
   }
 
   /**
@@ -30,7 +43,10 @@ export class GltfModelLoader {
     // GLB: parse ArrayBuffer
     if (lower.endsWith('.glb')) {
       const buf = await file.arrayBuffer();
+      const preJson = this._tryReadJsonFromGlb(buf, logger);
+      await this._autoConfigureDecoders(preJson, ctx, logger);
       const gltf = await this._parse(buf, '');
+      this._logExtensions(gltf, logger);
       await this._applyPbrSpecGlossCompat(gltf, logger);
       this._logSummary(gltf, logger, name);
       return {
@@ -46,7 +62,11 @@ export class GltfModelLoader {
     if (lower.endsWith('.gltf')) {
       logger?.warn?.('[GltfModelLoader] .gltf selected from disk: external .bin/textures may be missing (consider loading via URL from /public/).');
       const text = await file.text();
+      let preJson = null;
+      try { preJson = JSON.parse(text); } catch (_) { preJson = null; }
+      await this._autoConfigureDecoders(preJson, ctx, logger);
       const gltf = await this._parse(text, '');
+      this._logExtensions(gltf, logger);
       await this._applyPbrSpecGlossCompat(gltf, logger);
       this._logSummary(gltf, logger, name);
       return {
@@ -68,7 +88,11 @@ export class GltfModelLoader {
   async loadUrl(url, ctx) {
     const logger = ctx?.logger || console;
     logger?.log?.('[GltfModelLoader] loadUrl', { url });
+    // For URL we usually can't cheaply pre-read JSON without double fetching.
+    // Configure decoders "optimistically" (KTX2/Meshopt) so needed extensions work.
+    await this._autoConfigureDecoders(null, ctx, logger);
     const gltf = await this._loader.loadAsync(url);
+    this._logExtensions(gltf, logger);
     await this._applyPbrSpecGlossCompat(gltf, logger);
     this._logSummary(gltf, logger, String(url || ''));
     return {
@@ -103,6 +127,103 @@ export class GltfModelLoader {
         animations: Array.isArray(gltf?.animations) ? gltf.animations.length : 0,
       });
     } catch (_) {}
+  }
+
+  _logExtensions(gltf, logger) {
+    try {
+      const json = gltf?.parser?.json;
+      if (!json) return;
+      const used = Array.isArray(json.extensionsUsed) ? json.extensionsUsed.slice().sort() : [];
+      const required = Array.isArray(json.extensionsRequired) ? json.extensionsRequired.slice().sort() : [];
+      if (!used.length && !required.length) return;
+      logger?.log?.('[GltfModelLoader] glTF extensions', { used, required });
+    } catch (_) {}
+  }
+
+  _tryReadJsonFromGlb(arrayBuffer, logger) {
+    try {
+      const u8 = new Uint8Array(arrayBuffer);
+      const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+      if (dv.byteLength < 20) return null;
+      // magic 'glTF' = 0x46546C67 (little-endian in file)
+      const magic = dv.getUint32(0, true);
+      if (magic !== 0x46546c67) return null;
+      const version = dv.getUint32(4, true);
+      if (version < 2) return null;
+      const totalLength = dv.getUint32(8, true);
+      if (!Number.isFinite(totalLength) || totalLength <= 0) return null;
+
+      let offset = 12;
+      while (offset + 8 <= dv.byteLength) {
+        const chunkLength = dv.getUint32(offset, true);
+        const chunkType = dv.getUint32(offset + 4, true);
+        offset += 8;
+        if (offset + chunkLength > dv.byteLength) break;
+        // JSON chunk type 'JSON' = 0x4E4F534A
+        if (chunkType === 0x4E4F534A) {
+          const bytes = u8.subarray(offset, offset + chunkLength);
+          const text = new TextDecoder().decode(bytes);
+          return JSON.parse(text);
+        }
+        offset += chunkLength;
+      }
+      return null;
+    } catch (e) {
+      logger?.warn?.('[GltfModelLoader] failed to pre-read GLB JSON chunk', e);
+      return null;
+    }
+  }
+
+  async _autoConfigureDecoders(preJson, ctx, logger) {
+    // Meshopt is already set in constructor (best-effort).
+    // KTX2/BasisU: enable if we can, because users may load glb with KHR_texture_basisu.
+    const used = Array.isArray(preJson?.extensionsUsed) ? preJson.extensionsUsed : null;
+    const required = Array.isArray(preJson?.extensionsRequired) ? preJson.extensionsRequired : null;
+    const needsBasisu =
+      (used ? used.includes('KHR_texture_basisu') : true) ||
+      (required ? required.includes('KHR_texture_basisu') : false);
+    if (!needsBasisu) return;
+
+    const renderer = ctx?.viewer?.renderer || ctx?.renderer || null;
+    if (!renderer) {
+      // We can still set loader, but detectSupport needs renderer. Keep it lazy.
+      logger?.warn?.('[GltfModelLoader] KTX2Loader not fully initialized (no renderer in ctx). BasisU textures may be unavailable.');
+      return;
+    }
+
+    if (!this._ktx2) this._ktx2 = new KTX2Loader();
+
+    // Try local path first; if missing — fallback to CDN.
+    const localPath = this._options.basisTranscoderPath;
+    const cdnPath = this._options.basisTranscoderCdnPath;
+
+    const hasLocal = await this._checkTranscoderAvailable(localPath);
+    const basePath = hasLocal ? localPath : cdnPath;
+    if (!hasLocal) {
+      logger?.warn?.('[GltfModelLoader] Basis transcoder not found at local path, using CDN fallback', { localPath, cdnPath });
+    }
+
+    try {
+      this._ktx2.setTranscoderPath(basePath);
+      await this._ktx2.detectSupport(renderer);
+      this._loader.setKTX2Loader?.(this._ktx2);
+      logger?.log?.('[GltfModelLoader] KTX2Loader enabled', { transcoderPath: basePath });
+    } catch (e) {
+      logger?.warn?.('[GltfModelLoader] KTX2Loader init failed; BasisU textures may be unavailable', e);
+    }
+  }
+
+  async _checkTranscoderAvailable(basePath) {
+    try {
+      if (typeof fetch !== 'function') return false;
+      const p = String(basePath || '');
+      if (!p) return false;
+      const url = (p.endsWith('/') ? p : (p + '/')) + 'basis_transcoder.wasm';
+      const res = await fetch(url, { method: 'HEAD' });
+      return !!res && res.ok;
+    } catch (_) {
+      return false;
+    }
   }
 
   /**
