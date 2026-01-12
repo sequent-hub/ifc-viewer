@@ -13,6 +13,9 @@
 import { Viewer } from "./viewer/Viewer.js";
 import { IfcService } from "./ifc/IfcService.js";
 import { IfcTreeView } from "./ifc/IfcTreeView.js";
+import { ModelLoaderRegistry } from "./model-loading/ModelLoaderRegistry.js";
+import { IfcModelLoader } from "./model-loading/loaders/IfcModelLoader.js";
+import { FbxModelLoader } from "./model-loading/loaders/FbxModelLoader.js";
 import './style.css';
 
 
@@ -23,6 +26,8 @@ export class IfcViewer {
    * @param {HTMLElement|string} options.container - Контейнер для рендера (элемент или селектор)
    * @param {string} [options.ifcUrl] - URL для загрузки IFC файла
    * @param {File} [options.ifcFile] - File объект для загрузки IFC файла
+   * @param {string} [options.modelUrl] - URL для загрузки модели (любой поддерживаемый формат)
+   * @param {File} [options.modelFile] - File объект модели (любой поддерживаемый формат)
    * @param {string} [options.wasmUrl] - URL для загрузки WASM файла web-ifc
    * @param {boolean} [options.useTestPreset=true] - Включать ли пресет "Тест" по умолчанию (рекомендованные тени/визуал)
    * @param {boolean} [options.showSidebar=false] - Показывать ли боковую панель с деревом
@@ -51,6 +56,9 @@ export class IfcViewer {
     this.options = {
       ifcUrl: options.ifcUrl || null,
       ifcFile: options.ifcFile || null,
+      // Универсальные поля для будущих форматов (не ломают обратную совместимость)
+      modelUrl: options.modelUrl || null,
+      modelFile: options.modelFile || null,
       wasmUrl: options.wasmUrl || null,
       // По умолчанию включаем пресет "Тест" для корректного вида теней (как в демо-настройках)
       useTestPreset: options.useTestPreset !== false,
@@ -66,8 +74,12 @@ export class IfcViewer {
     this.viewer = null;
     this.ifcService = null;
     this.ifcTreeView = null;
+    /** @type {ModelLoaderRegistry|null} */
+    this.modelLoaders = null;
     this.isInitialized = false;
     this.currentModel = null;
+    this.currentLoadResult = null;
+    this.currentCapabilities = null;
 
     // DOM элементы интерфейса
     this.elements = {
@@ -115,6 +127,7 @@ export class IfcViewer {
       // Инициализируем компоненты
       this._initViewer();
       this._initIfcService();
+      this._initModelLoaders();
       this._initTreeView();
 
       // Применяем дефолтный пресет пакета (полностью независим от index.html)
@@ -157,16 +170,22 @@ export class IfcViewer {
    * @returns {Promise<Object|null>} - Загруженная модель или null при ошибке
    */
   async loadModel(source) {
-    if (!this.ifcService) {
+    if (!this.viewer) {
       throw new Error('IfcViewer: не инициализирован. Вызовите init() сначала');
     }
+    if (!this.modelLoaders) this._initModelLoaders();
 
     try {
-      let model = null;
-      const loadSource = source || this.options.ifcUrl || this.options.ifcFile;
+      let result = null;
+      const loadSource =
+        source ||
+        this.options.modelUrl ||
+        this.options.modelFile ||
+        this.options.ifcUrl ||
+        this.options.ifcFile;
       
       if (!loadSource) {
-        throw new Error('Не указан источник IFC модели');
+        throw new Error('Не указан источник модели');
       }
 
       // Показываем прелоадер если есть
@@ -174,18 +193,29 @@ export class IfcViewer {
 
       // Загружаем модель в зависимости от типа источника
       if (typeof loadSource === 'string') {
-        model = await this.ifcService.loadUrl(loadSource);
+        result = await this.modelLoaders.loadUrl(loadSource, {
+          viewer: this.viewer,
+          wasmUrl: this.options.wasmUrl,
+          logger: console,
+        });
       } else if (loadSource instanceof File) {
-        model = await this.ifcService.loadFile(loadSource);
+        result = await this.modelLoaders.loadFile(loadSource, {
+          viewer: this.viewer,
+          wasmUrl: this.options.wasmUrl,
+          logger: console,
+        });
       } else {
         throw new Error('Неподдерживаемый тип источника модели');
       }
 
-      if (model) {
-        this.currentModel = model;
+      if (result?.object3D) {
+        this.currentLoadResult = result;
+        this.currentCapabilities = result.capabilities || null;
+        this.currentModel = result.object3D;
+        this._syncIfcOnlyControls();
         
         // Обновляем дерево структуры
-        await this._updateTreeView(model);
+        await this._updateTreeView(result.object3D);
         
         // Обновляем информационную панель
         this._updateInfoPanel();
@@ -196,11 +226,11 @@ export class IfcViewer {
         }
         
         // Диспетчируем событие загрузки модели
-        this._dispatchEvent('model-loaded', { model, viewer: this });
+        this._dispatchEvent('model-loaded', { model: result.object3D, result, viewer: this });
       }
 
       this._hidePreloader();
-      return model;
+      return result?.object3D || null;
 
     } catch (error) {
       console.error('IfcViewer: ошибка загрузки модели', error);
@@ -208,6 +238,21 @@ export class IfcViewer {
       this._dispatchEvent('error', { error, viewer: this });
       return null;
     }
+  }
+
+  /**
+   * Включает/выключает IFC-специфичные контролы (изоляция/дерево).
+   * @private
+   */
+  _syncIfcOnlyControls() {
+    const isIfc = this.currentCapabilities?.kind === 'ifc' && !!this.currentCapabilities?.ifcService;
+    try {
+      const isolateToggle = this.containerElement.querySelector('#ifcIsolateToggle');
+      if (isolateToggle) {
+        isolateToggle.disabled = !isIfc;
+        if (!isIfc) isolateToggle.checked = false;
+      }
+    } catch (_) {}
   }
 
   /**
@@ -255,8 +300,10 @@ export class IfcViewer {
    * @returns {Object|null} Информация о модели или null
    */
   getModelInfo() {
-    if (!this.ifcService) return null;
-    return this.ifcService.getLastInfo();
+    const ifcSvc = (this.currentCapabilities?.kind === 'ifc') ? this.currentCapabilities?.ifcService : null;
+    if (ifcSvc) return ifcSvc.getLastInfo();
+    if (!this.currentLoadResult) return null;
+    return { name: this.currentLoadResult.name || '', modelID: '', format: this.currentLoadResult.format || '' };
   }
 
   /**
@@ -314,6 +361,8 @@ export class IfcViewer {
         <div id="ifcToolbar" class="d-flex px-4" style="border:0px red solid; width: 350px; position: absolute; z-index: 60; justify-content:space-between;  bottom: 10px; left: calc(50% - 175px); ">
           
           <div class="navbar-end flex gap-2">                   
+            <!-- Загрузка модели -->
+            <button class="btn btn-sm" id="ifcUploadBtnTop" title="Загрузить модель">📁</button>
             
             <!-- Стили отображения -->
             <div class="join">
@@ -391,6 +440,9 @@ export class IfcViewer {
 
         <!-- Панель зума (будет создана Viewer'ом) -->
         <div id="ifcZoomPanel" class="absolute bottom-4 right-4 z-30"></div>
+
+        <!-- File input (скрыт): accept выставляется реестром загрузчиков -->
+        <input id="ifcFileInput" type="file" class="hidden" />
       </div>
     `;
 
@@ -441,6 +493,25 @@ export class IfcViewer {
   }
 
   /**
+   * Инициализирует реестр загрузчиков форматов (IFC/FBX/...)
+   * Добавляйте новые форматы через this.modelLoaders.register(new XxxModelLoader()).
+   * @private
+   */
+  _initModelLoaders() {
+    // Если по какой-то причине init вызывается повторно — не пересоздаём
+    if (this.modelLoaders) return;
+    this.modelLoaders = new ModelLoaderRegistry()
+      .register(new IfcModelLoader(this.ifcService))
+      .register(new FbxModelLoader());
+
+    // Если в интерфейсе есть file input — настроим accept
+    try {
+      const input = this.containerElement.querySelector('#ifcFileInput');
+      if (input) input.accept = this.modelLoaders.getAcceptString();
+    } catch (_) {}
+  }
+
+  /**
    * Инициализирует компонент дерева IFC
    * @private
    */
@@ -451,10 +522,10 @@ export class IfcViewer {
       
       // Настраиваем обработчик выбора узла
       this.ifcTreeView.onSelect(async (node) => {
-        if (this.ifcService) {
-          const ids = this.ifcService.collectElementIDsFromStructure(node);
-          await this.ifcService.highlightByIds(ids);
-        }
+        const ifcSvc = (this.currentCapabilities?.kind === 'ifc') ? this.currentCapabilities?.ifcService : null;
+        if (!ifcSvc) return;
+        const ids = ifcSvc.collectElementIDsFromStructure(node);
+        await ifcSvc.highlightByIds(ids);
       });
     }
   }
@@ -489,8 +560,11 @@ export class IfcViewer {
 
     // Переключатель изоляции
     this._addEventListener('#ifcIsolateToggle', 'change', (e) => {
-      if (this.ifcService) {
-        this.ifcService.setIsolateMode(e.target.checked);
+      const ifcSvc = (this.currentCapabilities?.kind === 'ifc') ? this.currentCapabilities?.ifcService : null;
+      if (ifcSvc) {
+        ifcSvc.setIsolateMode(e.target.checked);
+      } else {
+        e.target.checked = false;
       }
     });
 
@@ -564,10 +638,16 @@ export class IfcViewer {
    * @private
    */
   async _updateTreeView(model) {
-    if (!this.ifcTreeView || !this.ifcService || !model) return;
+    if (!this.ifcTreeView) return;
+    const ifcSvc = (this.currentCapabilities?.kind === 'ifc') ? this.currentCapabilities?.ifcService : null;
+    if (!ifcSvc || !model) {
+      // Не-IFC: дерево структуры недоступно
+      try { this.ifcTreeView.render(null); } catch (_) {}
+      return;
+    }
 
     try {
-      const structure = await this.ifcService.getSpatialStructure(model.modelID);
+      const structure = await ifcSvc.getSpatialStructure(model.modelID);
       if (structure) {
         this.ifcTreeView.render(structure);
       }
@@ -582,14 +662,29 @@ export class IfcViewer {
    */
   _updateInfoPanel() {
     const infoElement = this.containerElement.querySelector('#ifcInfo');
-    if (!infoElement || !this.ifcService) return;
+    if (!infoElement) return;
 
-    const info = this.ifcService.getLastInfo();
+    const ifcSvc = (this.currentCapabilities?.kind === 'ifc') ? this.currentCapabilities?.ifcService : null;
+    if (ifcSvc) {
+      const info = ifcSvc.getLastInfo();
+      infoElement.innerHTML = `
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="font-medium text-xs">${info.name || '—'}</div>
+            <div class="opacity-70">modelID: ${info.modelID || '—'}</div>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    const name = this.currentLoadResult?.name || '—';
+    const format = this.currentLoadResult?.format || '—';
     infoElement.innerHTML = `
       <div class="flex items-center justify-between">
         <div>
-          <div class="font-medium text-xs">${info.name || '—'}</div>
-          <div class="opacity-70">modelID: ${info.modelID || '—'}</div>
+          <div class="font-medium text-xs">${name}</div>
+          <div class="opacity-70">format: ${format}</div>
         </div>
       </div>
     `;

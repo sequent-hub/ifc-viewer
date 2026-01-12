@@ -2,6 +2,9 @@ import "./style.css";
 import { Viewer } from "./viewer/Viewer.js";
 import { IfcService } from "./ifc/IfcService.js";
 import { IfcTreeView } from "./ifc/IfcTreeView.js";
+import { ModelLoaderRegistry } from "./model-loading/ModelLoaderRegistry.js";
+import { IfcModelLoader } from "./model-loading/loaders/IfcModelLoader.js";
+import { FbxModelLoader } from "./model-loading/loaders/FbxModelLoader.js";
 
 // Инициализация three.js Viewer в контейнере #app
 const app = document.getElementById("app");
@@ -335,30 +338,68 @@ if (app) {
   const ifcInfoEl = document.getElementById("ifcInfo");
   const ifcTree = ifcTreeEl ? new IfcTreeView(ifcTreeEl) : null;
   const ifcIsolateToggle = document.getElementById("ifcIsolateToggle");
+  /** @type {any|null} */
+  let activeCapabilities = null;
+
+  // Реестр загрузчиков: добавляйте новые форматы через register(new XxxModelLoader())
+  const modelLoaders = new ModelLoaderRegistry()
+    .register(new IfcModelLoader(ifc))
+    .register(new FbxModelLoader());
 
   const uploadBtn = document.getElementById("uploadBtn");
   const ifcInput = document.getElementById("ifcInput");
   if (uploadBtn && ifcInput) {
+    try { ifcInput.accept = modelLoaders.getAcceptString(); } catch (_) {}
     uploadBtn.addEventListener("click", () => ifcInput.click());
     ifcInput.addEventListener("change", async (e) => {
       const file = e.target.files?.[0];
       if (!file) return;
-      await ifc.loadFile(file);
+      let result = null;
+      try {
+        result = await modelLoaders.loadFile(file, { viewer, wasmUrl: wasmOverride, logger: console });
+        activeCapabilities = result?.capabilities || null;
+      } catch (err) {
+        console.error('Model load error', err);
+        activeCapabilities = null;
+      }
       ifcInput.value = "";
-      // Обновим дерево IFC и инфо
-      const last = ifc.getLastInfo();
-      const struct = await ifc.getSpatialStructure(last.modelID ? Number(last.modelID) : undefined);
-      if (!struct) console.warn('IFC spatial structure not available for modelID', last?.modelID);
-      if (ifcTree) ifcTree.render(struct);
-      if (ifcInfoEl) {
-        const info = ifc.getLastInfo();
-        ifcInfoEl.innerHTML = `
-          <div class="flex items-center justify-between">
-            <div>
-              <div class="font-medium text-xs">${info.name || '—'}</div>
-              <div class="opacity-70">modelID: ${info.modelID || '—'}</div>
-            </div>
-          </div>`;
+
+      // Обновим панель: IFC дерево/инфо только для IFC
+      if (activeCapabilities?.kind === 'ifc' && activeCapabilities?.ifcService) {
+        const ifcSvc = activeCapabilities.ifcService;
+        const last = ifcSvc.getLastInfo();
+        const struct = await ifcSvc.getSpatialStructure(last.modelID ? Number(last.modelID) : undefined);
+        if (!struct) console.warn('IFC spatial structure not available for modelID', last?.modelID);
+        if (ifcTree) ifcTree.render(struct);
+        if (ifcInfoEl) {
+          const info = ifcSvc.getLastInfo();
+          ifcInfoEl.innerHTML = `
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="font-medium text-xs">${info.name || '—'}</div>
+                <div class="opacity-70">modelID: ${info.modelID || '—'}</div>
+              </div>
+            </div>`;
+        }
+        if (ifcIsolateToggle) ifcIsolateToggle.disabled = false;
+      } else {
+        // Не-IFC: очищаем дерево, показываем базовую инфу
+        if (ifcTree) ifcTree.render(null);
+        if (ifcInfoEl) {
+          const name = result?.name || file?.name || '—';
+          const format = result?.format || '—';
+          ifcInfoEl.innerHTML = `
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="font-medium text-xs">${name}</div>
+                <div class="opacity-70">format: ${format}</div>
+              </div>
+            </div>`;
+        }
+        if (ifcIsolateToggle) {
+          ifcIsolateToggle.checked = false;
+          ifcIsolateToggle.disabled = true;
+        }
       }
       // Авто-открытие панели при ручной загрузке
       setSidebarVisible(true);
@@ -522,14 +563,21 @@ if (app) {
   // Переключатель изоляции
   ifcIsolateToggle?.addEventListener("change", (e) => {
     const enabled = e.target.checked;
-    ifc.setIsolateMode(enabled);
+    if (activeCapabilities?.kind === 'ifc' && activeCapabilities?.ifcService) {
+      activeCapabilities.ifcService.setIsolateMode(enabled);
+    } else {
+      // для не-IFC изоляция недоступна
+      e.target.checked = false;
+    }
   });
 
   // Выбор узла в дереве → подсветка/изоляция
   if (ifcTree) {
     ifcTree.onSelect(async (node) => {
-      const ids = ifc.collectElementIDsFromStructure(node);
-      await ifc.highlightByIds(ids);
+      if (activeCapabilities?.kind !== 'ifc' || !activeCapabilities?.ifcService) return;
+      const ifcSvc = activeCapabilities.ifcService;
+      const ids = ifcSvc.collectElementIDsFromStructure(node);
+      await ifcSvc.highlightByIds(ids);
     });
   }
 
@@ -544,19 +592,41 @@ if (app) {
     const params = new URLSearchParams(location.search);
     const ifcUrlParam = params.get('ifc');
     const ifcUrl = ifcUrlParam || DEFAULT_IFC_URL;
-    const model = await ifc.loadUrl(encodeURI(ifcUrl));
-    if (model) {
-      const struct = await ifc.getSpatialStructure();
-      if (ifcTree) ifcTree.render(struct);
-      if (ifcInfoEl) {
-        const info = ifc.getLastInfo();
-        ifcInfoEl.innerHTML = `
-          <div class="flex items-center justify-between">
-            <div>
-              <div class="font-medium text-xs">${info.name || '—'}</div>
-              <div class="opacity-70">modelID: ${info.modelID || '—'}</div>
-            </div>
-          </div>`;
+    const result = await modelLoaders.loadUrl(encodeURI(ifcUrl), { viewer, wasmUrl: wasmOverride, logger: console });
+    activeCapabilities = result?.capabilities || null;
+    if (result?.object3D) {
+      if (activeCapabilities?.kind === 'ifc' && activeCapabilities?.ifcService) {
+        const ifcSvc = activeCapabilities.ifcService;
+        const struct = await ifcSvc.getSpatialStructure();
+        if (ifcTree) ifcTree.render(struct);
+        if (ifcInfoEl) {
+          const info = ifcSvc.getLastInfo();
+          ifcInfoEl.innerHTML = `
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="font-medium text-xs">${info.name || '—'}</div>
+                <div class="opacity-70">modelID: ${info.modelID || '—'}</div>
+              </div>
+            </div>`;
+        }
+        if (ifcIsolateToggle) ifcIsolateToggle.disabled = false;
+      } else {
+        if (ifcTree) ifcTree.render(null);
+        if (ifcInfoEl) {
+          const name = result?.name || '—';
+          const format = result?.format || '—';
+          ifcInfoEl.innerHTML = `
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="font-medium text-xs">${name}</div>
+                <div class="opacity-70">format: ${format}</div>
+              </div>
+            </div>`;
+        }
+        if (ifcIsolateToggle) {
+          ifcIsolateToggle.checked = false;
+          ifcIsolateToggle.disabled = true;
+        }
       }
       // Не открываем панель автоматически при автозагрузке
       hidePreloader();

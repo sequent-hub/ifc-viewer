@@ -12,3 +12,8 @@ export { IfcViewer } from "./IfcViewer.js";
 export { Viewer } from "./viewer/Viewer.js";
 export { IfcService } from "./ifc/IfcService.js";
 export { IfcTreeView } from "./ifc/IfcTreeView.js";
+
+// Расширяемая архитектура загрузчиков форматов
+export { ModelLoaderRegistry } from "./model-loading/ModelLoaderRegistry.js";
+export { IfcModelLoader } from "./model-loading/loaders/IfcModelLoader.js";
+export { FbxModelLoader } from "./model-loading/loaders/FbxModelLoader.js";
