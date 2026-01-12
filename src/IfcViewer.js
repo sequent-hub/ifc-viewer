@@ -16,6 +16,7 @@ import { IfcTreeView } from "./ifc/IfcTreeView.js";
 import { ModelLoaderRegistry } from "./model-loading/ModelLoaderRegistry.js";
 import { IfcModelLoader } from "./model-loading/loaders/IfcModelLoader.js";
 import { FbxModelLoader } from "./model-loading/loaders/FbxModelLoader.js";
+import { GltfModelLoader } from "./model-loading/loaders/GltfModelLoader.js";
 import './style.css';
 
 
@@ -502,7 +503,8 @@ export class IfcViewer {
     if (this.modelLoaders) return;
     this.modelLoaders = new ModelLoaderRegistry()
       .register(new IfcModelLoader(this.ifcService))
-      .register(new FbxModelLoader());
+      .register(new FbxModelLoader())
+      .register(new GltfModelLoader());
 
     // Если в интерфейсе есть file input — настроим accept
     try {

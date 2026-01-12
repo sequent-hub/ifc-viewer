@@ -5,6 +5,7 @@ import { IfcTreeView } from "./ifc/IfcTreeView.js";
 import { ModelLoaderRegistry } from "./model-loading/ModelLoaderRegistry.js";
 import { IfcModelLoader } from "./model-loading/loaders/IfcModelLoader.js";
 import { FbxModelLoader } from "./model-loading/loaders/FbxModelLoader.js";
+import { GltfModelLoader } from "./model-loading/loaders/GltfModelLoader.js";
 
 // Инициализация three.js Viewer в контейнере #app
 const app = document.getElementById("app");
@@ -344,7 +345,8 @@ if (app) {
   // Реестр загрузчиков: добавляйте новые форматы через register(new XxxModelLoader())
   const modelLoaders = new ModelLoaderRegistry()
     .register(new IfcModelLoader(ifc))
-    .register(new FbxModelLoader());
+    .register(new FbxModelLoader())
+    .register(new GltfModelLoader());
 
   const uploadBtn = document.getElementById("uploadBtn");
   const ifcInput = document.getElementById("ifcInput");
