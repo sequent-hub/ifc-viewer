@@ -27,6 +27,14 @@
         <div style="padding:12px;">
           <div style="font-size:12px; font-weight:600; opacity:0.75; margin-bottom:10px;">Свойства</div>
 
+          <!-- Загрузка модели (демо): использует src/main.js + ModelLoaderRegistry -->
+          <div style="padding:10px; border:1px solid rgba(0,0,0,0.08); border-radius:10px; background:rgba(255,255,255,0.6);">
+            <div style="font-size:12px; font-weight:600; opacity:0.75; margin-bottom:8px;">Загрузка модели</div>
+            <button id="uploadBtn" class="btn btn-sm" style="width:100%;">📁 Выбрать файл</button>
+            <input id="ifcInput" type="file" class="hidden" />
+            <div id="ifcInfo" style="margin-top:8px; font-size:11px; opacity:0.8;">По умолчанию загрузится IFC из <code>/public/ifc/</code></div>
+          </div>
+
           <label style="display:flex; align-items:center; gap:10px; user-select:none;">
             <input id="testPresetToggle" type="checkbox" checked />
             <span>Тест</span>
