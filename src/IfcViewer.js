@@ -19,6 +19,7 @@ import { FbxModelLoader } from "./model-loading/loaders/FbxModelLoader.js";
 import { GltfModelLoader } from "./model-loading/loaders/GltfModelLoader.js";
 import { ObjModelLoader } from "./model-loading/loaders/ObjModelLoader.js";
 import { TdsModelLoader } from "./model-loading/loaders/TdsModelLoader.js";
+import { StlModelLoader } from "./model-loading/loaders/StlModelLoader.js";
 import './style.css';
 
 
@@ -521,7 +522,8 @@ export class IfcViewer {
       .register(new FbxModelLoader())
       .register(new GltfModelLoader())
       .register(new ObjModelLoader())
-      .register(new TdsModelLoader());
+      .register(new TdsModelLoader())
+      .register(new StlModelLoader());
 
     // Если в интерфейсе есть file input — настроим accept
     try {

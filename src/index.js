@@ -20,3 +20,4 @@ export { FbxModelLoader } from "./model-loading/loaders/FbxModelLoader.js";
 export { GltfModelLoader } from "./model-loading/loaders/GltfModelLoader.js";
 export { ObjModelLoader } from "./model-loading/loaders/ObjModelLoader.js";
 export { TdsModelLoader } from "./model-loading/loaders/TdsModelLoader.js";
+export { StlModelLoader } from "./model-loading/loaders/StlModelLoader.js";

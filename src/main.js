@@ -8,6 +8,7 @@ import { FbxModelLoader } from "./model-loading/loaders/FbxModelLoader.js";
 import { GltfModelLoader } from "./model-loading/loaders/GltfModelLoader.js";
 import { ObjModelLoader } from "./model-loading/loaders/ObjModelLoader.js";
 import { TdsModelLoader } from "./model-loading/loaders/TdsModelLoader.js";
+import { StlModelLoader } from "./model-loading/loaders/StlModelLoader.js";
 
 // Инициализация three.js Viewer в контейнере #app
 const app = document.getElementById("app");
@@ -350,7 +351,8 @@ if (app) {
     .register(new FbxModelLoader())
     .register(new GltfModelLoader())
     .register(new ObjModelLoader())
-    .register(new TdsModelLoader());
+    .register(new TdsModelLoader())
+    .register(new StlModelLoader());
 
   const uploadBtn = document.getElementById("uploadBtn");
   const ifcInput = document.getElementById("ifcInput");
