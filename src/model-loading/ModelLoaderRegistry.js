@@ -191,12 +191,24 @@ export class ModelLoaderRegistry {
    * @returns {Promise<any|null>} LoadResult or null on error
    */
   async loadUrl(url, ctx = {}) {
-    const loader = this.getLoaderForName(url);
+    const logger = ctx?.logger || console;
+    let loader = this.getLoaderForName(url);
+
+    // If URL doesn't contain an extension, try to infer format via headers/signature.
+    // This is required for CDN-style links like /ifc-files/<id> (no ".ifc" suffix).
+    if (!loader) {
+      try {
+        loader = await this._guessLoaderForUrl(url, logger);
+      } catch (e) {
+        logger?.warn?.('[ModelLoaderRegistry] url sniff failed', { url, error: e });
+        loader = null;
+      }
+    }
+
     if (!loader) {
       throw new Error(`Формат не поддерживается: ${url || 'unknown url'}`);
     }
 
-    const logger = ctx?.logger || console;
     const t0 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
 
     try {
@@ -211,6 +223,193 @@ export class ModelLoaderRegistry {
       logger?.error?.('[ModelLoaderRegistry] loadUrl error', { url, loader: loader.id, error: e });
       throw e;
     }
+  }
+
+  /**
+   * Tries to infer loader for URL without extension.
+   *
+   * Strategy:
+   * - Use Content-Disposition filename (if present) to resolve extension
+   * - Else sniff the first bytes (streaming) and match known signatures
+   *
+   * @param {string} url
+   * @param {any} logger
+   * @returns {Promise<any|null>}
+   */
+  async _guessLoaderForUrl(url, logger) {
+    const u = String(url || '');
+    if (!u) return null;
+
+    // 1) Try HEAD headers (may expose filename and/or content-type)
+    try {
+      if (typeof fetch === 'function') {
+        const head = await fetch(u, { method: 'HEAD' });
+        const cd = head?.headers?.get?.('content-disposition') || head?.headers?.get?.('Content-Disposition');
+        if (cd) {
+          const fileName = this._tryParseFilenameFromContentDisposition(cd);
+          if (fileName) {
+            const byName = this.getLoaderForName(fileName);
+            if (byName) {
+              logger?.log?.('[ModelLoaderRegistry] url sniff: Content-Disposition matched', { url: u, fileName, loader: byName.id });
+              return byName;
+            }
+          }
+        }
+        const ct = head?.headers?.get?.('content-type') || head?.headers?.get?.('Content-Type');
+        // Content-Type is often "application/octet-stream", but keep a couple of strong signals.
+        if (ct) {
+          const lower = String(ct).toLowerCase();
+          if (lower.includes('model/gltf-binary') || lower.includes('model/gltf+json')) {
+            const byCt = this.getLoaderForName(lower.includes('binary') ? 'model.glb' : 'model.gltf');
+            if (byCt) {
+              logger?.log?.('[ModelLoaderRegistry] url sniff: Content-Type matched', { url: u, contentType: ct, loader: byCt.id });
+              return byCt;
+            }
+          }
+        }
+      }
+    } catch (_) {
+      // ignore HEAD failures, proceed to signature sniff
+    }
+
+    // 2) Sniff first bytes (prefer Range; fall back to stream+abort)
+    const prefix = await this._readUrlPrefix(u, 4096);
+    if (!prefix || !prefix.length) return null;
+
+    const sig = this._detectSignature(prefix);
+    if (!sig) return null;
+
+    const virtualName = sig.virtualName;
+    const bySig = this.getLoaderForName(virtualName);
+    if (bySig) {
+      logger?.log?.('[ModelLoaderRegistry] url sniff: signature matched', { url: u, signature: sig.kind, virtualName, loader: bySig.id });
+      return bySig;
+    }
+
+    return null;
+  }
+
+  _tryParseFilenameFromContentDisposition(cd) {
+    try {
+      const s = String(cd || '');
+      // filename*=UTF-8''... (RFC 5987)
+      const mStar = s.match(/filename\*\s*=\s*([^;]+)/i);
+      if (mStar) {
+        const v = mStar[1].trim();
+        const parts = v.split("''");
+        const encoded = parts.length >= 2 ? parts.slice(1).join("''") : v;
+        const cleaned = encoded.replace(/^["']|["']$/g, '');
+        try { return decodeURIComponent(cleaned); } catch (_) { return cleaned; }
+      }
+      // filename="..."
+      const m = s.match(/filename\s*=\s*([^;]+)/i);
+      if (m) {
+        const v = m[1].trim().replace(/^["']|["']$/g, '');
+        return v || null;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  _detectSignature(bytes) {
+    try {
+      const b0 = bytes[0];
+      const b1 = bytes[1];
+      const b2 = bytes[2];
+      const b3 = bytes[3];
+
+      // ZIP: "PK"
+      if (b0 === 0x50 && b1 === 0x4b) {
+        // Could be IFZ/IFCZIP most often for this package
+        return { kind: 'zip', virtualName: 'model.ifczip' };
+      }
+
+      // GLB: "glTF"
+      if (b0 === 0x67 && b1 === 0x6c && b2 === 0x54 && b3 === 0x46) {
+        return { kind: 'glb', virtualName: 'model.glb' };
+      }
+
+      // Text signatures: decode a small prefix as ASCII
+      const n = Math.min(bytes.length, 256);
+      let text = '';
+      for (let i = 0; i < n; i++) {
+        const c = bytes[i];
+        text += (c >= 32 && c <= 126) ? String.fromCharCode(c) : ' ';
+      }
+      const t = text.trim().toUpperCase();
+
+      // IFC STEP: "ISO-10303-21"
+      if (t.startsWith('ISO-10303-21')) {
+        return { kind: 'ifc-step', virtualName: 'model.ifc' };
+      }
+
+      // DAE: XML with <COLLADA ...>
+      if (t.startsWith('<?XML') || t.startsWith('<COLLADA') || t.includes('<COLLADA')) {
+        return { kind: 'dae-xml', virtualName: 'model.dae' };
+      }
+
+      // OBJ: common first tokens ("mtllib", "o", "v", "#")
+      if (/^(#|MTLLIB\s+|O\s+|V\s+|VN\s+|VT\s+)/i.test(text.trim())) {
+        return { kind: 'obj-text', virtualName: 'model.obj' };
+      }
+
+      // STL ASCII: starts with "solid"
+      if (t.startsWith('SOLID')) {
+        return { kind: 'stl-ascii', virtualName: 'model.stl' };
+      }
+
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  async _readUrlPrefix(url, maxBytes = 4096) {
+    if (typeof fetch !== 'function') return new Uint8Array();
+    const u = String(url || '');
+    const n = Math.max(1, Number(maxBytes) || 4096);
+
+    const controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    const headers = {};
+    // Attempt Range. Some servers may ignore it; we still stop reading after maxBytes.
+    try { headers.Range = `bytes=0-${n - 1}`; } catch (_) {}
+
+    const res = await fetch(u, { method: 'GET', headers, signal: controller?.signal });
+    if (!res || !res.ok) {
+      throw new Error(`Failed to fetch url prefix: ${res?.status || 'unknown'}`);
+    }
+
+    // Prefer streaming to avoid downloading whole file if Range is ignored.
+    const reader = res.body?.getReader?.();
+    if (!reader) {
+      const buf = new Uint8Array(await res.arrayBuffer());
+      return buf.slice(0, n);
+    }
+
+    /** @type {Uint8Array[]} */
+    const chunks = [];
+    let total = 0;
+    while (total < n) {
+      // eslint-disable-next-line no-await-in-loop
+      const { value, done } = await reader.read();
+      if (done) break;
+      if (value && value.length) {
+        chunks.push(value);
+        total += value.length;
+      }
+    }
+
+    try { controller?.abort?.(); } catch (_) {}
+
+    const out = new Uint8Array(Math.min(total, n));
+    let offset = 0;
+    for (const c of chunks) {
+      if (offset >= out.length) break;
+      const take = Math.min(c.length, out.length - offset);
+      out.set(c.subarray(0, take), offset);
+      offset += take;
+    }
+    return out;
   }
 
   _validateResult(result, loaderId) {
