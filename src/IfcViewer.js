@@ -38,7 +38,7 @@ export class IfcViewer {
    * @param {boolean} [options.showSidebar=false] - Показывать ли боковую панель с деревом
    * @param {boolean} [options.showControls=false] - Показывать ли панель управления (нижние кнопки)
    * @param {boolean} [options.showToolbar=true] - Показывать ли верхнюю панель инструментов
-   * @param {boolean} [options.autoLoad=true] - Автоматически загружать IFC файл при инициализации
+   * @param {boolean} [options.autoLoad=true] - Автоматически загружать модель при инициализации (modelUrl/modelFile/ifcUrl/ifcFile)
    * @param {string} [options.theme='light'] - Тема интерфейса ('light' | 'dark')
    * @param {Object} [options.viewerOptions] - Дополнительные опции для Viewer
    */
@@ -153,8 +153,14 @@ export class IfcViewer {
       // Настраиваем обработчики событий
       this._setupEventHandlers();
 
-      // Автозагрузка файла если указан
-      if (this.options.autoLoad && (this.options.ifcUrl || this.options.ifcFile)) {
+      // Автозагрузка модели (в режиме пакета) если указан источник
+      if (
+        this.options.autoLoad &&
+        (this.options.modelUrl ||
+          this.options.modelFile ||
+          this.options.ifcUrl ||
+          this.options.ifcFile)
+      ) {
         await this.loadModel();
       }
 
