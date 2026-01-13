@@ -10,6 +10,7 @@ import { ObjModelLoader } from "./model-loading/loaders/ObjModelLoader.js";
 import { TdsModelLoader } from "./model-loading/loaders/TdsModelLoader.js";
 import { StlModelLoader } from "./model-loading/loaders/StlModelLoader.js";
 import { DaeModelLoader } from "./model-loading/loaders/DaeModelLoader.js";
+import { ThreeDmModelLoader } from "./model-loading/loaders/ThreeDmModelLoader.js";
 
 // Инициализация three.js Viewer в контейнере #app
 const app = document.getElementById("app");
@@ -354,7 +355,10 @@ if (app) {
     .register(new ObjModelLoader())
     .register(new TdsModelLoader())
     .register(new StlModelLoader())
-    .register(new DaeModelLoader());
+    .register(new DaeModelLoader())
+    .register(new ThreeDmModelLoader());
+
+  const rhino3dmLibraryPath = '/wasm/rhino3dm/';
 
   const uploadBtn = document.getElementById("uploadBtn");
   const ifcInput = document.getElementById("ifcInput");
@@ -369,8 +373,8 @@ if (app) {
       try {
         // Multi-file: e.g. OBJ+MTL (+textures)
         result = (files.length > 1)
-          ? await modelLoaders.loadFiles(files, { viewer, wasmUrl: wasmOverride, logger: console })
-          : await modelLoaders.loadFile(files[0], { viewer, wasmUrl: wasmOverride, logger: console });
+          ? await modelLoaders.loadFiles(files, { viewer, wasmUrl: wasmOverride, rhino3dmLibraryPath, logger: console })
+          : await modelLoaders.loadFile(files[0], { viewer, wasmUrl: wasmOverride, rhino3dmLibraryPath, logger: console });
         activeCapabilities = result?.capabilities || null;
       } catch (err) {
         console.error('Model load error', err);
@@ -611,7 +615,7 @@ if (app) {
     const params = new URLSearchParams(location.search);
     const ifcUrlParam = params.get('ifc');
     const ifcUrl = ifcUrlParam || DEFAULT_IFC_URL;
-    const result = await modelLoaders.loadUrl(encodeURI(ifcUrl), { viewer, wasmUrl: wasmOverride, logger: console });
+    const result = await modelLoaders.loadUrl(encodeURI(ifcUrl), { viewer, wasmUrl: wasmOverride, rhino3dmLibraryPath, logger: console });
     activeCapabilities = result?.capabilities || null;
     if (result?.object3D) {
       if (activeCapabilities?.kind === 'ifc' && activeCapabilities?.ifcService) {

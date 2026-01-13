@@ -21,6 +21,7 @@ import { ObjModelLoader } from "./model-loading/loaders/ObjModelLoader.js";
 import { TdsModelLoader } from "./model-loading/loaders/TdsModelLoader.js";
 import { StlModelLoader } from "./model-loading/loaders/StlModelLoader.js";
 import { DaeModelLoader } from "./model-loading/loaders/DaeModelLoader.js";
+import { ThreeDmModelLoader } from "./model-loading/loaders/ThreeDmModelLoader.js";
 import './style.css';
 
 
@@ -34,6 +35,7 @@ export class IfcViewer {
    * @param {string} [options.modelUrl] - URL для загрузки модели (любой поддерживаемый формат)
    * @param {File} [options.modelFile] - File объект модели (любой поддерживаемый формат)
    * @param {string} [options.wasmUrl] - URL для загрузки WASM файла web-ifc
+   * @param {string} [options.rhino3dmLibraryPath] - Путь (директория) к rhino3dm.js и rhino3dm.wasm (для .3dm)
    * @param {boolean} [options.useTestPreset=true] - Включать ли пресет "Тест" по умолчанию (рекомендованные тени/визуал)
    * @param {boolean} [options.showSidebar=false] - Показывать ли боковую панель с деревом
    * @param {boolean} [options.showControls=false] - Показывать ли панель управления (нижние кнопки)
@@ -65,6 +67,7 @@ export class IfcViewer {
       modelUrl: options.modelUrl || null,
       modelFile: options.modelFile || null,
       wasmUrl: options.wasmUrl || null,
+      rhino3dmLibraryPath: options.rhino3dmLibraryPath || '/wasm/rhino3dm/',
       // По умолчанию включаем пресет "Тест" для корректного вида теней (как в демо-настройках)
       useTestPreset: options.useTestPreset !== false,
       showSidebar: options.showSidebar === true, // по умолчанию false
@@ -207,6 +210,7 @@ export class IfcViewer {
         result = await this.modelLoaders.loadUrl(loadSource, {
           viewer: this.viewer,
           wasmUrl: this.options.wasmUrl,
+          rhino3dmLibraryPath: this.options.rhino3dmLibraryPath,
           logger: console,
         });
       } else if (Array.isArray(loadSource) || (typeof FileList !== 'undefined' && loadSource instanceof FileList)) {
@@ -215,17 +219,20 @@ export class IfcViewer {
           ? await this.modelLoaders.loadFiles(files, {
             viewer: this.viewer,
             wasmUrl: this.options.wasmUrl,
+            rhino3dmLibraryPath: this.options.rhino3dmLibraryPath,
             logger: console,
           })
           : await this.modelLoaders.loadFile(files[0], {
             viewer: this.viewer,
             wasmUrl: this.options.wasmUrl,
+            rhino3dmLibraryPath: this.options.rhino3dmLibraryPath,
             logger: console,
           });
       } else if (loadSource instanceof File) {
         result = await this.modelLoaders.loadFile(loadSource, {
           viewer: this.viewer,
           wasmUrl: this.options.wasmUrl,
+          rhino3dmLibraryPath: this.options.rhino3dmLibraryPath,
           logger: console,
         });
       } else {
@@ -531,7 +538,8 @@ export class IfcViewer {
       .register(new ObjModelLoader())
       .register(new TdsModelLoader())
       .register(new StlModelLoader())
-      .register(new DaeModelLoader());
+      .register(new DaeModelLoader())
+      .register(new ThreeDmModelLoader({ libraryPath: this.options.rhino3dmLibraryPath }));
 
     // Если в интерфейсе есть file input — настроим accept
     try {

@@ -22,3 +22,4 @@ export { ObjModelLoader } from "./model-loading/loaders/ObjModelLoader.js";
 export { TdsModelLoader } from "./model-loading/loaders/TdsModelLoader.js";
 export { StlModelLoader } from "./model-loading/loaders/StlModelLoader.js";
 export { DaeModelLoader } from "./model-loading/loaders/DaeModelLoader.js";
+export { ThreeDmModelLoader } from "./model-loading/loaders/ThreeDmModelLoader.js";

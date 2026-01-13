@@ -16,16 +16,25 @@
     "scripts/",
     "README.md"
   ],
-  "keywords": ["ifc", "3d", "viewer", "bim", "three.js", "web-ifc"],
+  "keywords": [
+    "ifc",
+    "3d",
+    "viewer",
+    "bim",
+    "three.js",
+    "web-ifc"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/sequent-org/ifc-viewer.git"
   },
-  "publishConfig": { "access": "public" },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
-    "postinstall": "node scripts/copy-web-ifc-wasm.mjs",
+    "postinstall": "node scripts/copy-web-ifc-wasm.mjs && node scripts/copy-rhino3dm.mjs",
     "dev": "vite",
-    "build": "vite build", 
+    "build": "vite build",
     "preview": "vite preview",
     "test:manual": "vite dev --open test.html"
   },
@@ -33,6 +42,7 @@
     "vite": "^7.1.2"
   },
   "dependencies": {
+    "rhino3dm": "^8.17.0",
     "three": "^0.149.0",
     "web-ifc": "^0.0.74"
   }
