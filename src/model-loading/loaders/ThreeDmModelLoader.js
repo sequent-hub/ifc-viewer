@@ -10,13 +10,17 @@ import { Rhino3dmLoader } from 'three/examples/jsm/loaders/3DMLoader.js';
  */
 export class ThreeDmModelLoader {
   /**
-   * @param {{ libraryPath?: string, workerLimit?: number }} [options]
+   * @param {{ libraryPath?: string, workerLimit?: number, rotateXNeg90?: boolean, alignToGround?: boolean }} [options]
    */
   constructor(options = {}) {
     this.id = '3dm';
     this.extensions = ['.3dm'];
     this._libraryPath = options.libraryPath || '/wasm/rhino3dm/';
     this._workerLimit = Number.isFinite(options.workerLimit) ? Number(options.workerLimit) : 4;
+    // Many 3DM assets are effectively Z-up; viewer is Y-up. Keep consistent with other format loaders.
+    this._rotateXNeg90 = options.rotateXNeg90 !== false; // default true
+    // Bring model down to ground plane so shadow receiver is correct.
+    this._alignToGround = options.alignToGround !== false; // default true
   }
 
   /**
@@ -69,18 +73,49 @@ export class ThreeDmModelLoader {
       workerLimit: this._workerLimit,
     });
 
-    const obj = await new Promise((resolve, reject) => {
-      try {
-        loader.load(
-          url,
-          (result) => resolve(result),
-          undefined,
-          (err) => reject(err)
+    let obj = null;
+    try {
+      obj = await new Promise((resolve, reject) => {
+        try {
+          loader.load(
+            url,
+            (result) => resolve(result),
+            undefined,
+            (err) => reject(err)
+          );
+        } catch (e) {
+          reject(e);
+        }
+      });
+    } catch (e) {
+      const msg = String(e?.message || e?.error?.message || e || '');
+      if (msg.includes('.count is not a function')) {
+        logger?.error?.(
+          '[ThreeDmModelLoader] rhino3dm API mismatch detected. This often happens when rhino3dm version is not compatible with three/examples 3DMLoader. ' +
+            'For three@0.149.0 a compatible rhino3dm version is ~8.4.0.'
         );
-      } catch (e) {
-        reject(e);
       }
-    });
+      throw e;
+    }
+
+    // Axis + grounding BEFORE Viewer.replaceWithModel(): ensures bbox/shadowReceiver computed correctly.
+    try {
+      if (obj) {
+        if (this._rotateXNeg90) {
+          obj.rotation.x = -Math.PI / 2;
+          obj.updateMatrixWorld?.(true);
+        }
+        if (this._alignToGround) {
+          const box = new Box3().setFromObject(obj);
+          const minY = box.min.y;
+          if (Number.isFinite(minY)) {
+            obj.position.y -= minY;
+            obj.position.y += 0.001; // epsilon to avoid z-fighting with shadow receiver
+            obj.updateMatrixWorld?.(true);
+          }
+        }
+      }
+    } catch (_) {}
 
     // Basic diagnostics
     try {

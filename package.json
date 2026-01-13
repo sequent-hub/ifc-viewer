@@ -32,7 +32,7 @@
     "access": "public"
   },
   "scripts": {
-    "postinstall": "node scripts/copy-web-ifc-wasm.mjs && node scripts/copy-rhino3dm.mjs",
+    "postinstall": "node scripts/copy-web-ifc-wasm.mjs && node scripts/copy-rhino3dm.mjs && node scripts/patch-three-3dm-loader.mjs",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
@@ -42,7 +42,7 @@
     "vite": "^7.1.2"
   },
   "dependencies": {
-    "rhino3dm": "^8.17.0",
+    "rhino3dm": "8.4.0",
     "three": "^0.149.0",
     "web-ifc": "^0.0.74"
   }

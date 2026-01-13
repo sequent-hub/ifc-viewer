@@ -1373,6 +1373,10 @@ export class Viewer {
     this.activeModel = object3D;
     this.scene.add(object3D);
 
+    // Сброс MMB-pan (viewOffset) при загрузке новой модели:
+    // иначе экранный сдвиг может "унести" модель из кадра даже при корректном кадрировании по bbox.
+    try { this._mmbPan?.controller?.reset?.(); } catch (_) {}
+
     // Пересчитать плоскость под моделью (3x по площади bbox по X/Z)
     this.#updateShadowReceiverFromModel(object3D);
 
@@ -1627,13 +1631,40 @@ export class Viewer {
       const center = box.getCenter(new THREE.Vector3());
       const minY = box.min.y;
 
-      // Требование: площадь плоскости = 3x площади объекта (bbox по X/Z).
+      // Базовая плоскость: площадь = 3x площади объекта (bbox по X/Z).
       // => множитель по размерам = sqrt(3).
       const areaMultiplier = 3;
       const dimMul = Math.sqrt(areaMultiplier);
 
+      // Доп. запас по X/Z из-за длины тени: высокая модель при наклонном солнце
+      // может давать тень далеко за bbox по X/Z.
+      // Оценка смещения тени по земле: displacementXZ ≈ height * |dirXZ| / |dirY|
+      // где dir = (target - lightPos) нормализованный.
+      let extraX = 0;
+      let extraZ = 0;
+      try {
+        const sun = this.sunLight;
+        if (sun) {
+          const targetPos = (sun.target?.position?.clone?.() || center.clone());
+          const dir = targetPos.sub(sun.position).normalize();
+          const ay = Math.max(1e-3, Math.abs(dir.y));
+          extraX = Math.abs(dir.x) * (Math.max(0, size.y) / ay);
+          extraZ = Math.abs(dir.z) * (Math.max(0, size.y) / ay);
+          // небольшой коэффициент запаса, чтобы не ловить «пограничные» обрезания
+          const pad = 1.05;
+          extraX *= pad;
+          extraZ *= pad;
+        }
+      } catch (_) {
+        extraX = 0;
+        extraZ = 0;
+      }
+
       this.shadowReceiver.position.set(center.x, minY + 0.001, center.z);
-      this.shadowReceiver.scale.set(Math.max(0.001, size.x * dimMul), Math.max(0.001, size.z * dimMul), 1);
+      // receiver.scale: X->world X, Y->world Z (PlaneGeometry is X/Y in local, rotated -90° around X)
+      const receiverX = Math.max(0.001, (size.x * dimMul) + extraX * 2);
+      const receiverZ = Math.max(0.001, (size.z * dimMul) + extraZ * 2);
+      this.shadowReceiver.scale.set(receiverX, receiverZ, 1);
       this.shadowReceiver.updateMatrixWorld();
 
       // Обновим bbox здания для градиента тени (в XZ)
@@ -1647,8 +1678,8 @@ export class Viewer {
       // чтобы при включении теней они не "обрезались" слишком маленькой областью.
       if (this.sunLight) {
         const cam = this.sunLight.shadow.camera;
-        const halfX = (size.x * dimMul) / 2;
-        const halfZ = (size.z * dimMul) / 2;
+        const halfX = receiverX / 2;
+        const halfZ = receiverZ / 2;
         cam.left = -halfX;
         cam.right = halfX;
         cam.top = halfZ;
