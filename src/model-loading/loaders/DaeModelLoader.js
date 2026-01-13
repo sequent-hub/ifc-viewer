@@ -98,6 +98,15 @@ export class DaeModelLoader {
       logger?.log?.('[DaeModelLoader] loadFiles', { dae: daeFile.name, files: arr.map((f) => f?.name).filter(Boolean) });
       const daeText = await daeFile.text();
 
+      // Diagnostics: inspect raw DAE for image references and textures
+      try {
+        const diag = this._diagnoseDaeText(daeText);
+        // eslint-disable-next-line no-console
+        logger?.log?.('[DaeModelLoader] dae diagnostics', diag);
+      } catch (e) {
+        logger?.warn?.('[DaeModelLoader] dae diagnostics failed', e);
+      }
+
       const loader = new ColladaLoader(manager);
       const collada = loader.parse(daeText, '');
 
@@ -219,6 +228,48 @@ export class DaeModelLoader {
       } catch (_) {}
       setTimeout(finish, Math.max(0, Number(timeoutMs) || 0));
     });
+  }
+
+  _diagnoseDaeText(daeText) {
+    const text = String(daeText || '');
+    // Up-axis (if present)
+    const upAxisMatch = text.match(/<up_axis>\s*([^<]+)\s*<\/up_axis>/i);
+    const upAxis = upAxisMatch ? upAxisMatch[1].trim() : null;
+
+    // <init_from> values inside library_images
+    const initFrom = [];
+    const reInit = /<init_from>\s*([^<]+?)\s*<\/init_from>/gi;
+    let m;
+    while ((m = reInit.exec(text)) !== null) {
+      const raw = (m[1] || '').trim();
+      if (raw) initFrom.push(raw);
+      if (initFrom.length >= 200) break; // cap
+    }
+
+    // Extract basenames and file extensions (for comparing to selected files)
+    const basenames = initFrom.map((p) => (p.replace(/\\/g, '/').split('/').pop() || p).trim()).filter(Boolean);
+    const jpgs = basenames.filter((b) => /\.(jpe?g)$/i.test(b));
+    const pngs = basenames.filter((b) => /\.png$/i.test(b));
+
+    // Look for <texture ...> occurrences (typical COLLADA material binding)
+    const texTags = [];
+    const reTex = /<texture\b[^>]*>/gi;
+    while ((m = reTex.exec(text)) !== null) {
+      texTags.push(m[0]);
+      if (texTags.length >= 50) break;
+    }
+
+    return {
+      upAxis,
+      initFromCount: initFrom.length,
+      initFromSample: initFrom.slice(0, 12),
+      imageBasenameCount: basenames.length,
+      imageBasenameSample: basenames.slice(0, 12),
+      jpgCount: jpgs.length,
+      pngCount: pngs.length,
+      textureTagCount: texTags.length,
+      textureTagSample: texTags.slice(0, 6),
+    };
   }
 }
 
