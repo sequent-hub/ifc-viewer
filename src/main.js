@@ -3,6 +3,7 @@ import { Viewer } from "./viewer/Viewer.js";
 import { IfcService } from "./ifc/IfcService.js";
 import { IfcTreeView } from "./ifc/IfcTreeView.js";
 import { ModelLoaderRegistry } from "./model-loading/ModelLoaderRegistry.js";
+import { CardPlacementController } from "./ui/CardPlacementController.js";
 import { IfcModelLoader } from "./model-loading/loaders/IfcModelLoader.js";
 import { FbxModelLoader } from "./model-loading/loaders/FbxModelLoader.js";
 import { GltfModelLoader } from "./model-loading/loaders/GltfModelLoader.js";
@@ -17,6 +18,9 @@ const app = document.getElementById("app");
 if (app) {
   const viewer = new Viewer(app);
   viewer.init();
+
+  // UI: режим постановки "карточек" (меток) по клику на модель
+  const cardPlacement = new CardPlacementController({ viewer, container: app, logger: console });
 
   // ===== Диагностика (включается через query-параметры) =====
   // ?debugViewer=1  -> window.__viewer = viewer
@@ -676,6 +680,7 @@ if (app) {
     import.meta.hot.dispose(() => {
       ifc.dispose();
       viewer.dispose();
+      try { cardPlacement.dispose(); } catch (_) {}
     });
   }
 }
