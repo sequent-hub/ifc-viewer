@@ -22,6 +22,7 @@ import { TdsModelLoader } from "./model-loading/loaders/TdsModelLoader.js";
 import { StlModelLoader } from "./model-loading/loaders/StlModelLoader.js";
 import { DaeModelLoader } from "./model-loading/loaders/DaeModelLoader.js";
 import { ThreeDmModelLoader } from "./model-loading/loaders/ThreeDmModelLoader.js";
+import { CardPlacementController } from "./ui/CardPlacementController.js";
 import './style.css';
 
 
@@ -82,6 +83,7 @@ export class IfcViewer {
     this.viewer = null;
     this.ifcService = null;
     this.ifcTreeView = null;
+    this.cardPlacement = null;
     /** @type {ModelLoaderRegistry|null} */
     this.modelLoaders = null;
     this.isInitialized = false;
@@ -308,6 +310,11 @@ export class IfcViewer {
       this.ifcService.dispose();
       this.ifcService = null;
     }
+
+    if (this.cardPlacement) {
+      try { this.cardPlacement.dispose(); } catch (_) {}
+      this.cardPlacement = null;
+    }
     
     if (this.viewer) {
       this.viewer.dispose();
@@ -508,6 +515,15 @@ export class IfcViewer {
 
     this.viewer = new Viewer(this.elements.viewerContainer);
     this.viewer.init();
+
+    // В пакете включаем UI "карточек" по умолчанию:
+    // кнопка "+ Добавить карточку" + режим постановки меток + сохранение/восстановление состояния.
+    try {
+      this.cardPlacement = new CardPlacementController({ viewer: this.viewer, container: this.elements.viewerContainer, logger: console });
+    } catch (e) {
+      console.warn('IfcViewer: CardPlacementController init failed', e);
+      this.cardPlacement = null;
+    }
   }
 
   /**
