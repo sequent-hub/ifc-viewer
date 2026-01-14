@@ -644,9 +644,26 @@ export class CardPlacementController {
 
     this._raycaster.setFromCamera(this._ndc, camera);
     const hits = this._raycaster.intersectObject(model, true);
-    if (!hits || !hits[0] || !hits[0].point) return null;
+    if (!hits || hits.length <= 0) return null;
 
-    return hits[0];
+    // ВАЖНО: у модели могут быть контурные линии/оверлеи (LineSegments),
+    // которые перехватывают hit раньше "реального" Mesh фасада.
+    // Для постановки метки выбираем первый hit именно по Mesh.
+    let best = null;
+    for (const h of hits) {
+      if (!h || !h.point) continue;
+      const obj = h.object;
+      if (obj && obj.isMesh) { best = h; break; }
+    }
+    // fallback: если Mesh не найден (редко), берём первый валидный hit
+    if (!best) {
+      for (const h of hits) {
+        if (h && h.point) { best = h; break; }
+      }
+    }
+
+    if (!best || !best.point) return null;
+    return best;
   }
 
   #createMarkerAtHit(hit) {
