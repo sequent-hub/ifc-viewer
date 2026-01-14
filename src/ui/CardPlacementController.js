@@ -54,6 +54,21 @@ export class CardPlacementController {
     this._containerOffset = { left: 0, top: 0 };
     this._containerOffsetValid = false;
 
+    this._fly = {
+      raf: 0,
+      active: false,
+      prevControlsEnabled: null,
+      startTs: 0,
+      durationMs: 550,
+      // start/end snapshots
+      from: null,
+      to: null,
+      // tmp vectors
+      v0: new THREE.Vector3(),
+      v1: new THREE.Vector3(),
+      v2: new THREE.Vector3(),
+    };
+
     this._ui = this.#createUi();
     this.#attachUi();
     this.#bindEvents();
@@ -62,6 +77,7 @@ export class CardPlacementController {
 
   dispose() {
     try { this.cancelPlacement(); } catch (_) {}
+    try { this.#cancelFly(); } catch (_) {}
 
     const dom = this.viewer?.renderer?.domElement;
     try { dom?.removeEventListener("pointermove", this._onPointerMove); } catch (_) {}
@@ -119,6 +135,50 @@ export class CardPlacementController {
     try {
       this.logger?.log?.("[CardPlacement]", event, payload);
     } catch (_) {}
+  }
+
+  #easeOutCubic(t) {
+    const x = Math.min(1, Math.max(0, Number(t) || 0));
+    const inv = 1 - x;
+    return 1 - inv * inv * inv; // быстрый старт, плавный конец
+  }
+
+  #cancelFly() {
+    if (this._fly.raf) cancelAnimationFrame(this._fly.raf);
+    this._fly.raf = 0;
+    this._fly.active = false;
+    this._fly.startTs = 0;
+    this._fly.from = null;
+    this._fly.to = null;
+
+    // Вернём OrbitControls, если отключали
+    try {
+      const controls = this.viewer?.controls;
+      if (controls && this._fly.prevControlsEnabled != null) controls.enabled = this._fly.prevControlsEnabled;
+    } catch (_) {}
+    this._fly.prevControlsEnabled = null;
+  }
+
+  #getCurrentCameraSnapshot() {
+    const viewer = this.viewer;
+    if (!viewer) return null;
+    const camera = viewer.camera;
+    const controls = viewer.controls;
+    if (!camera || !controls) return null;
+
+    const snap = {
+      projectionMode: (typeof viewer.getProjectionMode === "function")
+        ? viewer.getProjectionMode()
+        : (camera.isOrthographicCamera ? "ortho" : "perspective"),
+      camPos: camera.position.clone(),
+      target: controls.target.clone(),
+      fov: camera.isPerspectiveCamera ? Number(camera.fov) : null,
+      zoom: camera.isOrthographicCamera ? Number(camera.zoom || 1) : null,
+      viewOffset: (camera.view && camera.view.enabled)
+        ? { enabled: true, offsetX: camera.view.offsetX || 0, offsetY: camera.view.offsetY || 0 }
+        : { enabled: false, offsetX: 0, offsetY: 0 },
+    };
+    return snap;
   }
 
   #captureSceneState() {
@@ -253,6 +313,179 @@ export class CardPlacementController {
 
     try { camera?.updateProjectionMatrix?.(); } catch (_) {}
     try { controls?.update?.(); } catch (_) {}
+  }
+
+  #applyModelTransformFromState(sceneState) {
+    const viewer = this.viewer;
+    if (!viewer || !sceneState) return;
+    const model = viewer.activeModel;
+    if (!model) return;
+    const mt = sceneState?.modelTransform;
+    if (!mt?.position || !mt?.quaternion || !mt?.scale) return;
+    try {
+      model.position.set(Number(mt.position.x) || 0, Number(mt.position.y) || 0, Number(mt.position.z) || 0);
+      model.quaternion.set(
+        Number(mt.quaternion.x) || 0,
+        Number(mt.quaternion.y) || 0,
+        Number(mt.quaternion.z) || 0,
+        Number(mt.quaternion.w) || 1
+      );
+      model.scale.set(Number(mt.scale.x) || 1, Number(mt.scale.y) || 1, Number(mt.scale.z) || 1);
+      model.updateMatrixWorld?.(true);
+    } catch (_) {}
+  }
+
+  #applyClippingFromState(sceneState) {
+    const viewer = this.viewer;
+    if (!viewer || !sceneState) return;
+    try {
+      const constants = sceneState?.clipping?.constants || [];
+      if (typeof viewer.setSection === "function") {
+        ["x", "y", "z"].forEach((axis, i) => {
+          const c = constants[i];
+          const enabled = Number.isFinite(c);
+          const dist = -Number(c);
+          viewer.setSection(axis, enabled, enabled ? dist : 0);
+        });
+      }
+    } catch (_) {}
+  }
+
+  #applyViewOffset(camera, viewOffset) {
+    if (!camera || !viewOffset) return;
+    try {
+      const viewer = this.viewer;
+      const dom = viewer?.renderer?.domElement;
+      const rect = dom?.getBoundingClientRect?.();
+      const w = Math.max(1, Math.floor(rect?.width || 1));
+      const h = Math.max(1, Math.floor(rect?.height || 1));
+
+      if (viewOffset.enabled) {
+        camera.setViewOffset(w, h, Math.round(Number(viewOffset.offsetX) || 0), Math.round(Number(viewOffset.offsetY) || 0), w, h);
+      } else if (typeof camera.clearViewOffset === "function") {
+        camera.clearViewOffset();
+      } else {
+        camera.setViewOffset(w, h, 0, 0, w, h);
+      }
+    } catch (_) {}
+  }
+
+  #animateToSceneState(sceneState, durationMs = 550) {
+    const viewer = this.viewer;
+    if (!viewer || !sceneState) return;
+
+    // Если уже летим — отменим предыдущую анимацию
+    this.#cancelFly();
+
+    // 1) Сразу применяем проекцию (может сменить viewer.camera)
+    try {
+      const pm = sceneState?.camera?.projectionMode;
+      if (pm && typeof viewer.setProjectionMode === "function") viewer.setProjectionMode(pm);
+    } catch (_) {}
+
+    // 2) Сразу применяем трансформ модели (если нужен) — камера полетит уже к нужной сцене
+    this.#applyModelTransformFromState(sceneState);
+
+    const camera = viewer.camera;
+    const controls = viewer.controls;
+    if (!camera || !controls) return;
+
+    const from = this.#getCurrentCameraSnapshot();
+    if (!from) return;
+
+    // Целевые значения (камера/target/zoom/fov/offset)
+    const to = {
+      projectionMode: sceneState?.camera?.projectionMode || from.projectionMode,
+      camPos: sceneState?.camera?.position
+        ? new THREE.Vector3(Number(sceneState.camera.position.x) || 0, Number(sceneState.camera.position.y) || 0, Number(sceneState.camera.position.z) || 0)
+        : from.camPos.clone(),
+      target: sceneState?.camera?.target
+        ? new THREE.Vector3(Number(sceneState.camera.target.x) || 0, Number(sceneState.camera.target.y) || 0, Number(sceneState.camera.target.z) || 0)
+        : from.target.clone(),
+      fov: (camera.isPerspectiveCamera && sceneState?.camera?.fov != null) ? Number(sceneState.camera.fov) : from.fov,
+      zoom: (camera.isOrthographicCamera && sceneState?.camera?.zoom != null) ? Number(sceneState.camera.zoom) : from.zoom,
+      viewOffset: sceneState?.camera?.viewOffset || from.viewOffset,
+    };
+
+    // На время "долеталки" отключаем controls
+    try {
+      this._fly.prevControlsEnabled = !!controls.enabled;
+      controls.enabled = false;
+    } catch (_) {
+      this._fly.prevControlsEnabled = null;
+    }
+
+    this._fly.active = true;
+    this._fly.startTs = performance.now();
+    this._fly.durationMs = Math.max(50, Number(durationMs) || 550);
+    this._fly.from = from;
+    this._fly.to = to;
+
+    const tick = () => {
+      if (!this._fly.active) return;
+      const now = performance.now();
+      const t = (now - this._fly.startTs) / this._fly.durationMs;
+      const k = this.#easeOutCubic(t);
+
+      // position lerp
+      this._fly.v0.copy(from.camPos).lerp(to.camPos, k);
+      camera.position.copy(this._fly.v0);
+
+      // target lerp
+      this._fly.v1.copy(from.target).lerp(to.target, k);
+      controls.target.copy(this._fly.v1);
+
+      // fov/zoom
+      try {
+        if (camera.isPerspectiveCamera && to.fov != null && from.fov != null) {
+          const f = Number(from.fov) + (Number(to.fov) - Number(from.fov)) * k;
+          if (Number.isFinite(f) && f > 1e-3 && f < 179) camera.fov = f;
+        }
+      } catch (_) {}
+      try {
+        if (camera.isOrthographicCamera && to.zoom != null && from.zoom != null) {
+          const z = Number(from.zoom) + (Number(to.zoom) - Number(from.zoom)) * k;
+          if (Number.isFinite(z) && z > 1e-6) camera.zoom = z;
+        }
+      } catch (_) {}
+
+      // viewOffset lerp
+      try {
+        const vo0 = from.viewOffset || { enabled: false, offsetX: 0, offsetY: 0 };
+        const vo1 = to.viewOffset || { enabled: false, offsetX: 0, offsetY: 0 };
+        const enabled = !!(vo0.enabled || vo1.enabled);
+        const ox = Number(vo0.offsetX) + (Number(vo1.offsetX) - Number(vo0.offsetX)) * k;
+        const oy = Number(vo0.offsetY) + (Number(vo1.offsetY) - Number(vo0.offsetY)) * k;
+        this.#applyViewOffset(camera, { enabled, offsetX: ox, offsetY: oy });
+      } catch (_) {}
+
+      try { camera.updateProjectionMatrix?.(); } catch (_) {}
+      try { controls.update?.(); } catch (_) {}
+
+      if (t >= 1) {
+        // Финал: зафиксируем точные значения
+        try { camera.position.copy(to.camPos); } catch (_) {}
+        try { controls.target.copy(to.target); } catch (_) {}
+        try {
+          if (camera.isPerspectiveCamera && to.fov != null) camera.fov = to.fov;
+          if (camera.isOrthographicCamera && to.zoom != null) camera.zoom = to.zoom;
+        } catch (_) {}
+        try { this.#applyViewOffset(camera, to.viewOffset); } catch (_) {}
+
+        // В конце применяем clipping (чтобы ориентация плоскостей считалась по финальной камере)
+        this.#applyClippingFromState(sceneState);
+
+        try { camera.updateProjectionMatrix?.(); } catch (_) {}
+        try { controls.update?.(); } catch (_) {}
+
+        this.#cancelFly();
+        return;
+      }
+
+      this._fly.raf = requestAnimationFrame(tick);
+    };
+
+    this._fly.raf = requestAnimationFrame(tick);
   }
 
   #createUi() {
@@ -452,7 +685,8 @@ export class CardPlacementController {
       try { e.stopImmediatePropagation?.(); } catch (_) {}
       // если были в режиме постановки — выходим
       try { this.cancelPlacement(); } catch (_) {}
-      this.#restoreSceneState(marker.sceneState);
+      // "Долеталка" камеры: быстрый старт + мягкий конец
+      this.#animateToSceneState(marker.sceneState, 550);
     };
     // capture-phase, чтобы обогнать любые handlers на canvas
     try { el.addEventListener("pointerdown", this._onMarkerPointerDown, { capture: true, passive: false }); } catch (_) {
