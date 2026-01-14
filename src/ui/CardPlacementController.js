@@ -6,11 +6,13 @@ class CardMarker {
    * @param {number} deps.id
    * @param {THREE.Vector3} deps.localPoint
    * @param {HTMLElement} deps.el
+   * @param {object|null} deps.sceneState
    */
   constructor(deps) {
     this.id = deps.id;
     this.localPoint = deps.localPoint;
     this.el = deps.el;
+    this.sceneState = deps.sceneState || null;
   }
 }
 
@@ -117,6 +119,140 @@ export class CardPlacementController {
     try {
       this.logger?.log?.("[CardPlacement]", event, payload);
     } catch (_) {}
+  }
+
+  #captureSceneState() {
+    const viewer = this.viewer;
+    if (!viewer) return null;
+
+    const camera = viewer.camera;
+    const controls = viewer.controls;
+    const model = viewer.activeModel;
+
+    const projectionMode = (typeof viewer.getProjectionMode === "function")
+      ? viewer.getProjectionMode()
+      : (camera?.isOrthographicCamera ? "ortho" : "perspective");
+
+    const camPos = camera?.position ? { x: camera.position.x, y: camera.position.y, z: camera.position.z } : null;
+    const target = controls?.target ? { x: controls.target.x, y: controls.target.y, z: controls.target.z } : null;
+
+    const cam = {
+      projectionMode,
+      position: camPos,
+      target,
+      fov: (camera && camera.isPerspectiveCamera) ? Number(camera.fov) : null,
+      zoom: (camera && camera.isOrthographicCamera) ? Number(camera.zoom || 1) : null,
+      // MMB-pan (camera.viewOffset) — сохраняем как есть, в пикселях
+      viewOffset: (camera && camera.view && camera.view.enabled)
+        ? { enabled: true, offsetX: camera.view.offsetX || 0, offsetY: camera.view.offsetY || 0 }
+        : { enabled: false, offsetX: 0, offsetY: 0 },
+    };
+
+    const modelTransform = model ? {
+      position: { x: model.position.x, y: model.position.y, z: model.position.z },
+      quaternion: { x: model.quaternion.x, y: model.quaternion.y, z: model.quaternion.z, w: model.quaternion.w },
+      scale: { x: model.scale.x, y: model.scale.y, z: model.scale.z },
+    } : null;
+
+    const planes = viewer.clipping?.planes || [];
+    const clipConstants = [
+      planes?.[0]?.constant,
+      planes?.[1]?.constant,
+      planes?.[2]?.constant,
+    ];
+
+    return {
+      camera: cam,
+      modelTransform,
+      clipping: { constants: clipConstants },
+    };
+  }
+
+  #restoreSceneState(sceneState) {
+    const viewer = this.viewer;
+    if (!viewer || !sceneState) return;
+
+    // 1) Проекция (может заменить ссылку viewer.camera)
+    try {
+      const pm = sceneState?.camera?.projectionMode;
+      if (pm && typeof viewer.setProjectionMode === "function") viewer.setProjectionMode(pm);
+    } catch (_) {}
+
+    const camera = viewer.camera;
+    const controls = viewer.controls;
+    const model = viewer.activeModel;
+
+    // 2) Камера + target + zoom/fov
+    try {
+      const t = sceneState?.camera?.target;
+      if (controls && t) controls.target.set(Number(t.x) || 0, Number(t.y) || 0, Number(t.z) || 0);
+    } catch (_) {}
+    try {
+      const p = sceneState?.camera?.position;
+      if (camera && p) camera.position.set(Number(p.x) || 0, Number(p.y) || 0, Number(p.z) || 0);
+    } catch (_) {}
+    try {
+      if (camera?.isPerspectiveCamera && sceneState?.camera?.fov != null) {
+        const fov = Number(sceneState.camera.fov);
+        if (Number.isFinite(fov) && fov > 1e-3 && fov < 179) camera.fov = fov;
+      }
+    } catch (_) {}
+    try {
+      if (camera?.isOrthographicCamera && sceneState?.camera?.zoom != null) {
+        const z = Number(sceneState.camera.zoom);
+        if (Number.isFinite(z) && z > 1e-6) camera.zoom = z;
+      }
+    } catch (_) {}
+
+    // 3) Трансформ модели (позиция/поворот/масштаб)
+    try {
+      const mt = sceneState?.modelTransform;
+      if (model && mt?.position && mt?.quaternion && mt?.scale) {
+        model.position.set(Number(mt.position.x) || 0, Number(mt.position.y) || 0, Number(mt.position.z) || 0);
+        model.quaternion.set(
+          Number(mt.quaternion.x) || 0,
+          Number(mt.quaternion.y) || 0,
+          Number(mt.quaternion.z) || 0,
+          Number(mt.quaternion.w) || 1
+        );
+        model.scale.set(Number(mt.scale.x) || 1, Number(mt.scale.y) || 1, Number(mt.scale.z) || 1);
+        model.updateMatrixWorld?.(true);
+      }
+    } catch (_) {}
+
+    // 4) ViewOffset (MMB-pan) — применяем после смены камеры/проекции
+    try {
+      const vo = sceneState?.camera?.viewOffset;
+      if (camera && vo && typeof camera.setViewOffset === "function") {
+        const dom = viewer?.renderer?.domElement;
+        const rect = dom?.getBoundingClientRect?.();
+        const w = Math.max(1, Math.floor(rect?.width || 1));
+        const h = Math.max(1, Math.floor(rect?.height || 1));
+        if (vo.enabled) {
+          camera.setViewOffset(w, h, Math.round(Number(vo.offsetX) || 0), Math.round(Number(vo.offsetY) || 0), w, h);
+        } else if (typeof camera.clearViewOffset === "function") {
+          camera.clearViewOffset();
+        } else {
+          camera.setViewOffset(w, h, 0, 0, w, h);
+        }
+      }
+    } catch (_) {}
+
+    // 5) Клиппинг (как Home: сначала восстановили камеру+модель, затем planes)
+    try {
+      const constants = sceneState?.clipping?.constants || [];
+      if (typeof viewer.setSection === "function") {
+        ["x", "y", "z"].forEach((axis, i) => {
+          const c = constants[i];
+          const enabled = Number.isFinite(c);
+          const dist = -Number(c);
+          viewer.setSection(axis, enabled, enabled ? dist : 0);
+        });
+      }
+    } catch (_) {}
+
+    try { camera?.updateProjectionMatrix?.(); } catch (_) {}
+    try { controls?.update?.(); } catch (_) {}
   }
 
   #createUi() {
@@ -294,6 +430,8 @@ export class CardPlacementController {
     el.style.top = "0px";
     this.container.appendChild(el);
 
+    const sceneState = this.#captureSceneState();
+
     // Храним локальную координату модели, чтобы метка оставалась “приклеенной” к модели
     this._tmpLocal.copy(hit.point);
     model.worldToLocal(this._tmpLocal);
@@ -302,12 +440,29 @@ export class CardPlacementController {
       id,
       localPoint: this._tmpLocal.clone(),
       el,
+      sceneState,
     });
     this._markers.push(marker);
+
+    // Клик по метке: восстановить сцену (камера/зум, модель, разрез)
+    this._onMarkerPointerDown = (e) => {
+      // Важно: не даём клику попасть в canvas/OrbitControls
+      try { e.preventDefault(); } catch (_) {}
+      try { e.stopPropagation(); } catch (_) {}
+      try { e.stopImmediatePropagation?.(); } catch (_) {}
+      // если были в режиме постановки — выходим
+      try { this.cancelPlacement(); } catch (_) {}
+      this.#restoreSceneState(marker.sceneState);
+    };
+    // capture-phase, чтобы обогнать любые handlers на canvas
+    try { el.addEventListener("pointerdown", this._onMarkerPointerDown, { capture: true, passive: false }); } catch (_) {
+      try { el.addEventListener("pointerdown", this._onMarkerPointerDown); } catch (_) {}
+    }
 
     this.#log("placed", {
       id,
       local: { x: +marker.localPoint.x.toFixed(4), y: +marker.localPoint.y.toFixed(4), z: +marker.localPoint.z.toFixed(4) },
+      sceneState: sceneState ? { hasCamera: !!sceneState.camera, hasModel: !!sceneState.modelTransform, hasClip: !!sceneState.clipping } : null,
     });
   }
 

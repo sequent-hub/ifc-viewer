@@ -175,6 +175,14 @@
 .ifc-card-marker {
   width: 18px;
   height: 18px;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+/* Клик ловим на контейнере метки, дочерние элементы пусть не перехватывают */
+.ifc-card-marker .ifc-card-dot,
+.ifc-card-marker .ifc-card-num {
+  pointer-events: none;
 }
 
 /* === NAVBAR COMPONENT === */
