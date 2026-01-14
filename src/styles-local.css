@@ -141,11 +141,10 @@
   pointer-events: none;
   display: block;
   transform: translate(-50%, -50%);
-  will-change: left, top;
+  will-change: transform;
 }
 
 .ifc-card-ghost {
-  transform: translate(0, 0); /* ghost already offset from cursor */
   display: none;
 }
 

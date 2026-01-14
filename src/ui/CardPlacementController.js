@@ -44,9 +44,13 @@ export class CardPlacementController {
     this._tmpLocal = new THREE.Vector3();
 
     this._lastPointer = { x: 0, y: 0 };
+    this._ghostPos = { x: 0, y: 0 };
     this._raf = 0;
 
     this._controlsWasEnabled = null;
+
+    this._containerOffset = { left: 0, top: 0 };
+    this._containerOffsetValid = false;
 
     this._ui = this.#createUi();
     this.#attachUi();
@@ -59,10 +63,13 @@ export class CardPlacementController {
 
     const dom = this.viewer?.renderer?.domElement;
     try { dom?.removeEventListener("pointermove", this._onPointerMove); } catch (_) {}
+    try { dom?.removeEventListener("pointerrawupdate", this._onPointerRawUpdate); } catch (_) {}
     try { dom?.removeEventListener("pointerdown", this._onPointerDownCapture, { capture: true }); } catch (_) {
       try { dom?.removeEventListener("pointerdown", this._onPointerDownCapture); } catch (_) {}
     }
     try { window.removeEventListener("keydown", this._onKeyDown); } catch (_) {}
+    try { window.removeEventListener("resize", this._onWindowResize); } catch (_) {}
+    try { window.removeEventListener("scroll", this._onWindowScroll, true); } catch (_) {}
     try { this._ui?.btn?.removeEventListener("click", this._onBtnClick); } catch (_) {}
 
     if (this._raf) cancelAnimationFrame(this._raf);
@@ -86,6 +93,7 @@ export class CardPlacementController {
       controls.enabled = false;
     }
 
+    this.#refreshContainerOffset();
     this.#syncGhost();
     this.#setGhostVisible(true);
     this.#log("startPlacement", { nextId: this._nextId });
@@ -121,6 +129,9 @@ export class CardPlacementController {
     ghost.className = "ifc-card-ghost";
     ghost.setAttribute("aria-hidden", "true");
     ghost.style.display = "none";
+    // Базовая позиция: двигаем transform'ом, поэтому left/top держим в 0
+    ghost.style.left = "0px";
+    ghost.style.top = "0px";
 
     const dot = document.createElement("div");
     dot.className = "ifc-card-dot";
@@ -155,15 +166,35 @@ export class CardPlacementController {
     };
     window.addEventListener("keydown", this._onKeyDown);
 
+    // Смещение контейнера (#app) относительно viewport может меняться при resize/scroll.
+    // Обновляем кэш, чтобы призрак/метки не "плыли".
+    this._onWindowResize = () => {
+      this.#refreshContainerOffset();
+      if (this._placing) this.#syncGhost();
+    };
+    this._onWindowScroll = () => {
+      this.#refreshContainerOffset();
+      if (this._placing) this.#syncGhost();
+    };
+    window.addEventListener("resize", this._onWindowResize, { passive: true });
+    // scroll слушаем в capture, чтобы ловить скролл вложенных контейнеров
+    window.addEventListener("scroll", this._onWindowScroll, true);
+
     const dom = this.viewer?.renderer?.domElement;
     if (!dom) return;
 
     this._onPointerMove = (e) => {
       if (!this._placing) return;
-      this._lastPointer = { x: e.clientX, y: e.clientY };
-      this.#syncGhost();
+      this.#updateGhostFromClient(e.clientX, e.clientY);
     };
     dom.addEventListener("pointermove", this._onPointerMove, { passive: true });
+
+    // Best-effort: более частые координаты, чем pointermove (Chrome).
+    this._onPointerRawUpdate = (e) => {
+      if (!this._placing) return;
+      this.#updateGhostFromClient(e.clientX, e.clientY);
+    };
+    try { dom.addEventListener("pointerrawupdate", this._onPointerRawUpdate, { passive: true }); } catch (_) {}
 
     this._onPointerDownCapture = (e) => {
       if (!this._placing) return;
@@ -191,15 +222,42 @@ export class CardPlacementController {
     this._ui.ghost.style.display = visible ? "block" : "none";
   }
 
+  #refreshContainerOffset() {
+    const cr = this.container?.getBoundingClientRect?.();
+    if (!cr) {
+      this._containerOffset.left = 0;
+      this._containerOffset.top = 0;
+      this._containerOffsetValid = false;
+      return;
+    }
+    this._containerOffset.left = cr.left || 0;
+    this._containerOffset.top = cr.top || 0;
+    this._containerOffsetValid = true;
+  }
+
+  #applyGhostTransform() {
+    const g = this._ui?.ghost;
+    if (!g) return;
+    g.style.transform = `translate3d(${this._ghostPos.x}px, ${this._ghostPos.y}px, 0) translate(-50%, -50%)`;
+  }
+
+  #updateGhostFromClient(clientX, clientY) {
+    this._lastPointer = { x: clientX, y: clientY };
+    if (!this._containerOffsetValid) this.#refreshContainerOffset();
+    const x = (clientX - this._containerOffset.left);
+    const y = (clientY - this._containerOffset.top);
+    this._ghostPos.x = x;
+    this._ghostPos.y = y;
+    // Обновляем transform сразу в обработчике — без ожидания RAF.
+    this.#applyGhostTransform();
+  }
+
   #syncGhost() {
     const g = this._ui?.ghost;
     if (!g) return;
     this._ui.num.textContent = String(this._nextId);
-    // Призрак “у курсора”: небольшой сдвиг, чтобы не перекрывать точку клика
-    const x = this._lastPointer.x + 12;
-    const y = this._lastPointer.y + 12;
-    g.style.left = `${x}px`;
-    g.style.top = `${y}px`;
+    // Число может меняться (id), позиция — из последних координат курсора.
+    this.#updateGhostFromClient(this._lastPointer.x, this._lastPointer.y);
   }
 
   #pickModelPoint(clientX, clientY) {
@@ -231,6 +289,9 @@ export class CardPlacementController {
     el.className = "ifc-card-marker";
     el.setAttribute("data-id", String(id));
     el.innerHTML = `<div class="ifc-card-dot"></div><div class="ifc-card-num">${id}</div>`;
+    // Базовая позиция: двигаем transform'ом, поэтому left/top держим в 0
+    el.style.left = "0px";
+    el.style.top = "0px";
     this.container.appendChild(el);
 
     // Храним локальную координату модели, чтобы метка оставалась “приклеенной” к модели
@@ -300,8 +361,7 @@ export class CardPlacementController {
       }
 
       m.el.style.display = "block";
-      m.el.style.left = `${x}px`;
-      m.el.style.top = `${y}px`;
+      m.el.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%)`;
     }
   }
 }
