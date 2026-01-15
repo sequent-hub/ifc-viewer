@@ -361,6 +361,24 @@ export class IfcViewer {
   }
 
   /**
+   * Устанавливает метки карточек извне.
+   * @param {Array<{id: (number|string), localPoint: {x:number,y:number,z:number}, sceneState: object}>} items
+   */
+  setCardMarkers(items) {
+    if (!this.cardPlacement) return;
+    this.cardPlacement.setCardMarkers(items);
+  }
+
+  /**
+   * Возвращает текущие метки карточек.
+   * @returns {Array<{id: (number|string), localPoint: {x:number,y:number,z:number}, sceneState: object}>}
+   */
+  getCardMarkers() {
+    if (!this.cardPlacement) return [];
+    return this.cardPlacement.getCardMarkers();
+  }
+
+  /**
    * Устанавливает видимость боковой панели
    * @param {boolean} visible - Показать или скрыть
    */

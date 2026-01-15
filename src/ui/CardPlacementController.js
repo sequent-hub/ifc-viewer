@@ -3,7 +3,7 @@ import * as THREE from "three";
 class CardMarker {
   /**
    * @param {object} deps
-   * @param {number} deps.id
+   * @param {number|string} deps.id
    * @param {THREE.Vector3} deps.localPoint
    * @param {HTMLElement} deps.el
    * @param {object|null} deps.sceneState
@@ -134,6 +134,13 @@ export class CardPlacementController {
   #log(event, payload) {
     try {
       this.logger?.log?.("[CardPlacement]", event, payload);
+    } catch (_) {}
+  }
+
+  #dispatchCardEvent(name, detail) {
+    try {
+      const ev = new CustomEvent(name, { detail, bubbles: true });
+      this.container?.dispatchEvent?.(ev);
     } catch (_) {}
   }
 
@@ -671,6 +678,26 @@ export class CardPlacementController {
     if (!model) return;
 
     const id = this._nextId++;
+
+    // Храним локальную координату модели, чтобы метка оставалась “приклеенной” к модели
+    this._tmpLocal.copy(hit.point);
+    model.worldToLocal(this._tmpLocal);
+
+    const sceneState = this.#captureSceneState();
+    const marker = this.#createMarkerFromData({
+      id,
+      localPoint: { x: this._tmpLocal.x, y: this._tmpLocal.y, z: this._tmpLocal.z },
+      sceneState,
+    }, true);
+
+    this.#log("placed", {
+      id,
+      local: { x: +marker.localPoint.x.toFixed(4), y: +marker.localPoint.y.toFixed(4), z: +marker.localPoint.z.toFixed(4) },
+      sceneState: sceneState ? { hasCamera: !!sceneState.camera, hasModel: !!sceneState.modelTransform, hasClip: !!sceneState.clipping } : null,
+    });
+  }
+
+  #createMarkerElement(id) {
     const el = document.createElement("div");
     el.className = "ifc-card-marker";
     el.setAttribute("data-id", String(id));
@@ -679,42 +706,80 @@ export class CardPlacementController {
     el.style.left = "0px";
     el.style.top = "0px";
     this.container.appendChild(el);
+    return el;
+  }
 
-    const sceneState = this.#captureSceneState();
-
-    // Храним локальную координату модели, чтобы метка оставалась “приклеенной” к модели
-    this._tmpLocal.copy(hit.point);
-    model.worldToLocal(this._tmpLocal);
-
+  #createMarkerFromData(data, emitPlacedEvent) {
+    if (!data) return null;
+    const localPoint = data.localPoint || {};
     const marker = new CardMarker({
-      id,
-      localPoint: this._tmpLocal.clone(),
-      el,
-      sceneState,
+      id: data.id,
+      localPoint: new THREE.Vector3(
+        Number(localPoint.x) || 0,
+        Number(localPoint.y) || 0,
+        Number(localPoint.z) || 0
+      ),
+      el: this.#createMarkerElement(data.id),
+      sceneState: data.sceneState || null,
     });
     this._markers.push(marker);
 
-    // Клик по метке: восстановить сцену (камера/зум, модель, разрез)
-    this._onMarkerPointerDown = (e) => {
+    const onMarkerPointerDown = (e) => {
       // Важно: не даём клику попасть в canvas/OrbitControls
       try { e.preventDefault(); } catch (_) {}
       try { e.stopPropagation(); } catch (_) {}
       try { e.stopImmediatePropagation?.(); } catch (_) {}
       // если были в режиме постановки — выходим
       try { this.cancelPlacement(); } catch (_) {}
+
+      this.#dispatchCardEvent("ifcviewer:card-click", {
+        id: marker.id,
+        sceneState: marker.sceneState || null,
+      });
       // "Долеталка" камеры: быстрый старт + мягкий конец
       this.#animateToSceneState(marker.sceneState, 550);
     };
     // capture-phase, чтобы обогнать любые handlers на canvas
-    try { el.addEventListener("pointerdown", this._onMarkerPointerDown, { capture: true, passive: false }); } catch (_) {
-      try { el.addEventListener("pointerdown", this._onMarkerPointerDown); } catch (_) {}
+    try { marker.el.addEventListener("pointerdown", onMarkerPointerDown, { capture: true, passive: false }); } catch (_) {
+      try { marker.el.addEventListener("pointerdown", onMarkerPointerDown); } catch (_) {}
     }
 
-    this.#log("placed", {
-      id,
-      local: { x: +marker.localPoint.x.toFixed(4), y: +marker.localPoint.y.toFixed(4), z: +marker.localPoint.z.toFixed(4) },
-      sceneState: sceneState ? { hasCamera: !!sceneState.camera, hasModel: !!sceneState.modelTransform, hasClip: !!sceneState.clipping } : null,
-    });
+    if (emitPlacedEvent) {
+      this.#dispatchCardEvent("ifcviewer:card-placed", {
+        id: marker.id,
+        localPoint: { x: marker.localPoint.x, y: marker.localPoint.y, z: marker.localPoint.z },
+        sceneState: marker.sceneState || null,
+      });
+    }
+
+    return marker;
+  }
+
+  #clearMarkers() {
+    try { this._markers.forEach((m) => m?.el?.remove?.()); } catch (_) {}
+    this._markers.length = 0;
+  }
+
+  setCardMarkers(items) {
+    if (!Array.isArray(items)) return;
+    this.#clearMarkers();
+
+    let maxNumericId = null;
+    for (const item of items) {
+      const marker = this.#createMarkerFromData(item, false);
+      if (marker && typeof marker.id === "number" && Number.isFinite(marker.id)) {
+        maxNumericId = (maxNumericId == null) ? marker.id : Math.max(maxNumericId, marker.id);
+      }
+    }
+    if (maxNumericId != null) this._nextId = Math.max(1, Math.floor(maxNumericId) + 1);
+  }
+
+  getCardMarkers() {
+    return this._markers.map((m) => ({
+      id: m.id,
+      localPoint: { x: m.localPoint.x, y: m.localPoint.y, z: m.localPoint.z },
+      sceneState: m.sceneState || null,
+    }));
   }
 
   #startRaf() {
