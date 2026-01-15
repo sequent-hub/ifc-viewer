@@ -22,7 +22,7 @@ import { TdsModelLoader } from "./model-loading/loaders/TdsModelLoader.js";
 import { StlModelLoader } from "./model-loading/loaders/StlModelLoader.js";
 import { DaeModelLoader } from "./model-loading/loaders/DaeModelLoader.js";
 import { ThreeDmModelLoader } from "./model-loading/loaders/ThreeDmModelLoader.js";
-import { CardPlacementController } from "./ui/CardPlacementController.js";
+import { LabelPlacementController } from "./ui/LabelPlacementController.js";
 import './style.css';
 
 
@@ -83,6 +83,7 @@ export class IfcViewer {
     this.viewer = null;
     this.ifcService = null;
     this.ifcTreeView = null;
+    this.labelPlacement = null;
     this.cardPlacement = null;
     /** @type {ModelLoaderRegistry|null} */
     this.modelLoaders = null;
@@ -311,10 +312,11 @@ export class IfcViewer {
       this.ifcService = null;
     }
 
-    if (this.cardPlacement) {
-      try { this.cardPlacement.dispose(); } catch (_) {}
-      this.cardPlacement = null;
+    if (this.labelPlacement) {
+      try { this.labelPlacement.dispose(); } catch (_) {}
+      this.labelPlacement = null;
     }
+    this.cardPlacement = null;
     
     if (this.viewer) {
       this.viewer.dispose();
@@ -361,21 +363,46 @@ export class IfcViewer {
   }
 
   /**
-   * Устанавливает метки карточек извне.
+   * Устанавливает метки извне.
    * @param {Array<{id: (number|string), localPoint: {x:number,y:number,z:number}, sceneState: object}>} items
    */
-  setCardMarkers(items) {
-    if (!this.cardPlacement) return;
-    this.cardPlacement.setCardMarkers(items);
+  setLabelMarkers(items) {
+    if (!this.labelPlacement) return;
+    this.labelPlacement.setLabelMarkers(items);
   }
 
   /**
-   * Возвращает текущие метки карточек.
+   * Возвращает текущие метки.
    * @returns {Array<{id: (number|string), localPoint: {x:number,y:number,z:number}, sceneState: object}>}
    */
+  getLabelMarkers() {
+    if (!this.labelPlacement) return [];
+    return this.labelPlacement.getLabelMarkers();
+  }
+
+  /**
+   * Программно выбирает метку по id.
+   * @param {number|string|null} id
+   */
+  selectLabel(id) {
+    if (!this.labelPlacement) return;
+    this.labelPlacement.selectLabel(id);
+  }
+
+  /**
+   * @deprecated используйте setLabelMarkers
+   */
+  setCardMarkers(items) {
+    if (!this.labelPlacement) return;
+    this.labelPlacement.setCardMarkers(items);
+  }
+
+  /**
+   * @deprecated используйте getLabelMarkers
+   */
   getCardMarkers() {
-    if (!this.cardPlacement) return [];
-    return this.cardPlacement.getCardMarkers();
+    if (!this.labelPlacement) return [];
+    return this.labelPlacement.getCardMarkers();
   }
 
   /**
@@ -534,12 +561,14 @@ export class IfcViewer {
     this.viewer = new Viewer(this.elements.viewerContainer);
     this.viewer.init();
 
-    // В пакете включаем UI "карточек" по умолчанию:
-    // кнопка "+ Добавить карточку" + режим постановки меток + сохранение/восстановление состояния.
+    // В пакете включаем UI "меток" по умолчанию:
+    // кнопка "+ Добавить метку" + режим постановки меток + сохранение/восстановление состояния.
     try {
-      this.cardPlacement = new CardPlacementController({ viewer: this.viewer, container: this.elements.viewerContainer, logger: console });
+      this.labelPlacement = new LabelPlacementController({ viewer: this.viewer, container: this.elements.viewerContainer, logger: console });
+      this.cardPlacement = this.labelPlacement;
     } catch (e) {
-      console.warn('IfcViewer: CardPlacementController init failed', e);
+      console.warn('IfcViewer: LabelPlacementController init failed', e);
+      this.labelPlacement = null;
       this.cardPlacement = null;
     }
   }
