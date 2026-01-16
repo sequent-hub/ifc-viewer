@@ -213,7 +213,7 @@ export class Viewer {
 
     // RMB: перемещение модели относительно "оси" (pivot), pivot остаётся на месте
     this._rmbModelMove = {
-      enabled: true,
+      enabled: false,
       debug: false,
       controller: null,
       pivotAnchor: null, // THREE.Vector3|null (фиксированная ось после ПКМ)

@@ -59,6 +59,10 @@ export class LabelPlacementController {
       open: false,
       marker: null,
     };
+    this._canvasMenu = {
+      open: false,
+      hit: null,
+    };
 
     this._fly = {
       raf: 0,
@@ -99,6 +103,11 @@ export class LabelPlacementController {
     try { this._ui?.btn?.removeEventListener("click", this._onBtnClick); } catch (_) {}
     try { this._ui?.menu?.removeEventListener("pointerdown", this._onMenuPointerDown); } catch (_) {}
     try { this._ui?.menu?.removeEventListener("click", this._onMenuClick); } catch (_) {}
+    try { this._ui?.canvasMenu?.removeEventListener("pointerdown", this._onCanvasMenuPointerDown); } catch (_) {}
+    try { this._ui?.canvasMenu?.removeEventListener("click", this._onCanvasMenuClick); } catch (_) {}
+    try { dom?.removeEventListener("contextmenu", this._onCanvasContextMenu, { capture: true }); } catch (_) {
+      try { dom?.removeEventListener("contextmenu", this._onCanvasContextMenu); } catch (_) {}
+    }
 
     if (this._raf) cancelAnimationFrame(this._raf);
     this._raf = 0;
@@ -109,6 +118,7 @@ export class LabelPlacementController {
     try { this._ui?.ghost?.remove?.(); } catch (_) {}
     try { this._ui?.btn?.remove?.(); } catch (_) {}
     try { this._ui?.menu?.remove?.(); } catch (_) {}
+    try { this._ui?.canvasMenu?.remove?.(); } catch (_) {}
   }
 
   startPlacement() {
@@ -560,7 +570,20 @@ export class LabelPlacementController {
     menu.appendChild(menuMove);
     menu.appendChild(menuDelete);
 
-    return { btn, ghost, dot, num, menu };
+    const canvasMenu = document.createElement("div");
+    canvasMenu.className = "ifc-label-menu";
+    canvasMenu.style.display = "none";
+    canvasMenu.setAttribute("role", "menu");
+
+    const menuAdd = document.createElement("button");
+    menuAdd.type = "button";
+    menuAdd.className = "ifc-label-menu-item";
+    menuAdd.textContent = "Добавить метку";
+    menuAdd.setAttribute("data-action", "add");
+
+    canvasMenu.appendChild(menuAdd);
+
+    return { btn, ghost, dot, num, menu, canvasMenu };
   }
 
   #attachUi() {
@@ -568,6 +591,7 @@ export class LabelPlacementController {
     this.container.appendChild(this._ui.btn);
     this.container.appendChild(this._ui.ghost);
     this.container.appendChild(this._ui.menu);
+    this.container.appendChild(this._ui.canvasMenu);
   }
 
   #bindEvents() {
@@ -599,6 +623,27 @@ export class LabelPlacementController {
       this.#closeContextMenu();
     };
     this._ui.menu.addEventListener("click", this._onMenuClick);
+
+    this._onCanvasMenuPointerDown = (e) => {
+      // Не даём клику меню попасть в canvas/OrbitControls
+      try { e.preventDefault(); } catch (_) {}
+      try { e.stopPropagation(); } catch (_) {}
+      try { e.stopImmediatePropagation?.(); } catch (_) {}
+    };
+    this._ui.canvasMenu.addEventListener("pointerdown", this._onCanvasMenuPointerDown, { passive: false });
+
+    this._onCanvasMenuClick = (e) => {
+      const target = e.target;
+      const action = target?.getAttribute?.("data-action");
+      if (action !== "add") return;
+      try { e.preventDefault(); } catch (_) {}
+      try { e.stopPropagation(); } catch (_) {}
+
+      const hit = this._canvasMenu?.hit || null;
+      if (hit) this.#createMarkerAtHit(hit);
+      this.#closeCanvasMenu();
+    };
+    this._ui.canvasMenu.addEventListener("click", this._onCanvasMenuClick);
 
     this._onKeyDown = (e) => {
       if (this._placing) {
@@ -634,10 +679,13 @@ export class LabelPlacementController {
     window.addEventListener("keydown", this._onKeyDown);
 
     this._onWindowPointerDown = (e) => {
-      if (!this._contextMenu.open) return;
+      if (!this._contextMenu.open && !this._canvasMenu.open) return;
       const menu = this._ui?.menu;
+      const canvasMenu = this._ui?.canvasMenu;
       if (menu && menu.contains(e.target)) return;
+      if (canvasMenu && canvasMenu.contains(e.target)) return;
       this.#closeContextMenu();
+      this.#closeCanvasMenu();
     };
     window.addEventListener("pointerdown", this._onWindowPointerDown, true);
 
@@ -692,6 +740,25 @@ export class LabelPlacementController {
       this.cancelPlacement(); // по ТЗ: “вторым кликом устанавливаем”
     };
     dom.addEventListener("pointerdown", this._onPointerDownCapture, { capture: true, passive: false });
+
+    this._onCanvasContextMenu = (e) => {
+      // Контекстное меню добавления метки по ПКМ на модели (если нет метки под курсором).
+      try { e.preventDefault(); } catch (_) {}
+      try { e.stopPropagation(); } catch (_) {}
+      try { e.stopImmediatePropagation?.(); } catch (_) {}
+      try { this.cancelPlacement(); } catch (_) {}
+
+      const el = document.elementFromPoint?.(e.clientX, e.clientY);
+      if (el && el.closest?.(".ifc-label-marker")) return;
+      if (el && el.closest?.(".ifc-label-menu")) return;
+
+      const hit = this.#pickModelPoint(e.clientX, e.clientY);
+      if (!hit) return;
+
+      this.#closeContextMenu();
+      this.#openCanvasMenu(hit, e.clientX, e.clientY);
+    };
+    dom.addEventListener("contextmenu", this._onCanvasContextMenu, { capture: true, passive: false });
   }
 
   #setGhostVisible(visible) {
@@ -889,6 +956,46 @@ export class LabelPlacementController {
     if (!menu) return;
     this._contextMenu.open = false;
     this._contextMenu.marker = null;
+    menu.style.display = "none";
+  }
+
+  #openCanvasMenu(hit, clientX, clientY) {
+    const menu = this._ui?.canvasMenu;
+    if (!menu || !hit) return;
+
+    this.#closeCanvasMenu();
+
+    this._canvasMenu.open = true;
+    this._canvasMenu.hit = hit;
+
+    if (!this._containerOffsetValid) this.#refreshContainerOffset();
+    const x = clientX - this._containerOffset.left;
+    const y = clientY - this._containerOffset.top;
+
+    menu.style.display = "block";
+    menu.style.left = "0px";
+    menu.style.top = "0px";
+    menu.style.transform = `translate3d(${x}px, ${y}px, 0) translate(8px, 8px)`;
+
+    try {
+      const rect = this.container?.getBoundingClientRect?.();
+      const mw = menu.offsetWidth || 0;
+      const mh = menu.offsetHeight || 0;
+      if (rect && mw && mh) {
+        let px = x + 8;
+        let py = y + 8;
+        if (px + mw > rect.width) px = Math.max(0, rect.width - mw - 4);
+        if (py + mh > rect.height) py = Math.max(0, rect.height - mh - 4);
+        menu.style.transform = `translate3d(${px}px, ${py}px, 0)`;
+      }
+    } catch (_) {}
+  }
+
+  #closeCanvasMenu() {
+    const menu = this._ui?.canvasMenu;
+    if (!menu) return;
+    this._canvasMenu.open = false;
+    this._canvasMenu.hit = null;
     menu.style.display = "none";
   }
 
