@@ -50,6 +50,21 @@ export class LabelPlacementController {
     this._ghostPos = { x: 0, y: 0 };
     this._raf = 0;
 
+    this._labelDrag = {
+      active: false,
+      moved: false,
+      pointerId: null,
+      id: null,
+      start: { x: 0, y: 0 },
+      last: { x: 0, y: 0 },
+      ghostPos: { x: 0, y: 0 },
+      clickMarker: null,
+      prevControlsEnabled: null,
+      threshold: 4,
+    };
+
+    this._labelDragDropSelector = deps?.labelDragDropSelector || null;
+
     this._controlsWasEnabled = null;
 
     this._containerOffset = { left: 0, top: 0 };
@@ -96,10 +111,23 @@ export class LabelPlacementController {
     try { dom?.removeEventListener("pointerdown", this._onPointerDownCapture, { capture: true }); } catch (_) {
       try { dom?.removeEventListener("pointerdown", this._onPointerDownCapture); } catch (_) {}
     }
+    try { dom?.removeEventListener("pointerdown", this._onDbgDomPointerDown); } catch (_) {}
+    try { dom?.removeEventListener("pointermove", this._onDbgDomPointerMove); } catch (_) {}
+    try { dom?.removeEventListener("pointerup", this._onDbgDomPointerUp); } catch (_) {}
     try { window.removeEventListener("keydown", this._onKeyDown); } catch (_) {}
     try { window.removeEventListener("resize", this._onWindowResize); } catch (_) {}
     try { window.removeEventListener("scroll", this._onWindowScroll, true); } catch (_) {}
     try { window.removeEventListener("pointerdown", this._onWindowPointerDown, true); } catch (_) {}
+    try { document.removeEventListener("pointerdown", this._onDbgDocPointerDown); } catch (_) {}
+    try { document.removeEventListener("pointermove", this._onDbgDocPointerMove); } catch (_) {}
+    try { document.removeEventListener("pointerup", this._onDbgDocPointerUp); } catch (_) {}
+    try { document.removeEventListener("dragstart", this._onDbgDocDragStart); } catch (_) {}
+    try { document.removeEventListener("dragend", this._onDbgDocDragEnd); } catch (_) {}
+    try { document.removeEventListener("dragover", this._onDbgDocDragOver); } catch (_) {}
+    try { document.removeEventListener("drop", this._onDbgDocDrop); } catch (_) {}
+    try { document.removeEventListener("pointermove", this._onLabelDragPointerMove); } catch (_) {}
+    try { document.removeEventListener("pointerup", this._onLabelDragPointerUp); } catch (_) {}
+    try { document.removeEventListener("pointercancel", this._onLabelDragPointerCancel); } catch (_) {}
     try { this._ui?.btn?.removeEventListener("click", this._onBtnClick); } catch (_) {}
     try { this._ui?.menu?.removeEventListener("pointerdown", this._onMenuPointerDown); } catch (_) {}
     try { this._ui?.menu?.removeEventListener("click", this._onMenuClick); } catch (_) {}
@@ -116,6 +144,7 @@ export class LabelPlacementController {
     this._markers.length = 0;
 
     try { this._ui?.ghost?.remove?.(); } catch (_) {}
+    try { this._ui?.dragGhost?.remove?.(); } catch (_) {}
     try { this._ui?.btn?.remove?.(); } catch (_) {}
     try { this._ui?.menu?.remove?.(); } catch (_) {}
     try { this._ui?.canvasMenu?.remove?.(); } catch (_) {}
@@ -543,6 +572,20 @@ export class LabelPlacementController {
     ghost.appendChild(dot);
     ghost.appendChild(num);
 
+    const dragGhost = document.createElement("div");
+    dragGhost.className = "ifc-label-ghost ifc-label-ghost--drag";
+    dragGhost.setAttribute("aria-hidden", "true");
+    dragGhost.style.display = "none";
+    dragGhost.style.left = "0px";
+    dragGhost.style.top = "0px";
+
+    const dragDot = document.createElement("div");
+    dragDot.className = "ifc-label-dot";
+    const dragNum = document.createElement("div");
+    dragNum.className = "ifc-label-num";
+    dragGhost.appendChild(dragDot);
+    dragGhost.appendChild(dragNum);
+
     const menu = document.createElement("div");
     menu.className = "ifc-label-menu";
     menu.style.display = "none";
@@ -583,13 +626,14 @@ export class LabelPlacementController {
 
     canvasMenu.appendChild(menuAdd);
 
-    return { btn, ghost, dot, num, menu, canvasMenu };
+    return { btn, ghost, dot, num, dragGhost, dragNum, menu, canvasMenu };
   }
 
   #attachUi() {
     // Важно: container должен быть position:relative (в index.html уже так).
     this.container.appendChild(this._ui.btn);
     this.container.appendChild(this._ui.ghost);
+    this.container.appendChild(this._ui.dragGhost);
     this.container.appendChild(this._ui.menu);
     this.container.appendChild(this._ui.canvasMenu);
   }
@@ -705,8 +749,63 @@ export class LabelPlacementController {
     // scroll слушаем в capture, чтобы ловить скролл вложенных контейнеров
     window.addEventListener("scroll", this._onWindowScroll, true);
 
+    const logDnDEvent = (scope, e) => {
+      const target = e?.target || null;
+      const closestMarker = (target && typeof target.closest === "function")
+        ? target.closest(".ifc-label-marker")
+        : null;
+      if (!closestMarker) return;
+      const payload = {
+        type: e?.type,
+        target,
+        closestMarker,
+        button: e?.button,
+        buttons: e?.buttons,
+        clientX: e?.clientX,
+        clientY: e?.clientY,
+        defaultPrevented: !!e?.defaultPrevented,
+      };
+      try {
+        this.logger?.log?.("[LabelDnD]", scope, payload);
+      } catch (_) {
+        try { console.log("[LabelDnD]", scope, payload); } catch (_) {}
+      }
+    };
+
+    this._onDbgDocPointerDown = (e) => logDnDEvent("document", e);
+    this._onDbgDocPointerMove = (e) => logDnDEvent("document", e);
+    this._onDbgDocPointerUp = (e) => logDnDEvent("document", e);
+    this._onDbgDocDragStart = (e) => logDnDEvent("document", e);
+    this._onDbgDocDragEnd = (e) => logDnDEvent("document", e);
+    this._onDbgDocDragOver = (e) => logDnDEvent("document", e);
+    this._onDbgDocDrop = (e) => logDnDEvent("document", e);
+
+    document.addEventListener("pointerdown", this._onDbgDocPointerDown);
+    document.addEventListener("pointermove", this._onDbgDocPointerMove);
+    document.addEventListener("pointerup", this._onDbgDocPointerUp);
+    document.addEventListener("dragstart", this._onDbgDocDragStart);
+    document.addEventListener("dragend", this._onDbgDocDragEnd);
+    document.addEventListener("dragover", this._onDbgDocDragOver);
+    document.addEventListener("drop", this._onDbgDocDrop);
+
+    this._onLabelDragPointerMove = (e) => this.#updateLabelDrag(e);
+    this._onLabelDragPointerUp = (e) => this.#finishLabelDrag(e, "pointerup");
+    this._onLabelDragPointerCancel = (e) => this.#finishLabelDrag(e, "pointercancel");
+
+    document.addEventListener("pointermove", this._onLabelDragPointerMove, { passive: true });
+    document.addEventListener("pointerup", this._onLabelDragPointerUp, { passive: true });
+    document.addEventListener("pointercancel", this._onLabelDragPointerCancel, { passive: true });
+
     const dom = this.viewer?.renderer?.domElement;
     if (!dom) return;
+
+    this._onDbgDomPointerDown = (e) => logDnDEvent("ifc3dHost", e);
+    this._onDbgDomPointerMove = (e) => logDnDEvent("ifc3dHost", e);
+    this._onDbgDomPointerUp = (e) => logDnDEvent("ifc3dHost", e);
+
+    dom.addEventListener("pointerdown", this._onDbgDomPointerDown, { passive: true });
+    dom.addEventListener("pointermove", this._onDbgDomPointerMove, { passive: true });
+    dom.addEventListener("pointerup", this._onDbgDomPointerUp, { passive: true });
 
     this._onPointerMove = (e) => {
       if (!this._placing) return;
@@ -804,6 +903,117 @@ export class LabelPlacementController {
     this.#updateGhostFromClient(this._lastPointer.x, this._lastPointer.y);
   }
 
+  #setDragGhostVisible(visible) {
+    if (!this._ui?.dragGhost) return;
+    this._ui.dragGhost.style.display = visible ? "block" : "none";
+  }
+
+  #applyDragGhostTransform() {
+    const g = this._ui?.dragGhost;
+    if (!g) return;
+    g.style.transform = `translate3d(${this._labelDrag.ghostPos.x}px, ${this._labelDrag.ghostPos.y}px, 0) translate(-50%, -50%)`;
+  }
+
+  #updateDragGhostFromClient(clientX, clientY) {
+    this._labelDrag.last = { x: clientX, y: clientY };
+    if (!this._containerOffsetValid) this.#refreshContainerOffset();
+    const x = (clientX - this._containerOffset.left);
+    const y = (clientY - this._containerOffset.top);
+    this._labelDrag.ghostPos.x = x;
+    this._labelDrag.ghostPos.y = y;
+    this.#applyDragGhostTransform();
+  }
+
+  #beginLabelDrag(marker, e) {
+    if (!marker || !e || e.button !== 0) return;
+    this._labelDrag.active = true;
+    this._labelDrag.moved = false;
+    this._labelDrag.pointerId = e.pointerId ?? null;
+    this._labelDrag.id = marker.id;
+    this._labelDrag.start = { x: e.clientX, y: e.clientY };
+    this._labelDrag.last = { x: e.clientX, y: e.clientY };
+    this._labelDrag.clickMarker = marker;
+
+    try {
+      this._labelDrag.prevControlsEnabled = this.viewer?.controls?.enabled ?? null;
+      if (this.viewer?.controls) this.viewer.controls.enabled = false;
+    } catch (_) {}
+
+    if (this._ui?.dragNum) this._ui.dragNum.textContent = String(marker.id);
+    this.#setDragGhostVisible(false);
+
+    try { marker.el?.setPointerCapture?.(e.pointerId); } catch (_) {}
+
+    this.#dispatchLabelEvent("ifcviewer:label-drag-start", {
+      id: marker.id,
+      clientX: e.clientX,
+      clientY: e.clientY,
+    }, null);
+  }
+
+  #updateLabelDrag(e) {
+    if (!this._labelDrag.active || !e) return;
+    if (this._labelDrag.pointerId != null && e.pointerId != null && e.pointerId !== this._labelDrag.pointerId) return;
+
+    const dx = (e.clientX - this._labelDrag.start.x);
+    const dy = (e.clientY - this._labelDrag.start.y);
+    const dist = Math.hypot(dx, dy);
+    if (!this._labelDrag.moved && dist >= this._labelDrag.threshold) {
+      this._labelDrag.moved = true;
+      this.#setDragGhostVisible(true);
+    }
+
+    if (this._labelDrag.moved) {
+      this.#updateDragGhostFromClient(e.clientX, e.clientY);
+    }
+  }
+
+  #resolveDropTarget(clientX, clientY) {
+    const el = document.elementFromPoint?.(clientX, clientY) || null;
+    if (!el) return { element: null, card: null };
+    if (!this._labelDragDropSelector) return { element: el, card: null };
+    const card = el.closest?.(this._labelDragDropSelector) || null;
+    return { element: el, card };
+  }
+
+  #finishLabelDrag(e, reason = "pointerup") {
+    if (!this._labelDrag.active) return;
+    const marker = this._labelDrag.clickMarker;
+    const moved = !!this._labelDrag.moved;
+    const clientX = e?.clientX ?? this._labelDrag.last.x;
+    const clientY = e?.clientY ?? this._labelDrag.last.y;
+
+    this._labelDrag.active = false;
+    this._labelDrag.moved = false;
+    this._labelDrag.pointerId = null;
+    this._labelDrag.id = null;
+    this._labelDrag.clickMarker = null;
+
+    this.#setDragGhostVisible(false);
+
+    try {
+      if (this.viewer?.controls && this._labelDrag.prevControlsEnabled != null) {
+        this.viewer.controls.enabled = !!this._labelDrag.prevControlsEnabled;
+      }
+    } catch (_) {}
+    this._labelDrag.prevControlsEnabled = null;
+
+    if (!moved) {
+      if (marker) this.#handleMarkerClick(marker);
+      return;
+    }
+
+    const drop = this.#resolveDropTarget(clientX, clientY);
+    this.#dispatchLabelEvent("ifcviewer:label-drop", {
+      id: marker?.id ?? this._labelDrag.id,
+      clientX,
+      clientY,
+      dropTarget: drop.card || null,
+      elementFromPoint: drop.element || null,
+      reason,
+    }, null);
+  }
+
   #pickModelPoint(clientX, clientY) {
     const model = this.viewer?.activeModel;
     const camera = this.viewer?.camera;
@@ -898,6 +1108,18 @@ export class LabelPlacementController {
   #getSelectedMarker() {
     if (this._selectedId == null) return null;
     return this._markers.find((m) => String(m?.id) === String(this._selectedId)) || null;
+  }
+
+  #handleMarkerClick(marker) {
+    if (!marker) return;
+    this.#closeContextMenu();
+    this.#setSelectedMarker(marker);
+    this.#dispatchLabelEvent("ifcviewer:label-click", {
+      id: marker.id,
+      sceneState: marker.sceneState || null,
+    }, "ifcviewer:card-click");
+    // "Долеталка" камеры: быстрый старт + мягкий конец
+    this.#animateToSceneState(marker.sceneState, 550);
   }
 
   #buildActionPayload(marker) {
@@ -1019,24 +1241,78 @@ export class LabelPlacementController {
       try { e.preventDefault(); } catch (_) {}
       try { e.stopPropagation(); } catch (_) {}
       try { e.stopImmediatePropagation?.(); } catch (_) {}
+      try {
+        this.logger?.log?.("[LabelDnD]", "marker", {
+          type: e?.type,
+          target: e?.target || null,
+          closestMarker: e?.target?.closest?.(".ifc-label-marker") || null,
+          button: e?.button,
+          buttons: e?.buttons,
+          clientX: e?.clientX,
+          clientY: e?.clientY,
+          defaultPrevented: !!e?.defaultPrevented,
+        });
+      } catch (_) {}
       // если были в режиме постановки — выходим
       try { this.cancelPlacement(); } catch (_) {}
 
       if (e.button === 0) {
         this.#closeContextMenu();
         this.#setSelectedMarker(marker);
-        this.#dispatchLabelEvent("ifcviewer:label-click", {
-          id: marker.id,
-          sceneState: marker.sceneState || null,
-        }, "ifcviewer:card-click");
-        // "Долеталка" камеры: быстрый старт + мягкий конец
-        this.#animateToSceneState(marker.sceneState, 550);
+        this.#beginLabelDrag(marker, e);
       }
     };
     // capture-phase, чтобы обогнать любые handlers на canvas
     try { marker.el.addEventListener("pointerdown", onMarkerPointerDown, { capture: true, passive: false }); } catch (_) {
       try { marker.el.addEventListener("pointerdown", onMarkerPointerDown); } catch (_) {}
     }
+    const onMarkerPointerUp = (e) => {
+      try {
+        this.logger?.log?.("[LabelDnD]", "marker", {
+          type: e?.type,
+          target: e?.target || null,
+          closestMarker: e?.target?.closest?.(".ifc-label-marker") || null,
+          button: e?.button,
+          buttons: e?.buttons,
+          clientX: e?.clientX,
+          clientY: e?.clientY,
+          defaultPrevented: !!e?.defaultPrevented,
+        });
+      } catch (_) {}
+    };
+    try { marker.el.addEventListener("pointerup", onMarkerPointerUp, { capture: true, passive: true }); } catch (_) {
+      try { marker.el.addEventListener("pointerup", onMarkerPointerUp); } catch (_) {}
+    }
+    const onMarkerDragStart = (e) => {
+      try {
+        this.logger?.log?.("[LabelDnD]", "marker", {
+          type: e?.type,
+          target: e?.target || null,
+          closestMarker: e?.target?.closest?.(".ifc-label-marker") || null,
+          button: e?.button,
+          buttons: e?.buttons,
+          clientX: e?.clientX,
+          clientY: e?.clientY,
+          defaultPrevented: !!e?.defaultPrevented,
+        });
+      } catch (_) {}
+    };
+    const onMarkerDragEnd = (e) => {
+      try {
+        this.logger?.log?.("[LabelDnD]", "marker", {
+          type: e?.type,
+          target: e?.target || null,
+          closestMarker: e?.target?.closest?.(".ifc-label-marker") || null,
+          button: e?.button,
+          buttons: e?.buttons,
+          clientX: e?.clientX,
+          clientY: e?.clientY,
+          defaultPrevented: !!e?.defaultPrevented,
+        });
+      } catch (_) {}
+    };
+    try { marker.el.addEventListener("dragstart", onMarkerDragStart); } catch (_) {}
+    try { marker.el.addEventListener("dragend", onMarkerDragEnd); } catch (_) {}
 
     const onMarkerContextMenu = (e) => {
       try { e.preventDefault(); } catch (_) {}
