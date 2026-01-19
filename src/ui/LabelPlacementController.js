@@ -53,6 +53,8 @@ export class LabelPlacementController {
     this._labelDrag = {
       active: false,
       moved: false,
+      // true => призрак живёт в document.body и позиционируется по viewport
+      ghostInBody: false,
       pointerId: null,
       id: null,
       start: { x: 0, y: 0 },
@@ -615,6 +617,8 @@ export class LabelPlacementController {
     const dragGhost = document.createElement("div");
     dragGhost.className = "ifc-label-ghost ifc-label-ghost--drag";
     dragGhost.setAttribute("aria-hidden", "true");
+    // Фиксируем позицию, чтобы призрак не обрезался контейнером viewer
+    dragGhost.style.position = "fixed";
     dragGhost.style.display = "none";
     dragGhost.style.left = "0px";
     dragGhost.style.top = "0px";
@@ -673,7 +677,14 @@ export class LabelPlacementController {
     // Важно: container должен быть position:relative (в index.html уже так).
     this.container.appendChild(this._ui.btn);
     this.container.appendChild(this._ui.ghost);
-    this.container.appendChild(this._ui.dragGhost);
+    // Призрак перетаскивания добавляем в body, чтобы не обрезался overflow контейнера
+    if (document?.body) {
+      document.body.appendChild(this._ui.dragGhost);
+      this._labelDrag.ghostInBody = true;
+    } else {
+      this.container.appendChild(this._ui.dragGhost);
+      this._labelDrag.ghostInBody = false;
+    }
     this.container.appendChild(this._ui.menu);
     this.container.appendChild(this._ui.canvasMenu);
   }
@@ -942,9 +953,13 @@ export class LabelPlacementController {
 
   #updateDragGhostFromClient(clientX, clientY) {
     this._labelDrag.last = { x: clientX, y: clientY };
-    if (!this._containerOffsetValid) this.#refreshContainerOffset();
-    const x = (clientX - this._containerOffset.left);
-    const y = (clientY - this._containerOffset.top);
+    let x = clientX;
+    let y = clientY;
+    if (!this._labelDrag.ghostInBody) {
+      if (!this._containerOffsetValid) this.#refreshContainerOffset();
+      x = (clientX - this._containerOffset.left);
+      y = (clientY - this._containerOffset.top);
+    }
     this._labelDrag.ghostPos.x = x;
     this._labelDrag.ghostPos.y = y;
     this.#applyDragGhostTransform();
@@ -1008,6 +1023,11 @@ export class LabelPlacementController {
     const moved = !!this._labelDrag.moved;
     const clientX = e?.clientX ?? this._labelDrag.last.x;
     const clientY = e?.clientY ?? this._labelDrag.last.y;
+    this.logger?.log?.("[LabelClickDbg]", {
+      phase: "finish",
+      moved: !!moved,
+      id: marker?.id ?? this._labelDrag.id,
+    });
 
     this._labelDrag.active = false;
     this._labelDrag.moved = false;
@@ -1263,6 +1283,14 @@ export class LabelPlacementController {
     this._markers.push(marker);
 
     const onMarkerPointerDown = (e) => {
+      this.logger?.log?.("[LabelClickDbg]", {
+        phase: "down",
+        button: e?.button,
+        buttons: e?.buttons,
+        clientX: e?.clientX,
+        clientY: e?.clientY,
+        pointerId: e?.pointerId,
+      });
       // Важно: не даём клику попасть в canvas/OrbitControls
       try { e.preventDefault(); } catch (_) {}
       try { e.stopPropagation(); } catch (_) {}
@@ -1281,6 +1309,14 @@ export class LabelPlacementController {
       try { marker.el.addEventListener("pointerdown", onMarkerPointerDown); } catch (_) {}
     }
     const onMarkerPointerUp = (e) => {
+      this.logger?.log?.("[LabelClickDbg]", {
+        phase: "up",
+        button: e?.button,
+        buttons: e?.buttons,
+        clientX: e?.clientX,
+        clientY: e?.clientY,
+        pointerId: e?.pointerId,
+      });
     };
     try { marker.el.addEventListener("pointerup", onMarkerPointerUp, { capture: true, passive: true }); } catch (_) {
       try { marker.el.addEventListener("pointerup", onMarkerPointerUp); } catch (_) {}
