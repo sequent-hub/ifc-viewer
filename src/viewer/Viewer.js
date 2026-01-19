@@ -3464,7 +3464,7 @@ export class Viewer {
           const s = plane.normal.dot(c) + plane.constant;
           if (s < minSigned) minSigned = s;
         }
-        if (minSigned < 0) {
+        if (minSigned < 0 && minSigned >= -1e-3) {
           plane.constant -= (minSigned - (-1e-4)); // сдвинем чуть так, чтобы все вершины имели s >= -1e-4
         }
       }

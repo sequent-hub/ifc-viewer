@@ -282,11 +282,16 @@ export class LabelPlacementController {
       planes?.[1]?.constant,
       planes?.[2]?.constant,
     ];
+    const clipPlanes = {
+      x: this.#getAxisPlaneState('x', planes?.[0]),
+      y: this.#getAxisPlaneState('y', planes?.[1]),
+      z: this.#getAxisPlaneState('z', planes?.[2]),
+    };
 
     return {
       camera: cam,
       modelTransform,
-      clipping: { constants: clipConstants },
+      clipping: { constants: clipConstants, planes: clipPlanes },
     };
   }
 
@@ -361,17 +366,7 @@ export class LabelPlacementController {
     } catch (_) {}
 
     // 5) Клиппинг (как Home: сначала восстановили камеру+модель, затем planes)
-    try {
-      const constants = sceneState?.clipping?.constants || [];
-      if (typeof viewer.setSection === "function") {
-        ["x", "y", "z"].forEach((axis, i) => {
-          const c = constants[i];
-          const enabled = Number.isFinite(c);
-          const dist = -Number(c);
-          viewer.setSection(axis, enabled, enabled ? dist : 0);
-        });
-      }
-    } catch (_) {}
+    this.#applyClippingFromState(sceneState);
 
     try { camera?.updateProjectionMatrix?.(); } catch (_) {}
     try { controls?.update?.(); } catch (_) {}
@@ -401,16 +396,63 @@ export class LabelPlacementController {
     const viewer = this.viewer;
     if (!viewer || !sceneState) return;
     try {
+      const byAxis = sceneState?.clipping?.planes || null;
+      if (byAxis && typeof viewer.setSection === "function") {
+        ["x", "y", "z"].forEach((axis) => {
+          const s = byAxis?.[axis] || null;
+          const enabled = !!s?.enabled;
+          const dist = Number(s?.distance);
+          viewer.setSection(axis, enabled, (enabled && Number.isFinite(dist)) ? dist : 0);
+        });
+        return;
+      }
       const constants = sceneState?.clipping?.constants || [];
       if (typeof viewer.setSection === "function") {
         ["x", "y", "z"].forEach((axis, i) => {
           const c = constants[i];
           const enabled = Number.isFinite(c);
-          const dist = -Number(c);
-          viewer.setSection(axis, enabled, enabled ? dist : 0);
+          const dist = this.#getAxisDistanceFromConstant(axis, c);
+          viewer.setSection(axis, enabled, (enabled && Number.isFinite(dist)) ? dist : 0);
         });
       }
     } catch (_) {}
+  }
+
+  #getAxisPlaneState(axis, plane) {
+    if (!plane) return { enabled: false, distance: null };
+    const constant = plane.constant;
+    const enabled = Number.isFinite(constant);
+    if (!enabled) return { enabled: false, distance: null };
+    const distance = this.#getAxisDistanceFromPlane(axis, plane);
+    return { enabled: true, distance };
+  }
+
+  #getAxisDistanceFromPlane(axis, plane) {
+    if (!plane || !Number.isFinite(plane.constant)) return null;
+    const n = plane.normal || null;
+    const nx = Number(n?.x ?? 1);
+    const ny = Number(n?.y ?? 1);
+    const nz = Number(n?.z ?? 1);
+    const sign = (axis === 'x') ? (nx >= 0 ? 1 : -1)
+      : (axis === 'y') ? (ny >= 0 ? 1 : -1)
+        : (nz >= 0 ? 1 : -1);
+    return (sign > 0) ? -Number(plane.constant) : Number(plane.constant);
+  }
+
+  #getAxisDistanceFromConstant(axis, constant) {
+    if (!Number.isFinite(constant)) return null;
+    const viewer = this.viewer;
+    const planes = viewer?.clipping?.planes || [];
+    const idx = axis === 'x' ? 0 : axis === 'y' ? 1 : 2;
+    const plane = planes[idx] || null;
+    const n = plane?.normal || null;
+    const nx = Number(n?.x ?? 1);
+    const ny = Number(n?.y ?? 1);
+    const nz = Number(n?.z ?? 1);
+    const sign = (axis === 'x') ? (nx >= 0 ? 1 : -1)
+      : (axis === 'y') ? (ny >= 0 ? 1 : -1)
+        : (nz >= 0 ? 1 : -1);
+    return (sign > 0) ? -Number(constant) : Number(constant);
   }
 
   #applyViewOffset(camera, viewOffset) {
