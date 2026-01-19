@@ -40,6 +40,7 @@ export class LabelPlacementController {
     /** @type {LabelMarker[]} */
     this._markers = [];
     this._selectedId = null;
+    this._labelsHidden = false;
 
     this._raycaster = new THREE.Raycaster();
     this._ndc = new THREE.Vector2();
@@ -131,6 +132,7 @@ export class LabelPlacementController {
     try { document.removeEventListener("pointerup", this._onLabelDragPointerUp); } catch (_) {}
     try { document.removeEventListener("pointercancel", this._onLabelDragPointerCancel); } catch (_) {}
     try { this._ui?.btn?.removeEventListener("click", this._onBtnClick); } catch (_) {}
+    try { this._ui?.hideBtn?.removeEventListener("click", this._onHideBtnClick); } catch (_) {}
     try { this._ui?.menu?.removeEventListener("pointerdown", this._onMenuPointerDown); } catch (_) {}
     try { this._ui?.menu?.removeEventListener("click", this._onMenuClick); } catch (_) {}
     try { this._ui?.canvasMenu?.removeEventListener("pointerdown", this._onCanvasMenuPointerDown); } catch (_) {}
@@ -147,13 +149,13 @@ export class LabelPlacementController {
 
     try { this._ui?.ghost?.remove?.(); } catch (_) {}
     try { this._ui?.dragGhost?.remove?.(); } catch (_) {}
-    try { this._ui?.btn?.remove?.(); } catch (_) {}
+    try { this._ui?.actions?.remove?.(); } catch (_) {}
     try { this._ui?.menu?.remove?.(); } catch (_) {}
     try { this._ui?.canvasMenu?.remove?.(); } catch (_) {}
   }
 
   startPlacement() {
-    if (this._placing) return;
+    if (this._placing || this._labelsHidden) return;
     this._placing = true;
 
     const controls = this.viewer?.controls;
@@ -593,10 +595,23 @@ export class LabelPlacementController {
   }
 
   #createUi() {
+    const actions = document.createElement("div");
+    actions.className = "ifc-label-actions";
+
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "ifc-label-add-btn";
     btn.textContent = "+ Добавить метку";
+
+    const hideBtn = document.createElement("button");
+    hideBtn.type = "button";
+    hideBtn.className = "ifc-label-hide-btn";
+    hideBtn.textContent = "Скрыть метки";
+    hideBtn.setAttribute("aria-pressed", "false");
+    hideBtn.style.display = "none";
+
+    actions.appendChild(btn);
+    actions.appendChild(hideBtn);
 
     const ghost = document.createElement("div");
     ghost.className = "ifc-label-ghost";
@@ -670,12 +685,12 @@ export class LabelPlacementController {
 
     canvasMenu.appendChild(menuAdd);
 
-    return { btn, ghost, dot, num, dragGhost, dragNum, menu, canvasMenu };
+    return { actions, btn, hideBtn, ghost, dot, num, dragGhost, dragNum, menu, canvasMenu, menuAdd };
   }
 
   #attachUi() {
     // Важно: container должен быть position:relative (в index.html уже так).
-    this.container.appendChild(this._ui.btn);
+    this.container.appendChild(this._ui.actions);
     this.container.appendChild(this._ui.ghost);
     // Призрак перетаскивания добавляем в body, чтобы не обрезался overflow контейнера
     if (document?.body) {
@@ -698,6 +713,15 @@ export class LabelPlacementController {
       this.startPlacement();
     };
     this._ui.btn.addEventListener("click", this._onBtnClick, { passive: false });
+
+    this._onHideBtnClick = (e) => {
+      try { e.preventDefault(); } catch (_) {}
+      try { e.stopPropagation(); } catch (_) {}
+      try { e.stopImmediatePropagation?.(); } catch (_) {}
+      if (!this._markers.length) return;
+      this.#setLabelsHidden(!this._labelsHidden);
+    };
+    this._ui.hideBtn.addEventListener("click", this._onHideBtnClick, { passive: false });
 
     this._onMenuPointerDown = (e) => {
       // Не даём клику меню попасть в canvas/OrbitControls
@@ -731,6 +755,7 @@ export class LabelPlacementController {
       const target = e.target;
       const action = target?.getAttribute?.("data-action");
       if (action !== "add") return;
+      if (this._labelsHidden) return;
       try { e.preventDefault(); } catch (_) {}
       try { e.stopPropagation(); } catch (_) {}
 
@@ -1281,6 +1306,7 @@ export class LabelPlacementController {
       sceneState: data.sceneState || null,
     });
     this._markers.push(marker);
+    this.#syncHideButton();
 
     const onMarkerPointerDown = (e) => {
       this.logger?.log?.("[LabelClickDbg]", {
@@ -1372,6 +1398,7 @@ export class LabelPlacementController {
     }
     if (maxNumericId != null) this._nextId = Math.max(1, Math.floor(maxNumericId) + 1);
     if (prevSelectedId != null) this.selectLabel(prevSelectedId);
+    this.#syncHideButton();
   }
 
   getLabelMarkers() {
@@ -1432,6 +1459,11 @@ export class LabelPlacementController {
     for (const m of this._markers) {
       if (!m || !m.el) continue;
 
+      if (this._labelsHidden) {
+        m.el.style.display = "none";
+        continue;
+      }
+
       if (!model) {
         m.el.style.display = "none";
         continue;
@@ -1460,6 +1492,45 @@ export class LabelPlacementController {
 
       m.el.style.display = "block";
       m.el.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%)`;
+    }
+  }
+
+  #setLabelsHidden(hidden) {
+    const next = !!hidden;
+    if (this._labelsHidden === next) return;
+    this._labelsHidden = next;
+    if (this._labelsHidden) {
+      try { this.cancelPlacement(); } catch (_) {}
+      try { this.#closeContextMenu(); } catch (_) {}
+      try { this.#closeCanvasMenu(); } catch (_) {}
+    }
+    this.#syncHideButton();
+  }
+
+  #syncHideButton() {
+    const btn = this._ui?.hideBtn;
+    if (!btn) return;
+    const hasMarkers = this._markers.length > 0;
+    btn.style.display = hasMarkers ? "block" : "none";
+    if (!hasMarkers && this._labelsHidden) {
+      this._labelsHidden = false;
+    }
+    btn.setAttribute("aria-pressed", this._labelsHidden ? "true" : "false");
+    try { btn.classList.toggle("ifc-label-hide-btn--active", this._labelsHidden); } catch (_) {}
+    this.#syncAddAvailability();
+  }
+
+  #syncAddAvailability() {
+    const disabled = !!this._labelsHidden;
+    const btn = this._ui?.btn;
+    if (btn) {
+      btn.disabled = disabled;
+      try { btn.classList.toggle("ifc-label-add-btn--disabled", disabled); } catch (_) {}
+    }
+    const menuAdd = this._ui?.menuAdd;
+    if (menuAdd) {
+      menuAdd.disabled = disabled;
+      try { menuAdd.classList.toggle("ifc-label-menu-item--disabled", disabled); } catch (_) {}
     }
   }
 }

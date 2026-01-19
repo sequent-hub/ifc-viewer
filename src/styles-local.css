@@ -111,7 +111,18 @@
 .pointer-events-none { pointer-events: none; }
 
 /* === IFC LABEL MARKERS (UI overlay) === */
+.ifc-label-actions {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  z-index: 9999;
+  display: flex;
+  gap: 6px;
+  pointer-events: auto;
+}
+
 .ifc-label-add-btn,
+.ifc-label-hide-btn,
 .ifc-card-add-btn {
   position: absolute;
   left: 12px;
@@ -132,8 +143,33 @@
 }
 
 .ifc-label-add-btn:hover,
+.ifc-label-hide-btn:hover,
 .ifc-card-add-btn:hover {
   background: rgba(255, 255, 255, 0.98);
+}
+
+.ifc-label-actions .ifc-label-add-btn,
+.ifc-label-actions .ifc-label-hide-btn {
+  position: static;
+  left: auto;
+  top: auto;
+}
+
+.ifc-label-hide-btn--active {
+  background: rgba(37, 99, 235, 0.95);
+  border-color: rgba(37, 99, 235, 0.95);
+  color: #ffffff;
+}
+
+.ifc-label-hide-btn--active:hover {
+  background: rgba(29, 78, 216, 0.98);
+  border-color: rgba(29, 78, 216, 0.98);
+}
+
+.ifc-label-add-btn:disabled,
+.ifc-label-add-btn--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .ifc-label-ghost,
@@ -230,6 +266,13 @@
 
 .ifc-label-menu-item:hover {
   background: rgba(37, 99, 235, 0.12);
+}
+
+.ifc-label-menu-item--disabled,
+.ifc-label-menu-item--disabled:hover {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: transparent;
 }
 
 /* === NAVBAR COMPONENT === */
