@@ -1473,6 +1473,11 @@ export class LabelPlacementController {
       this._tmpV.copy(m.localPoint);
       model.localToWorld(this._tmpV);
 
+      if (this.#isPointClippedBySection(this._tmpV)) {
+        m.el.style.display = "none";
+        continue;
+      }
+
       const ndc = this._tmpV.project(camera);
 
       // Если точка за камерой или далеко за пределами — скрываем
@@ -1493,6 +1498,16 @@ export class LabelPlacementController {
       m.el.style.display = "block";
       m.el.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%)`;
     }
+  }
+
+  #isPointClippedBySection(pointWorld) {
+    const planes = this.viewer?.clipping?.planes || [];
+    for (const plane of planes) {
+      if (!plane || !Number.isFinite(plane.constant)) continue;
+      const signed = plane.distanceToPoint(pointWorld);
+      if (signed < -1e-4) return true;
+    }
+    return false;
   }
 
   #setLabelsHidden(hidden) {
