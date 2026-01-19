@@ -182,9 +182,7 @@ export class LabelPlacementController {
   }
 
   #log(event, payload) {
-    try {
-      this.logger?.log?.("[LabelPlacement]", event, payload);
-    } catch (_) {}
+    // no-op: debug logging disabled
   }
 
   #dispatchLabelEvent(name, detail, legacyName = null) {
@@ -797,21 +795,7 @@ export class LabelPlacementController {
         ? target.closest(".ifc-label-marker")
         : null;
       if (!closestMarker) return;
-      const payload = {
-        type: e?.type,
-        target,
-        closestMarker,
-        button: e?.button,
-        buttons: e?.buttons,
-        clientX: e?.clientX,
-        clientY: e?.clientY,
-        defaultPrevented: !!e?.defaultPrevented,
-      };
-      try {
-        this.logger?.log?.("[LabelDnD]", scope, payload);
-      } catch (_) {
-        try { console.log("[LabelDnD]", scope, payload); } catch (_) {}
-      }
+      // debug logging disabled
     };
 
     this._onDbgDocPointerDown = (e) => logDnDEvent("document", e);
@@ -1283,18 +1267,6 @@ export class LabelPlacementController {
       try { e.preventDefault(); } catch (_) {}
       try { e.stopPropagation(); } catch (_) {}
       try { e.stopImmediatePropagation?.(); } catch (_) {}
-      try {
-        this.logger?.log?.("[LabelDnD]", "marker", {
-          type: e?.type,
-          target: e?.target || null,
-          closestMarker: e?.target?.closest?.(".ifc-label-marker") || null,
-          button: e?.button,
-          buttons: e?.buttons,
-          clientX: e?.clientX,
-          clientY: e?.clientY,
-          defaultPrevented: !!e?.defaultPrevented,
-        });
-      } catch (_) {}
       // если были в режиме постановки — выходим
       try { this.cancelPlacement(); } catch (_) {}
 
@@ -1309,49 +1281,13 @@ export class LabelPlacementController {
       try { marker.el.addEventListener("pointerdown", onMarkerPointerDown); } catch (_) {}
     }
     const onMarkerPointerUp = (e) => {
-      try {
-        this.logger?.log?.("[LabelDnD]", "marker", {
-          type: e?.type,
-          target: e?.target || null,
-          closestMarker: e?.target?.closest?.(".ifc-label-marker") || null,
-          button: e?.button,
-          buttons: e?.buttons,
-          clientX: e?.clientX,
-          clientY: e?.clientY,
-          defaultPrevented: !!e?.defaultPrevented,
-        });
-      } catch (_) {}
     };
     try { marker.el.addEventListener("pointerup", onMarkerPointerUp, { capture: true, passive: true }); } catch (_) {
       try { marker.el.addEventListener("pointerup", onMarkerPointerUp); } catch (_) {}
     }
     const onMarkerDragStart = (e) => {
-      try {
-        this.logger?.log?.("[LabelDnD]", "marker", {
-          type: e?.type,
-          target: e?.target || null,
-          closestMarker: e?.target?.closest?.(".ifc-label-marker") || null,
-          button: e?.button,
-          buttons: e?.buttons,
-          clientX: e?.clientX,
-          clientY: e?.clientY,
-          defaultPrevented: !!e?.defaultPrevented,
-        });
-      } catch (_) {}
     };
     const onMarkerDragEnd = (e) => {
-      try {
-        this.logger?.log?.("[LabelDnD]", "marker", {
-          type: e?.type,
-          target: e?.target || null,
-          closestMarker: e?.target?.closest?.(".ifc-label-marker") || null,
-          button: e?.button,
-          buttons: e?.buttons,
-          clientX: e?.clientX,
-          clientY: e?.clientY,
-          defaultPrevented: !!e?.defaultPrevented,
-        });
-      } catch (_) {}
     };
     try { marker.el.addEventListener("dragstart", onMarkerDragStart); } catch (_) {}
     try { marker.el.addEventListener("dragend", onMarkerDragEnd); } catch (_) {}
@@ -1414,7 +1350,6 @@ export class LabelPlacementController {
    * @deprecated используйте setLabelMarkers
    */
   setCardMarkers(items) {
-    try { this.logger?.warn?.("[LabelPlacement] setCardMarkers is deprecated, use setLabelMarkers"); } catch (_) {}
     this.setLabelMarkers(items);
   }
 
@@ -1422,7 +1357,6 @@ export class LabelPlacementController {
    * @deprecated используйте getLabelMarkers
    */
   getCardMarkers() {
-    try { this.logger?.warn?.("[LabelPlacement] getCardMarkers is deprecated, use getLabelMarkers"); } catch (_) {}
     return this.getLabelMarkers();
   }
 
