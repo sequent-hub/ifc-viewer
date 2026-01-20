@@ -1113,6 +1113,7 @@ export class LabelPlacementController {
     let best = null;
     for (const h of hits) {
       if (!h || !h.point) continue;
+      if (this.#isPointClippedBySection(h.point)) continue;
       const obj = h.object;
       if (obj && obj.isMesh) { best = h; break; }
     }
@@ -1536,6 +1537,7 @@ export class LabelPlacementController {
     let hit = null;
     for (const h of hits) {
       if (!h || !h.object || !h.object.isMesh) continue;
+      if (this.#isPointClippedBySection(h.point)) continue;
       hit = h;
       break;
     }
@@ -1545,21 +1547,7 @@ export class LabelPlacementController {
     const t = this._tmpV2.dot(ray.direction);
     if (!Number.isFinite(t) || t <= 0) return false;
     const epsilon = 1e-2;
-    const occluded = hit.distance + epsilon < t;
-    if (this._visibilityLogEnabled) {
-      try {
-        this.logger?.log?.("[LabelOcclusionDbg]", {
-          hitDistance: hit.distance,
-          targetDistance: t,
-          epsilon,
-          occluded,
-          hitType: hit.object?.type,
-          hitName: hit.object?.name,
-          point: { x: pointWorld.x, y: pointWorld.y, z: pointWorld.z },
-        });
-      } catch (_) {}
-    }
-    return occluded;
+    return hit.distance + epsilon < t;
   }
 
   #isPointClippedBySection(pointWorld) {

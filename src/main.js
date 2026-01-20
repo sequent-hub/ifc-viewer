@@ -20,12 +20,7 @@ if (app) {
   viewer.init();
 
   // UI: режим постановки меток по клику на модель
-  const labelPlacement = new LabelPlacementController({
-    viewer,
-    container: app,
-    logger: console,
-    visibilityLogEnabled: true,
-  });
+  const labelPlacement = new LabelPlacementController({ viewer, container: app, logger: console });
 
   // ===== Диагностика (включается через query-параметры) =====
   // ?debugViewer=1  -> window.__viewer = viewer
