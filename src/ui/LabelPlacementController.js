@@ -925,6 +925,7 @@ export class LabelPlacementController {
       this.#openCanvasMenu(hit, e.clientX, e.clientY);
     };
     dom.addEventListener("contextmenu", this._onCanvasContextMenu, { capture: true, passive: false });
+
   }
 
   #setGhostVisible(visible) {
@@ -1505,7 +1506,8 @@ export class LabelPlacementController {
         continue;
       }
 
-      if (this.#isPointOccludedByModel(this._tmpV, ndc, model, camera)) {
+      const occluded = this.#isPointOccludedByModel(this._tmpV, ndc, model, camera);
+      if (occluded) {
         this.#setMarkerVisibility(m, false, "occluded");
         continue;
       }
