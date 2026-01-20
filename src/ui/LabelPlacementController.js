@@ -13,6 +13,8 @@ class LabelMarker {
     this.localPoint = deps.localPoint;
     this.el = deps.el;
     this.sceneState = deps.sceneState || null;
+    this.visible = null;
+    this.hiddenReason = null;
   }
 }
 
@@ -34,6 +36,7 @@ export class LabelPlacementController {
     this.viewer = deps.viewer;
     this.container = deps.container;
     this.logger = deps.logger || null;
+    this._visibilityLogEnabled = !!deps.visibilityLogEnabled;
 
     this._placing = false;
     this._nextId = 1;
@@ -46,6 +49,8 @@ export class LabelPlacementController {
     this._ndc = new THREE.Vector2();
     this._tmpV = new THREE.Vector3();
     this._tmpLocal = new THREE.Vector3();
+    this._tmpV2 = new THREE.Vector3();
+    this._tmpNdc = new THREE.Vector3();
 
     this._lastPointer = { x: 0, y: 0 };
     this._ghostPos = { x: 0, y: 0 };
@@ -1460,12 +1465,12 @@ export class LabelPlacementController {
       if (!m || !m.el) continue;
 
       if (this._labelsHidden) {
-        m.el.style.display = "none";
+        this.#setMarkerVisibility(m, false, "labelsHidden");
         continue;
       }
 
       if (!model) {
-        m.el.style.display = "none";
+        this.#setMarkerVisibility(m, false, "noModel");
         continue;
       }
 
@@ -1474,16 +1479,20 @@ export class LabelPlacementController {
       model.localToWorld(this._tmpV);
 
       if (this.#isPointClippedBySection(this._tmpV)) {
-        m.el.style.display = "none";
+        this.#setMarkerVisibility(m, false, "clipped");
         continue;
       }
 
-      const ndc = this._tmpV.project(camera);
+      const ndc = this._tmpNdc.copy(this._tmpV).project(camera);
 
-      // Если точка за камерой или далеко за пределами — скрываем
-      const inFront = Number.isFinite(ndc.z) && ndc.z >= -1 && ndc.z <= 1;
-      if (!inFront) {
-        m.el.style.display = "none";
+      // Если точка за камерой или вне кадра — скрываем
+      const ndcFinite = Number.isFinite(ndc.x) && Number.isFinite(ndc.y) && Number.isFinite(ndc.z);
+      const inView = ndcFinite
+        && ndc.x >= -1 && ndc.x <= 1
+        && ndc.y >= -1 && ndc.y <= 1
+        && ndc.z >= -1 && ndc.z <= 1;
+      if (!inView) {
+        this.#setMarkerVisibility(m, false, "outOfView");
         continue;
       }
 
@@ -1491,13 +1500,66 @@ export class LabelPlacementController {
       const y = (-ndc.y * 0.5 + 0.5) * h;
 
       if (!Number.isFinite(x) || !Number.isFinite(y)) {
-        m.el.style.display = "none";
+        this.#setMarkerVisibility(m, false, "invalidScreen");
         continue;
       }
 
-      m.el.style.display = "block";
+      if (this.#isPointOccludedByModel(this._tmpV, ndc, model, camera)) {
+        this.#setMarkerVisibility(m, false, "occluded");
+        continue;
+      }
+
+      this.#setMarkerVisibility(m, true, "visible");
       m.el.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%)`;
     }
+  }
+
+  #setMarkerVisibility(marker, visible, reason) {
+    if (!marker || !marker.el) return;
+    marker.el.style.display = visible ? "block" : "none";
+    if (!this._visibilityLogEnabled) return;
+    if (marker.visible === visible && marker.hiddenReason === reason) return;
+    marker.visible = visible;
+    marker.hiddenReason = reason;
+    this.logger?.log?.("[LabelVisibility]", {
+      id: marker.id,
+      visible,
+      reason,
+    });
+  }
+
+  #isPointOccludedByModel(pointWorld, ndc, model, camera) {
+    if (!pointWorld || !ndc || !model || !camera) return false;
+    this._raycaster.setFromCamera(ndc, camera);
+    const hits = this._raycaster.intersectObject(model, true);
+    if (!hits || hits.length === 0) return false;
+    let hit = null;
+    for (const h of hits) {
+      if (!h || !h.object || !h.object.isMesh) continue;
+      hit = h;
+      break;
+    }
+    if (!hit || !Number.isFinite(hit.distance)) return false;
+    const ray = this._raycaster.ray;
+    this._tmpV2.copy(pointWorld).sub(ray.origin);
+    const t = this._tmpV2.dot(ray.direction);
+    if (!Number.isFinite(t) || t <= 0) return false;
+    const epsilon = 1e-2;
+    const occluded = hit.distance + epsilon < t;
+    if (this._visibilityLogEnabled) {
+      try {
+        this.logger?.log?.("[LabelOcclusionDbg]", {
+          hitDistance: hit.distance,
+          targetDistance: t,
+          epsilon,
+          occluded,
+          hitType: hit.object?.type,
+          hitName: hit.object?.name,
+          point: { x: pointWorld.x, y: pointWorld.y, z: pointWorld.z },
+        });
+      } catch (_) {}
+    }
+    return occluded;
   }
 
   #isPointClippedBySection(pointWorld) {
