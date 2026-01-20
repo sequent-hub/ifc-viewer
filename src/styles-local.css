@@ -182,6 +182,7 @@
   display: block;
   transform: translate(-50%, -50%);
   will-change: transform;
+  transition: opacity 160ms ease;
 }
 
 .ifc-label-ghost,
@@ -221,6 +222,12 @@
   height: 18px;
   pointer-events: auto;
   cursor: pointer;
+}
+
+.ifc-label-marker--hidden,
+.ifc-card-marker--hidden {
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* Клик ловим на контейнере метки, дочерние элементы пусть не перехватывают */

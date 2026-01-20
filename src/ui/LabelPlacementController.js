@@ -1540,7 +1540,13 @@ export class LabelPlacementController {
 
   #setMarkerVisibility(marker, visible, reason) {
     if (!marker || !marker.el) return;
-    marker.el.style.display = visible ? "block" : "none";
+    if (visible) {
+      marker.el.style.display = "block";
+      try { marker.el.classList.remove("ifc-label-marker--hidden"); } catch (_) {}
+    } else {
+      try { marker.el.classList.add("ifc-label-marker--hidden"); } catch (_) {}
+      marker.el.style.display = "block";
+    }
     if (!this._visibilityLogEnabled) return;
     if (marker.visible === visible && marker.hiddenReason === reason) return;
     marker.visible = visible;
