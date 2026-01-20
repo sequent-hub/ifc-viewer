@@ -145,6 +145,13 @@ export class LabelPlacementController {
     try { dom?.removeEventListener("contextmenu", this._onCanvasContextMenu, { capture: true }); } catch (_) {
       try { dom?.removeEventListener("contextmenu", this._onCanvasContextMenu); } catch (_) {}
     }
+    try {
+      const controls = this.viewer?.controls;
+      if (controls && typeof controls.removeEventListener === "function") {
+        try { controls.removeEventListener("start", this._onControlsStart); } catch (_) {}
+        try { controls.removeEventListener("end", this._onControlsEnd); } catch (_) {}
+      }
+    } catch (_) {}
 
     if (this._raf) cancelAnimationFrame(this._raf);
     this._raf = 0;
@@ -925,6 +932,20 @@ export class LabelPlacementController {
       this.#openCanvasMenu(hit, e.clientX, e.clientY);
     };
     dom.addEventListener("contextmenu", this._onCanvasContextMenu, { capture: true, passive: false });
+
+    const controls = this.viewer?.controls;
+    if (controls && typeof controls.addEventListener === "function") {
+      this._onControlsStart = () => {
+        this._labelsHidden = true;
+        this.#syncHideButton();
+      };
+      this._onControlsEnd = () => {
+        this._labelsHidden = false;
+        this.#syncHideButton();
+      };
+      try { controls.addEventListener("start", this._onControlsStart); } catch (_) {}
+      try { controls.addEventListener("end", this._onControlsEnd); } catch (_) {}
+    }
 
   }
 
