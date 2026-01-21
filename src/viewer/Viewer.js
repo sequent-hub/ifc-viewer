@@ -190,6 +190,15 @@ export class Viewer {
     this._rotAngleEps = 0.01;     // ~0.57° минимальный угловой сдвиг
     this._axisEmaAlpha = 0.15;    // коэффициент сглаживания оси
 
+    this._damping = {
+      dynamic: true,
+      base: 0.06,
+      settle: 0.18,
+      settleMs: 250,
+      isSettling: false,
+      lastEndTs: 0,
+    };
+
     this._onPointerDown = null;
     this._onPointerUp = null;
     this._onPointerMove = null;
@@ -701,13 +710,25 @@ export class Viewer {
       const dir = this.camera.position.clone().sub(this.controls.target).normalize();
       this._prevViewDir = dir;
       this._smoothedAxis = null;
+      if (this._damping.dynamic) {
+        this.controls.dampingFactor = this._damping.base;
+        this._damping.isSettling = false;
+        this.controls.enableDamping = true;
+      }
     };
     this._onControlsChange = () => {
       // Обновляем ось только при зажатой ЛКМ (вращение)
       if (!this._isLmbDown) return;
       this.#updateRotationAxisLine();
     };
-    this._onControlsEnd = () => { this.#hideRotationAxisLine(); };
+    this._onControlsEnd = () => {
+      this.#hideRotationAxisLine();
+      if (this._damping.dynamic && this.controls) {
+        this._damping.isSettling = true;
+        this._damping.lastEndTs = performance.now();
+        this.controls.enableDamping = true;
+      }
+    };
     this.controls.addEventListener('start', this._onControlsStart);
     this.controls.addEventListener('change', this._onControlsChange);
     this.controls.addEventListener('end', this._onControlsEnd);
@@ -768,7 +789,10 @@ export class Viewer {
       this.demoCube.rotation.x += 0.005;
     }
 
-    if (this.controls) this.controls.update();
+    if (this.controls) {
+      this.#updateDynamicDamping();
+      this.controls.update();
+    }
     // "Внутренняя" подсветка/пост-эффекты: включаются только когда камера внутри модели
     this.#updateInteriorAssist();
     this._notifyZoomIfChanged();
@@ -812,6 +836,22 @@ export class Viewer {
     // Рендер навигационного куба поверх основной сцены
     if (this.navCube) this.navCube.renderOverlay();
     this.animationId = requestAnimationFrame(this.animate);
+  }
+
+  #updateDynamicDamping() {
+    if (!this.controls) return;
+    if (!this._damping.dynamic || !this.controls.enableDamping) return;
+    if (this._damping.isSettling) {
+      const now = performance.now();
+      if (now - this._damping.lastEndTs <= this._damping.settleMs) {
+        this.controls.dampingFactor = this._damping.settle;
+      } else {
+        this._damping.isSettling = false;
+        this.controls.dampingFactor = this._damping.base;
+      }
+    } else {
+      this.controls.dampingFactor = this._damping.base;
+    }
   }
 
   dispose() {

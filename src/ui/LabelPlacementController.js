@@ -102,6 +102,19 @@ export class LabelPlacementController {
       v2: new THREE.Vector3(),
     };
 
+    this._autoHide = {
+      active: false,
+      prevHidden: false,
+    };
+    this._showAfterStop = {
+      raf: 0,
+      active: false,
+      lastChangeTs: 0,
+      idleMs: 0,
+      eps: 5e-4,
+      lastCamMatrix: new Float32Array(16),
+    };
+
     this._ui = this.#createUi();
     this.#attachUi();
     this.#bindEvents();
@@ -152,6 +165,7 @@ export class LabelPlacementController {
         try { controls.removeEventListener("end", this._onControlsEnd); } catch (_) {}
       }
     } catch (_) {}
+    try { this.#cancelShowAfterStop(); } catch (_) {}
 
     if (this._raf) cancelAnimationFrame(this._raf);
     this._raf = 0;
@@ -936,12 +950,10 @@ export class LabelPlacementController {
     const controls = this.viewer?.controls;
     if (controls && typeof controls.addEventListener === "function") {
       this._onControlsStart = () => {
-        this._labelsHidden = true;
-        this.#syncHideButton();
+        this.#beginAutoHideForControls();
       };
       this._onControlsEnd = () => {
-        this._labelsHidden = false;
-        this.#syncHideButton();
+        this.#scheduleShowAfterStop();
       };
       try { controls.addEventListener("start", this._onControlsStart); } catch (_) {}
       try { controls.addEventListener("end", this._onControlsEnd); } catch (_) {}
@@ -1589,6 +1601,12 @@ export class LabelPlacementController {
     return false;
   }
 
+  #copyMatrix(matrix, cache) {
+    if (!matrix || !cache || cache.length !== 16) return;
+    const e = matrix.elements;
+    for (let i = 0; i < 16; i += 1) cache[i] = e[i] ?? 0;
+  }
+
   #setLabelsHidden(hidden) {
     const next = !!hidden;
     if (this._labelsHidden === next) return;
@@ -1599,6 +1617,72 @@ export class LabelPlacementController {
       try { this.#closeCanvasMenu(); } catch (_) {}
     }
     this.#syncHideButton();
+  }
+
+  #beginAutoHideForControls() {
+    if (!this._autoHide.active) {
+      this._autoHide.prevHidden = this._labelsHidden;
+      this._autoHide.active = true;
+    }
+    this._labelsHidden = true;
+    this.#syncHideButton();
+    this.#cancelShowAfterStop();
+  }
+
+  #scheduleShowAfterStop() {
+    if (!this._autoHide.active) return;
+    const cam = this.viewer?.camera;
+    if (!cam) return;
+    this._showAfterStop.active = true;
+    this._showAfterStop.lastChangeTs = performance.now();
+    this.#copyMatrix(cam.matrixWorld, this._showAfterStop.lastCamMatrix);
+    if (!this._showAfterStop.raf) {
+      this._showAfterStop.raf = requestAnimationFrame(() => this.#tickShowAfterStop());
+    }
+  }
+
+  #cancelShowAfterStop() {
+    if (this._showAfterStop.raf) cancelAnimationFrame(this._showAfterStop.raf);
+    this._showAfterStop.raf = 0;
+    this._showAfterStop.active = false;
+  }
+
+  #tickShowAfterStop() {
+    if (!this._showAfterStop.active) {
+      this._showAfterStop.raf = 0;
+      return;
+    }
+    const cam = this.viewer?.camera;
+    if (!cam) {
+      this._showAfterStop.raf = 0;
+      return;
+    }
+    const now = performance.now();
+    if (!this.#isCameraStable(cam.matrixWorld, this._showAfterStop.lastCamMatrix, this._showAfterStop.eps)) {
+      this._showAfterStop.lastChangeTs = now;
+    }
+    if (now - this._showAfterStop.lastChangeTs >= this._showAfterStop.idleMs) {
+      this._labelsHidden = this._autoHide.prevHidden;
+      this._autoHide.active = false;
+      this.#syncHideButton();
+      this._showAfterStop.active = false;
+      this._showAfterStop.raf = 0;
+      return;
+    }
+    this._showAfterStop.raf = requestAnimationFrame(() => this.#tickShowAfterStop());
+  }
+
+  #isCameraStable(matrix, cache, eps) {
+    if (!matrix || !cache || cache.length !== 16) return true;
+    const e = matrix.elements;
+    let stable = true;
+    for (let i = 0; i < 16; i += 1) {
+      const v = e[i] ?? 0;
+      const d = Math.abs(v - cache[i]);
+      if (d > eps) stable = false;
+      cache[i] = v;
+    }
+    return stable;
   }
 
   #syncHideButton() {
