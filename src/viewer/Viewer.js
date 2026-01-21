@@ -192,9 +192,9 @@ export class Viewer {
 
     this._damping = {
       dynamic: true,
-      base: 0.06,
-      settle: 0.18,
-      settleMs: 250,
+      base: 0.5,
+      settle: 0,
+      settleMs: 0,
       isSettling: false,
       lastEndTs: 0,
     };
@@ -256,6 +256,53 @@ export class Viewer {
   getZoomToCursorState() {
     if (!this._zoomToCursor) return { enabled: false, debug: false };
     return { enabled: !!this._zoomToCursor.enabled, debug: !!this._zoomToCursor.debug };
+  }
+
+  /**
+   * Возвращает параметры динамического damping (для UI).
+   */
+  getDampingConfig() {
+    const d = this._damping || {};
+    return {
+      dynamic: !!d.dynamic,
+      base: Number.isFinite(d.base) ? d.base : 0,
+      settle: Number.isFinite(d.settle) ? d.settle : 0,
+      settleMs: Number.isFinite(d.settleMs) ? d.settleMs : 0,
+    };
+  }
+
+  /**
+   * Обновляет параметры динамического damping.
+   * @param {{ dynamic?: boolean, base?: number, settle?: number, settleMs?: number }} next
+   */
+  setDampingConfig(next = {}) {
+    if (!this._damping) return;
+    const clamp01 = (v) => Math.min(1, Math.max(0, v));
+    if (Object.prototype.hasOwnProperty.call(next, 'dynamic')) {
+      this._damping.dynamic = !!next.dynamic;
+    }
+    if (Object.prototype.hasOwnProperty.call(next, 'base')) {
+      const v = Number(next.base);
+      if (Number.isFinite(v)) this._damping.base = clamp01(v);
+    }
+    if (Object.prototype.hasOwnProperty.call(next, 'settle')) {
+      const v = Number(next.settle);
+      if (Number.isFinite(v)) this._damping.settle = clamp01(v);
+    }
+    if (Object.prototype.hasOwnProperty.call(next, 'settleMs')) {
+      const v = Number(next.settleMs);
+      if (Number.isFinite(v)) this._damping.settleMs = Math.max(0, v);
+    }
+    if (this.controls) {
+      if (!this._damping.dynamic) {
+        this._damping.isSettling = false;
+        this.controls.enableDamping = false;
+        this.controls.dampingFactor = this._damping.base;
+      } else {
+        this.controls.enableDamping = true;
+        if (!this._damping.isSettling) this.controls.dampingFactor = this._damping.base;
+      }
+    }
   }
 
   /**

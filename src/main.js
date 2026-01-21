@@ -54,6 +54,16 @@ if (app) {
   // Остальные контролы (тени/солнце/материалы/визуал/цветокор) будем добавлять пошагово позже.
   // (Старый код управления панелью закомментирован ниже для последующего восстановления при необходимости.)
 
+  // Анимация (damping)
+  const dampingDynamic = document.getElementById("dampingDynamic");
+  const dampingDynamicValue = document.getElementById("dampingDynamicValue");
+  const dampingBase = document.getElementById("dampingBase");
+  const dampingBaseValue = document.getElementById("dampingBaseValue");
+  const dampingSettle = document.getElementById("dampingSettle");
+  const dampingSettleValue = document.getElementById("dampingSettleValue");
+  const dampingSettleMs = document.getElementById("dampingSettleMs");
+  const dampingSettleMsValue = document.getElementById("dampingSettleMsValue");
+
   const testPresetToggle = document.getElementById("testPresetToggle");
   // Шаг 1 (Tone mapping): в текущей версии он входит в пресет "Тест", но exposure можно подстроить.
   const step1ToneToggle = document.getElementById("step1ToneToggle");
@@ -77,6 +87,59 @@ if (app) {
   const step4Saturation = document.getElementById("step4Saturation");
   const step4SaturationValue = document.getElementById("step4SaturationValue");
   const step4Dump = document.getElementById("step4Dump");
+
+  const applyDampingDynamic = (v) => {
+    const on = Number(v) >= 1;
+    if (dampingDynamicValue) dampingDynamicValue.textContent = on ? "1" : "0";
+    try { viewer.setDampingConfig?.({ dynamic: on }); } catch (_) {}
+  };
+  const applyDampingBase = (v) => {
+    const value = Number(v);
+    if (!Number.isFinite(value)) return;
+    if (dampingBaseValue) dampingBaseValue.textContent = value.toFixed(2);
+    try { viewer.setDampingConfig?.({ base: value }); } catch (_) {}
+  };
+  const applyDampingSettle = (v) => {
+    const value = Number(v);
+    if (!Number.isFinite(value)) return;
+    if (dampingSettleValue) dampingSettleValue.textContent = value.toFixed(2);
+    try { viewer.setDampingConfig?.({ settle: value }); } catch (_) {}
+  };
+  const applyDampingSettleMs = (v) => {
+    const value = Math.max(0, Math.round(Number(v)));
+    if (!Number.isFinite(value)) return;
+    if (dampingSettleMsValue) dampingSettleMsValue.textContent = String(value);
+    try { viewer.setDampingConfig?.({ settleMs: value }); } catch (_) {}
+  };
+
+  // Инициализация damping UI от текущих параметров viewer
+  const initDampingUi = () => {
+    const cfg = viewer.getDampingConfig?.() || {};
+    if (dampingDynamic) {
+      dampingDynamic.value = cfg.dynamic ? "1" : "0";
+      applyDampingDynamic(dampingDynamic.value);
+      dampingDynamic.addEventListener("input", (e) => applyDampingDynamic(e.target.value));
+    }
+    if (dampingBase) {
+      const v = Number.isFinite(cfg.base) ? cfg.base : Number(dampingBase.value);
+      dampingBase.value = Number.isFinite(v) ? String(v) : "0.50";
+      applyDampingBase(dampingBase.value);
+      dampingBase.addEventListener("input", (e) => applyDampingBase(e.target.value));
+    }
+    if (dampingSettle) {
+      const v = Number.isFinite(cfg.settle) ? cfg.settle : Number(dampingSettle.value);
+      dampingSettle.value = Number.isFinite(v) ? String(v) : "0.00";
+      applyDampingSettle(dampingSettle.value);
+      dampingSettle.addEventListener("input", (e) => applyDampingSettle(e.target.value));
+    }
+    if (dampingSettleMs) {
+      const v = Number.isFinite(cfg.settleMs) ? cfg.settleMs : Number(dampingSettleMs.value);
+      dampingSettleMs.value = Number.isFinite(v) ? String(v) : "0";
+      applyDampingSettleMs(dampingSettleMs.value);
+      dampingSettleMs.addEventListener("input", (e) => applyDampingSettleMs(e.target.value));
+    }
+  };
+  initDampingUi();
 
   const setStep1UiEnabled = (enabled) => {
     const on = !!enabled;
