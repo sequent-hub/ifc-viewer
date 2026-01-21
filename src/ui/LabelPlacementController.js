@@ -37,6 +37,7 @@ export class LabelPlacementController {
     this.container = deps.container;
     this.logger = deps.logger || null;
     this._visibilityLogEnabled = !!deps.visibilityLogEnabled;
+    this._editingEnabled = deps?.editingEnabled !== false;
 
     this._placing = false;
     this._nextId = 1;
@@ -117,6 +118,7 @@ export class LabelPlacementController {
 
     this._ui = this.#createUi();
     this.#attachUi();
+    this.#syncEditingUi();
     this.#bindEvents();
     this.#startRaf();
   }
@@ -181,7 +183,7 @@ export class LabelPlacementController {
   }
 
   startPlacement() {
-    if (this._placing || this._labelsHidden) return;
+    if (!this._editingEnabled || this._placing || this._labelsHidden) return;
     this._placing = true;
 
     const controls = this.viewer?.controls;
@@ -736,6 +738,7 @@ export class LabelPlacementController {
       try { e.preventDefault(); } catch (_) {}
       try { e.stopPropagation(); } catch (_) {}
       try { e.stopImmediatePropagation?.(); } catch (_) {}
+      if (!this._editingEnabled) return;
       this.startPlacement();
     };
     this._ui.btn.addEventListener("click", this._onBtnClick, { passive: false });
@@ -781,6 +784,7 @@ export class LabelPlacementController {
       const target = e.target;
       const action = target?.getAttribute?.("data-action");
       if (action !== "add") return;
+      if (!this._editingEnabled) return;
       if (this._labelsHidden) return;
       try { e.preventDefault(); } catch (_) {}
       try { e.stopPropagation(); } catch (_) {}
@@ -796,6 +800,7 @@ export class LabelPlacementController {
         if (e.key === "Escape") this.cancelPlacement();
         return;
       }
+      if (!this._editingEnabled) return;
 
       const target = e.target;
       const tag = (target && target.tagName) ? String(target.tagName).toLowerCase() : "";
@@ -930,6 +935,7 @@ export class LabelPlacementController {
 
     this._onCanvasContextMenu = (e) => {
       // Контекстное меню добавления метки по ПКМ на модели (если нет метки под курсором).
+      if (!this._editingEnabled) return;
       try { e.preventDefault(); } catch (_) {}
       try { e.stopPropagation(); } catch (_) {}
       try { e.stopImmediatePropagation?.(); } catch (_) {}
@@ -1243,6 +1249,7 @@ export class LabelPlacementController {
   }
 
   #emitLabelAction(action, marker = null) {
+    if (!this._editingEnabled) return;
     const target = marker || this.#getSelectedMarker();
     if (!target) return;
     const detail = this.#buildActionPayload(target);
@@ -1251,6 +1258,7 @@ export class LabelPlacementController {
   }
 
   #openContextMenu(marker, clientX, clientY) {
+    if (!this._editingEnabled) return;
     const menu = this._ui?.menu;
     if (!menu || !marker) return;
 
@@ -1364,6 +1372,11 @@ export class LabelPlacementController {
       // если были в режиме постановки — выходим
       try { this.cancelPlacement(); } catch (_) {}
 
+      if (!this._editingEnabled) {
+        this.#handleMarkerClick(marker);
+        return;
+      }
+
       if (e.button === 0) {
         this.#closeContextMenu();
         this.#setSelectedMarker(marker);
@@ -1395,6 +1408,7 @@ export class LabelPlacementController {
     try { marker.el.addEventListener("dragend", onMarkerDragEnd); } catch (_) {}
 
     const onMarkerContextMenu = (e) => {
+      if (!this._editingEnabled) return;
       try { e.preventDefault(); } catch (_) {}
       try { e.stopPropagation(); } catch (_) {}
       try { e.stopImmediatePropagation?.(); } catch (_) {}
@@ -1699,7 +1713,7 @@ export class LabelPlacementController {
   }
 
   #syncAddAvailability() {
-    const disabled = !!this._labelsHidden;
+    const disabled = !!this._labelsHidden || !this._editingEnabled;
     const btn = this._ui?.btn;
     if (btn) {
       btn.disabled = disabled;
@@ -1710,6 +1724,34 @@ export class LabelPlacementController {
       menuAdd.disabled = disabled;
       try { menuAdd.classList.toggle("ifc-label-menu-item--disabled", disabled); } catch (_) {}
     }
+  }
+
+  #syncEditingUi() {
+    const actions = this._ui?.actions;
+    if (actions) actions.style.display = this._editingEnabled ? "" : "none";
+    if (!this._editingEnabled) {
+      try { this.cancelPlacement(); } catch (_) {}
+      try { this.#closeContextMenu(); } catch (_) {}
+      try { this.#closeCanvasMenu(); } catch (_) {}
+      this._labelDrag.active = false;
+      this._labelDrag.moved = false;
+      this._labelDrag.pointerId = null;
+      this._labelDrag.id = null;
+      this._labelDrag.clickMarker = null;
+      this.#setDragGhostVisible(false);
+    }
+    this.#syncAddAvailability();
+  }
+
+  setEditingEnabled(enabled) {
+    const next = !!enabled;
+    if (this._editingEnabled === next) return;
+    this._editingEnabled = next;
+    this.#syncEditingUi();
+  }
+
+  getEditingEnabled() {
+    return !!this._editingEnabled;
   }
 }
 

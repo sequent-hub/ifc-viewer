@@ -41,6 +41,7 @@ export class IfcViewer {
    * @param {boolean} [options.showSidebar=false] - Показывать ли боковую панель с деревом
    * @param {boolean} [options.showControls=false] - Показывать ли панель управления (нижние кнопки)
    * @param {boolean} [options.showToolbar=true] - Показывать ли верхнюю панель инструментов
+   * @param {boolean} [options.labelEditingEnabled=true] - Разрешить ли редактирование меток
    * @param {boolean} [options.autoLoad=true] - Автоматически загружать модель при инициализации (modelUrl/modelFile/ifcUrl/ifcFile)
    * @param {string} [options.theme='light'] - Тема интерфейса ('light' | 'dark')
    * @param {Object} [options.viewerOptions] - Дополнительные опции для Viewer
@@ -74,6 +75,7 @@ export class IfcViewer {
       showSidebar: options.showSidebar === true, // по умолчанию false
       showControls: options.showControls === true, // по умолчанию false
       showToolbar: options.showToolbar !== false, // по умолчанию true
+      labelEditingEnabled: options.labelEditingEnabled !== false,
       autoLoad: options.autoLoad !== false,
       theme: options.theme || 'light',
       viewerOptions: options.viewerOptions || {}
@@ -390,6 +392,24 @@ export class IfcViewer {
   }
 
   /**
+   * Включает/выключает режим редактирования меток.
+   * @param {boolean} enabled
+   */
+  setLabelEditingEnabled(enabled) {
+    if (!this.labelPlacement) return;
+    this.labelPlacement.setEditingEnabled(enabled);
+  }
+
+  /**
+   * Возвращает текущий режим редактирования меток.
+   * @returns {boolean}
+   */
+  getLabelEditingEnabled() {
+    if (!this.labelPlacement) return false;
+    return this.labelPlacement.getEditingEnabled();
+  }
+
+  /**
    * @deprecated используйте setLabelMarkers
    */
   setCardMarkers(items) {
@@ -564,7 +584,12 @@ export class IfcViewer {
     // В пакете включаем UI "меток" по умолчанию:
     // кнопка "+ Добавить метку" + режим постановки меток + сохранение/восстановление состояния.
     try {
-      this.labelPlacement = new LabelPlacementController({ viewer: this.viewer, container: this.elements.viewerContainer, logger: console });
+      this.labelPlacement = new LabelPlacementController({
+        viewer: this.viewer,
+        container: this.elements.viewerContainer,
+        logger: console,
+        editingEnabled: this.options.labelEditingEnabled,
+      });
       this.cardPlacement = this.labelPlacement;
     } catch (e) {
       console.warn('IfcViewer: LabelPlacementController init failed', e);
