@@ -1,9 +1,7 @@
 import "./style.css";
-import { Viewer } from "./viewer/Viewer.js";
-import { IfcService } from "./ifc/IfcService.js";
+import { IfcViewer } from "./IfcViewer.js";
 import { IfcTreeView } from "./ifc/IfcTreeView.js";
 import { ModelLoaderRegistry } from "./model-loading/ModelLoaderRegistry.js";
-import { LabelPlacementController } from "./ui/LabelPlacementController.js";
 import { IfcModelLoader } from "./model-loading/loaders/IfcModelLoader.js";
 import { FbxModelLoader } from "./model-loading/loaders/FbxModelLoader.js";
 import { GltfModelLoader } from "./model-loading/loaders/GltfModelLoader.js";
@@ -13,14 +11,54 @@ import { StlModelLoader } from "./model-loading/loaders/StlModelLoader.js";
 import { DaeModelLoader } from "./model-loading/loaders/DaeModelLoader.js";
 import { ThreeDmModelLoader } from "./model-loading/loaders/ThreeDmModelLoader.js";
 
-// Инициализация three.js Viewer в контейнере #app
+// Инициализация Viewer через публичный API IfcViewer
 const app = document.getElementById("app");
 if (app) {
-  const viewer = new Viewer(app);
-  viewer.init();
+  // ===== Параметры запуска =====
+  let __startupParams = null;
+  let wasmOverride = null;
+  try {
+    const params = new URLSearchParams(location.search);
+    __startupParams = params;
+    const w = params.get('wasm');
+    if (w != null && w !== '') {
+      wasmOverride = String(w);
+      // нормализуем: web-ifc ожидает путь-директорию
+      if (!wasmOverride.endsWith('/')) wasmOverride += '/';
+    }
+  } catch (_) {}
 
-  // UI: режим постановки меток по клику на модель
-  const labelPlacement = new LabelPlacementController({ viewer, container: app, logger: console });
+  // Инициализируем IfcViewer (публичный API)
+  const ifcViewer = new IfcViewer({
+    container: app,
+    autoLoad: false,
+    showToolbar: false,
+    showControls: false,
+    showSidebar: false,
+    useTestPreset: false,
+    wasmUrl: wasmOverride,
+    rhino3dmLibraryPath: '/wasm/rhino3dm/',
+  });
+  await ifcViewer.init();
+
+  const viewer = ifcViewer.getViewer();
+  const ifc = ifcViewer.getIfcService();
+
+  // Режим гостя: запрещает постановку/редактирование меток
+  const guestModeToggle = document.getElementById("guestModeToggle");
+  let guestMode = false;
+  const syncGuestModeUi = () => {
+    if (!guestModeToggle) return;
+    guestModeToggle.textContent = guestMode ? "Режим гостя: Вкл" : "Режим гостя: Выкл";
+    guestModeToggle.classList.toggle("btn-active", guestMode);
+  };
+  const setGuestMode = (enabled) => {
+    guestMode = !!enabled;
+    try { ifcViewer.setLabelEditingEnabled(!guestMode); } catch (_) {}
+    syncGuestModeUi();
+  };
+  guestModeToggle?.addEventListener("click", () => setGuestMode(!guestMode));
+  syncGuestModeUi();
 
   // ===== Диагностика (включается через query-параметры) =====
   // ?debugViewer=1  -> window.__viewer = viewer
@@ -28,10 +66,8 @@ if (app) {
   // ?zoomDebug=1    -> включает логирование zoom-to-cursor
   // ?zoomCursor=0   -> отключает zoom-to-cursor (для сравнения с OrbitControls)
   let __debugViewerEnabled = false;
-  let __startupParams = null;
   try {
-    const params = new URLSearchParams(location.search);
-    __startupParams = params;
+    const params = __startupParams || new URLSearchParams(location.search);
     const debugViewer = params.get("debugViewer") === "1" || params.get("zoomDebug") === "1";
     if (debugViewer) {
       __debugViewerEnabled = true;
@@ -385,21 +421,7 @@ if (app) {
    * - realtime-quality UI lock + test UI lock snapshots
    */
   // IFC загрузка
-  // ?wasm=/wasm/  -> переопределяет директорию, из которой web-ifc будет грузить web-ifc.wasm
-  // ВАЖНО: параметр должен указывать ДИРЕКТОРИЮ (web-ifc сам добавляет 'web-ifc.wasm')
-  let wasmOverride = null;
-  try {
-    const p = __startupParams || new URLSearchParams(location.search);
-    const w = p.get('wasm');
-    if (w != null && w !== '') {
-      wasmOverride = String(w);
-      // нормализуем: web-ifc ожидает путь-директорию
-      if (!wasmOverride.endsWith('/')) wasmOverride += '/';
-    }
-  } catch (_) {}
-
-  const ifc = new IfcService(viewer, wasmOverride);
-  ifc.init();
+  // wasmOverride уже вычислен из query-параметров
   // Экспортируем сервис только после инициализации (иначе ifc ещё не определён)
   if (__debugViewerEnabled) {
     try {
@@ -413,6 +435,74 @@ if (app) {
   const ifcIsolateToggle = document.getElementById("ifcIsolateToggle");
   /** @type {any|null} */
   let activeCapabilities = null;
+
+  const applyLoadResult = async (result) => {
+    activeCapabilities = result?.capabilities || null;
+    if (result?.object3D) {
+      if (activeCapabilities?.kind === 'ifc' && activeCapabilities?.ifcService) {
+        const ifcSvc = activeCapabilities.ifcService;
+        const last = ifcSvc.getLastInfo();
+        const struct = await ifcSvc.getSpatialStructure(last?.modelID ? Number(last.modelID) : undefined);
+        if (!struct) console.warn('IFC spatial structure not available for modelID', last?.modelID);
+        if (ifcTree) ifcTree.render(struct);
+        if (ifcInfoEl) {
+          const info = ifcSvc.getLastInfo();
+          ifcInfoEl.innerHTML = `
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="font-medium text-xs">${info.name || '—'}</div>
+                <div class="opacity-70">modelID: ${info.modelID || '—'}</div>
+              </div>
+            </div>`;
+        }
+        if (ifcIsolateToggle) ifcIsolateToggle.disabled = false;
+      } else {
+        // Не-IFC: очищаем дерево, показываем базовую инфу
+        if (ifcTree) ifcTree.render(null);
+        if (ifcInfoEl) {
+          const name = result?.name || '—';
+          const format = result?.format || '—';
+          const missing = Array.isArray(result?.capabilities?.missingAssets) ? result.capabilities.missingAssets : [];
+          const missingHtml = missing.length
+            ? `<div class="mt-1 opacity-70">missing: ${missing.slice(0, 10).map((x) => String(x)).join(', ')}${missing.length > 10 ? '…' : ''}</div>`
+            : '';
+          ifcInfoEl.innerHTML = `
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="font-medium text-xs">${name}</div>
+                <div class="opacity-70">format: ${format}</div>
+                ${missingHtml}
+              </div>
+            </div>`;
+        }
+        if (ifcIsolateToggle) {
+          ifcIsolateToggle.checked = false;
+          ifcIsolateToggle.disabled = true;
+        }
+      }
+      return;
+    }
+
+    // Нет модели: очистка
+    if (ifcTree) ifcTree.render(null);
+    if (ifcInfoEl) {
+      ifcInfoEl.innerHTML = `
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="font-medium text-xs">—</div>
+            <div class="opacity-70">format: —</div>
+          </div>
+        </div>`;
+    }
+    if (ifcIsolateToggle) {
+      ifcIsolateToggle.checked = false;
+      ifcIsolateToggle.disabled = true;
+    }
+  };
+
+  app.addEventListener('ifcviewer:model-loaded', (e) => {
+    void applyLoadResult(e?.detail?.result || null);
+  });
 
   // Реестр загрузчиков: добавляйте новые форматы через register(new XxxModelLoader())
   const modelLoaders = new ModelLoaderRegistry()
@@ -436,61 +526,12 @@ if (app) {
     ifcInput.addEventListener("change", async (e) => {
       const files = Array.from(e.target.files || []).filter(Boolean);
       if (!files.length) return;
-      let result = null;
       try {
-        // Multi-file: e.g. OBJ+MTL (+textures)
-        result = (files.length > 1)
-          ? await modelLoaders.loadFiles(files, { viewer, wasmUrl: wasmOverride, rhino3dmLibraryPath, logger: console })
-          : await modelLoaders.loadFile(files[0], { viewer, wasmUrl: wasmOverride, rhino3dmLibraryPath, logger: console });
-        activeCapabilities = result?.capabilities || null;
+        await ifcViewer.loadModel(files);
       } catch (err) {
         console.error('Model load error', err);
-        activeCapabilities = null;
       }
       ifcInput.value = "";
-
-      // Обновим панель: IFC дерево/инфо только для IFC
-      if (activeCapabilities?.kind === 'ifc' && activeCapabilities?.ifcService) {
-        const ifcSvc = activeCapabilities.ifcService;
-        const last = ifcSvc.getLastInfo();
-        const struct = await ifcSvc.getSpatialStructure(last.modelID ? Number(last.modelID) : undefined);
-        if (!struct) console.warn('IFC spatial structure not available for modelID', last?.modelID);
-        if (ifcTree) ifcTree.render(struct);
-        if (ifcInfoEl) {
-          const info = ifcSvc.getLastInfo();
-          ifcInfoEl.innerHTML = `
-            <div class="flex items-center justify-between">
-              <div>
-                <div class="font-medium text-xs">${info.name || '—'}</div>
-                <div class="opacity-70">modelID: ${info.modelID || '—'}</div>
-              </div>
-            </div>`;
-        }
-        if (ifcIsolateToggle) ifcIsolateToggle.disabled = false;
-      } else {
-        // Не-IFC: очищаем дерево, показываем базовую инфу
-        if (ifcTree) ifcTree.render(null);
-        if (ifcInfoEl) {
-          const name = result?.name || files[0]?.name || '—';
-          const format = result?.format || '—';
-          const missing = Array.isArray(result?.capabilities?.missingAssets) ? result.capabilities.missingAssets : [];
-          const missingHtml = missing.length
-            ? `<div class="mt-1 opacity-70">missing: ${missing.slice(0, 10).map((x) => String(x)).join(', ')}${missing.length > 10 ? '…' : ''}</div>`
-            : '';
-          ifcInfoEl.innerHTML = `
-            <div class="flex items-center justify-between">
-              <div>
-                <div class="font-medium text-xs">${name}</div>
-                <div class="opacity-70">format: ${format}</div>
-                ${missingHtml}
-              </div>
-            </div>`;
-        }
-        if (ifcIsolateToggle) {
-          ifcIsolateToggle.checked = false;
-          ifcIsolateToggle.disabled = true;
-        }
-      }
       // Авто-открытие панели при ручной загрузке
       setSidebarVisible(true);
       hidePreloader();
@@ -682,42 +723,8 @@ if (app) {
     const params = new URLSearchParams(location.search);
     const ifcUrlParam = params.get('ifc');
     const ifcUrl = ifcUrlParam || DEFAULT_IFC_URL;
-    const result = await modelLoaders.loadUrl(encodeURI(ifcUrl), { viewer, wasmUrl: wasmOverride, rhino3dmLibraryPath, logger: console });
-    activeCapabilities = result?.capabilities || null;
-    if (result?.object3D) {
-      if (activeCapabilities?.kind === 'ifc' && activeCapabilities?.ifcService) {
-        const ifcSvc = activeCapabilities.ifcService;
-        const struct = await ifcSvc.getSpatialStructure();
-        if (ifcTree) ifcTree.render(struct);
-        if (ifcInfoEl) {
-          const info = ifcSvc.getLastInfo();
-          ifcInfoEl.innerHTML = `
-            <div class="flex items-center justify-between">
-              <div>
-                <div class="font-medium text-xs">${info.name || '—'}</div>
-                <div class="opacity-70">modelID: ${info.modelID || '—'}</div>
-              </div>
-            </div>`;
-        }
-        if (ifcIsolateToggle) ifcIsolateToggle.disabled = false;
-      } else {
-        if (ifcTree) ifcTree.render(null);
-        if (ifcInfoEl) {
-          const name = result?.name || '—';
-          const format = result?.format || '—';
-          ifcInfoEl.innerHTML = `
-            <div class="flex items-center justify-between">
-              <div>
-                <div class="font-medium text-xs">${name}</div>
-                <div class="opacity-70">format: ${format}</div>
-              </div>
-            </div>`;
-        }
-        if (ifcIsolateToggle) {
-          ifcIsolateToggle.checked = false;
-          ifcIsolateToggle.disabled = true;
-        }
-      }
+    const loaded = await ifcViewer.loadModel(encodeURI(ifcUrl));
+    if (loaded) {
       // Не открываем панель автоматически при автозагрузке
       hidePreloader();
     }
@@ -741,9 +748,7 @@ if (app) {
   // Очистка при HMR (vite)
   if (import.meta.hot) {
     import.meta.hot.dispose(() => {
-      ifc.dispose();
-      viewer.dispose();
-      try { labelPlacement.dispose(); } catch (_) {}
+      ifcViewer.dispose();
     });
   }
 }

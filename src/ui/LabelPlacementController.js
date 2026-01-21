@@ -118,7 +118,7 @@ export class LabelPlacementController {
 
     this._ui = this.#createUi();
     this.#attachUi();
-    this.#syncEditingUi();
+    this._syncEditingUi();
     this.#bindEvents();
     this.#startRaf();
   }
@@ -1726,7 +1726,7 @@ export class LabelPlacementController {
     }
   }
 
-  #syncEditingUi() {
+  _syncEditingUi() {
     const actions = this._ui?.actions;
     if (actions) actions.style.display = this._editingEnabled ? "" : "none";
     if (!this._editingEnabled) {
@@ -1747,7 +1747,7 @@ export class LabelPlacementController {
     const next = !!enabled;
     if (this._editingEnabled === next) return;
     this._editingEnabled = next;
-    this.#syncEditingUi();
+    this._syncEditingUi();
   }
 
   getEditingEnabled() {

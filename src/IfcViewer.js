@@ -449,17 +449,7 @@ export class IfcViewer {
    * @private
    */
   _createInterface() {
-    // Основная разметка просмотрщика
-    const html = `
-      <div class="ifc-viewer-container" style="width: 100%; height: 100%; position: relative; display: flex; flex-direction: column; background: #ffffff; border:0px red solid;">
-       <!-- Прелоадер -->
-        <div id="ifcPreloader" class="absolute inset-0 bg-base-100 flex items-center justify-center z-50">
-          <div class="text-center">
-            <span class="loading loading-spinner loading-lg"></span>
-            <div class="mt-2 text-sm opacity-70">Загрузка модели...</div>
-          </div>
-        </div>
-
+    const toolbarHtml = this.options.showToolbar ? `
         <!-- Верхняя панель управления -->
         <div id="ifcToolbar" class="d-flex px-4" style="border:0px red solid; width: 350px; position: absolute; z-index: 60; justify-content:space-between;  bottom: 10px; left: calc(50% - 175px); ">
           
@@ -502,6 +492,19 @@ export class IfcViewer {
                                  
           </div>
         </div>              
+    ` : '';
+    // Основная разметка просмотрщика
+    const html = `
+      <div class="ifc-viewer-container" style="width: 100%; height: 100%; position: relative; display: flex; flex-direction: column; background: #ffffff; border:0px red solid;">
+       <!-- Прелоадер -->
+        <div id="ifcPreloader" class="absolute inset-0 bg-base-100 flex items-center justify-center z-50">
+          <div class="text-center">
+            <span class="loading loading-spinner loading-lg"></span>
+            <div class="mt-2 text-sm opacity-70">Загрузка модели...</div>
+          </div>
+        </div>
+
+        ${toolbarHtml}
 
         <!-- Основной контейнер просмотрщика -->
         <div id="ifcViewerMain" class="w-full flex-1 relative bg-base-100" style="background: #ffffff;"></div>
