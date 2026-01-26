@@ -45,6 +45,7 @@ export class Viewer {
     this.zoomListeners = new Set();
     this.lastZoomPercent = null;
     this.resizeObserver = null;
+    this._pendingResize = false;
     this.demoCube = null;
     this.activeModel = null;
     this.autoRotateDemo = true;
@@ -788,17 +789,13 @@ export class Viewer {
     this.resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const cr = entry.contentRect;
-        const w = Math.max(1, Math.floor(cr.width));
-        const h = Math.max(1, Math.floor(cr.height));
-        this._updateSize(w, h);
-        // После первого валидного измерения показываем канвас
-        this.renderer.domElement.style.visibility = "visible";
+        this._tryResize(cr.width, cr.height, { updateZoomLimits: false, showCanvas: true });
       }
     });
     this.resizeObserver.observe(this.container);
     // Первичная попытка подгонки
     const { width: initW, height: initH } = this._getContainerSize();
-    this._updateSize(Math.max(1, initW), Math.max(1, initH));
+    this._tryResize(initW, initH, { updateZoomLimits: false, showCanvas: true });
 
     // Старт цикла
     this.animate();
@@ -822,12 +819,11 @@ export class Viewer {
   handleResize() {
     if (!this.container || !this.camera || !this.renderer) return;
     const { width, height } = this._getContainerSize();
-    this._updateSize(Math.max(1, width), Math.max(1, height));
-    // Обновим пределы зума под текущий объект без переразмещения камеры (только в перспективе)
-    const subject = this.activeModel || this.demoCube;
-    if (subject && this.camera.isPerspectiveCamera) this.applyAdaptiveZoomLimits(subject, { recenter: false });
-    // Обновим вспомогательные overlay-виджеты
-    if (this.navCube) this.navCube.onResize();
+    this._tryResize(width, height, { updateZoomLimits: true, showCanvas: false });
+  }
+
+  forceResize() {
+    this.handleResize();
   }
 
   animate() {
@@ -1306,9 +1302,30 @@ export class Viewer {
 
   _getContainerSize() {
     const rect = this.container.getBoundingClientRect();
-    const width = rect.width || this.container.clientWidth || 1;
-    const height = rect.height || this.container.clientHeight || 1;
+    const width = rect?.width ?? this.container.clientWidth ?? 0;
+    const height = rect?.height ?? this.container.clientHeight ?? 0;
     return { width, height };
+  }
+
+  _tryResize(width, height, { updateZoomLimits = true, showCanvas = false } = {}) {
+    if (!this.camera || !this.renderer) return false;
+    const w = Math.floor(width);
+    const h = Math.floor(height);
+    if (w < 2 || h < 2) {
+      this._pendingResize = true;
+      return false;
+    }
+    if (this._pendingResize) this._pendingResize = false;
+    this._updateSize(w, h);
+    if (updateZoomLimits) {
+      // Обновим пределы зума под текущий объект без переразмещения камеры (только в перспективе)
+      const subject = this.activeModel || this.demoCube;
+      if (subject && this.camera.isPerspectiveCamera) this.applyAdaptiveZoomLimits(subject, { recenter: false });
+      // Обновим вспомогательные overlay-виджеты
+      if (this.navCube) this.navCube.onResize();
+    }
+    if (showCanvas) this.renderer.domElement.style.visibility = "visible";
+    return true;
   }
 
   _updateSize(width, height) {
