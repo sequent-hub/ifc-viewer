@@ -1459,12 +1459,14 @@ export class Viewer {
   }
 
   // Заменяет демо-куб на реальную модель и отключает автоповорот
-  replaceWithModel(object3D) {
+  replaceWithModel(object3D, { disposePrevious = true, recenter = true } = {}) {
     if (!object3D) return;
     // Удалить предыдущую модель
     if (this.activeModel) {
       this.scene.remove(this.activeModel);
-      this.#disposeObject(this.activeModel);
+      if (disposePrevious) {
+        this.#disposeObject(this.activeModel);
+      }
       this.activeModel = null;
     }
     // Удалить демо-куб
@@ -1516,70 +1518,97 @@ export class Viewer {
       try { this.#applyTestPresetToScene(); } catch (_) {}
     }
 
-    // На следующем кадре выставим кадрирование "в безопасной зоне" (2×2 из 4×4) и ракурс front-right-top.
-    try {
-      requestAnimationFrame(() => {
-        if (!this.camera || !this.controls) return;
-        // Логирование включается через ?frameDebug=1
-        let log = false;
-        try {
-          const params = new URLSearchParams(window.location.search);
-          log = params.get('frameDebug') === '1';
-        } catch (_) {}
+    if (recenter) {
+      // На следующем кадре выставим кадрирование "в безопасной зоне" (2×2 из 4×4) и ракурс front-right-top.
+      try {
+        requestAnimationFrame(() => {
+          if (!this.camera || !this.controls) return;
+          // Логирование включается через ?frameDebug=1
+          let log = false;
+          try {
+            const params = new URLSearchParams(window.location.search);
+            log = params.get('frameDebug') === '1';
+          } catch (_) {}
 
-        // Кадрируем строго по центру bbox и с запасом (2×2 из 4×4 => padding≈2.0, +extraPadding)
-        try {
-          this.frameObjectToViewportGrid?.(object3D, {
-            gridCols: 4,
-            gridRows: 4,
-            spanCols: 2,
-            spanRows: 2,
-            extraPadding: 1.05,
-            perspectiveFov: 20,
-            viewDir: new THREE.Vector3(-1, 0.6, 1), // front-right-top
-            log,
-          });
-        } catch (_) {}
+          // Кадрируем строго по центру bbox и с запасом (2×2 из 4×4 => padding≈2.0, +extraPadding)
+          try {
+            this.frameObjectToViewportGrid?.(object3D, {
+              gridCols: 4,
+              gridRows: 4,
+              spanCols: 2,
+              spanRows: 2,
+              extraPadding: 1.05,
+              perspectiveFov: 20,
+              viewDir: new THREE.Vector3(-1, 0.6, 1), // front-right-top
+              log,
+            });
+          } catch (_) {}
 
-        // После выставления камеры — ещё раз подстроим near/far и лимиты зума под новый кадр.
-        try { this.applyAdaptiveZoomLimits(object3D, { padding: 2.1, slack: 2.5, minRatio: 0.05, recenter: false }); } catch (_) {}
+          // После выставления камеры — ещё раз подстроим near/far и лимиты зума под новый кадр.
+          try { this.applyAdaptiveZoomLimits(object3D, { padding: 2.1, slack: 2.5, minRatio: 0.05, recenter: false }); } catch (_) {}
 
-        // Снимем актуальный «домашний» вид после всех корректировок
-        this._home.cameraPos = this.camera.position.clone();
-        this._home.target = this.controls.target.clone();
-        this._home.perspFov = (this.camera && this.camera.isPerspectiveCamera) ? this.camera.fov : (this._projection?.persp?.fov ?? this._home.perspFov ?? 20);
-        this._home.edgesVisible = this.edgesVisible;
-        this._home.flatShading = this.flatShading;
-        this._home.quality = this.quality;
-        this._home.clipEnabled = this.clipping.planes.map(p => p.constant);
+          // Снимем актуальный «домашний» вид после всех корректировок
+          this._home.cameraPos = this.camera.position.clone();
+          this._home.target = this.controls.target.clone();
+          this._home.perspFov = (this.camera && this.camera.isPerspectiveCamera) ? this.camera.fov : (this._projection?.persp?.fov ?? this._home.perspFov ?? 20);
+          this._home.edgesVisible = this.edgesVisible;
+          this._home.flatShading = this.flatShading;
+          this._home.quality = this.quality;
+          this._home.clipEnabled = this.clipping.planes.map(p => p.constant);
 
-        // Снимем исходный трансформ модели для Home (ПКМ-сдвиги должны сбрасываться)
-        try {
-          const m = this.activeModel;
-          if (m) {
-            this._home.modelTransform = {
-              position: m.position.clone(),
-              quaternion: m.quaternion.clone(),
-              scale: m.scale.clone(),
-            };
-          }
-        } catch (_) {}
+          // Снимем исходный трансформ модели для Home (ПКМ-сдвиги должны сбрасываться)
+          try {
+            const m = this.activeModel;
+            if (m) {
+              this._home.modelTransform = {
+                position: m.position.clone(),
+                quaternion: m.quaternion.clone(),
+                scale: m.scale.clone(),
+              };
+            }
+          } catch (_) {}
 
-        // Снимем исходное положение тени/земли, чтобы Home возвращал их вместе с моделью
-        try {
-          this._home.shadowReceiverPos = this.shadowReceiver?.position?.clone?.() || null;
-        } catch (_) { this._home.shadowReceiverPos = null; }
-        try {
-          this._home.sunTargetPos = this.sunLight?.target?.position?.clone?.() || null;
-        } catch (_) { this._home.sunTargetPos = null; }
-        try {
-          this._home.shadowGradCenterXZ = this.shadowGradient?.buildingCenterXZ?.clone?.() || null;
-        } catch (_) { this._home.shadowGradCenterXZ = null; }
+          // Снимем исходное положение тени/земли, чтобы Home возвращал их вместе с моделью
+          try {
+            this._home.shadowReceiverPos = this.shadowReceiver?.position?.clone?.() || null;
+          } catch (_) { this._home.shadowReceiverPos = null; }
+          try {
+            this._home.sunTargetPos = this.sunLight?.target?.position?.clone?.() || null;
+          } catch (_) { this._home.sunTargetPos = null; }
+          try {
+            this._home.shadowGradCenterXZ = this.shadowGradient?.buildingCenterXZ?.clone?.() || null;
+          } catch (_) { this._home.shadowGradCenterXZ = null; }
 
-        // После загрузки модели сбрасываем "фиксированную ось" от ПКМ
-        try { if (this._rmbModelMove) this._rmbModelMove.pivotAnchor = null; } catch (_) {}
-      });
-    } catch(_) {}
+          // После загрузки модели сбрасываем "фиксированную ось" от ПКМ
+          try { if (this._rmbModelMove) this._rmbModelMove.pivotAnchor = null; } catch (_) {}
+        });
+      } catch(_) {}
+    }
+  }
+
+  /**
+   * Отцепляет активную модель от сцены.
+   * @param {{ dispose?: boolean }} [options]
+   * @returns {Object3D|null}
+   */
+  detachActiveModel({ dispose = false } = {}) {
+    if (!this.activeModel) return null;
+    const model = this.activeModel;
+    this.scene.remove(model);
+    if (dispose) {
+      this.#disposeObject(model);
+    }
+    this.activeModel = null;
+    return model;
+  }
+
+  /**
+   * Публичный обёрточный метод освобождения ресурсов объекта.
+   * @param {Object3D} object3D
+   */
+  disposeObject(object3D) {
+    if (!object3D) return;
+    this.#disposeObject(object3D);
   }
 
   #disposeObject(obj) {

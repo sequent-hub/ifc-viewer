@@ -50,6 +50,16 @@ export class IfcService {
   }
 
   /**
+   * Перепривязывает сервис к новому Viewer.
+   * @param {import('../viewer/Viewer').Viewer} viewer
+   * @returns {IfcService}
+   */
+  rebindViewer(viewer) {
+    this.viewer = viewer;
+    return this;
+  }
+
+  /**
    * Настройка пути к WASM файлу с fallback
    * @private
    */

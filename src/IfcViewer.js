@@ -8,6 +8,16 @@
  *   ifcUrl: '/path/to/model.ifc'
  * })
  * await viewer.init()
+ *
+ * Кэш последней модели:
+ * const cache = viewer.extractModelCache();
+ * viewer.dispose({ keepModelCache: true });
+ * const viewer2 = new IfcViewer({ container: document.getElementById('modal-content') });
+ * await viewer2.init();
+ * viewer2.attachModelCache(cache);
+ * // Явное освобождение кэша:
+ * viewer2.getViewer()?.disposeObject(cache.object3D);
+ * cache.ifcService?.dispose();
  */
 
 import { Viewer } from "./viewer/Viewer.js";
@@ -24,6 +34,15 @@ import { DaeModelLoader } from "./model-loading/loaders/DaeModelLoader.js";
 import { ThreeDmModelLoader } from "./model-loading/loaders/ThreeDmModelLoader.js";
 import { LabelPlacementController } from "./ui/LabelPlacementController.js";
 import './style.css';
+
+/**
+ * @typedef {Object} ModelCache
+ * @property {import('three').Object3D} object3D
+ * @property {Object|null} capabilities
+ * @property {Object|null} loadResult
+ * @property {IfcService|null} ifcService
+ * @property {{ name?: string, format?: string, modelID?: string }} metadata
+ */
 
 
 export class IfcViewer {
@@ -293,8 +312,9 @@ export class IfcViewer {
 
   /**
    * Освобождает ресурсы и очищает интерфейс
+   * @param {{ keepModelCache?: boolean }} [options]
    */
-  dispose() {
+  dispose({ keepModelCache = false } = {}) {
     if (!this.isInitialized) return;
 
     // Очищаем слушатели событий
@@ -310,7 +330,9 @@ export class IfcViewer {
 
     // Освобождаем компоненты
     if (this.ifcService) {
-      this.ifcService.dispose();
+      if (!keepModelCache) {
+        this.ifcService.dispose();
+      }
       this.ifcService = null;
     }
 
@@ -320,6 +342,9 @@ export class IfcViewer {
     }
     this.cardPlacement = null;
     
+    if (this.viewer && keepModelCache) {
+      try { this.viewer.detachActiveModel({ dispose: false }); } catch (_) {}
+    }
     if (this.viewer) {
       this.viewer.dispose();
       this.viewer = null;
@@ -332,9 +357,70 @@ export class IfcViewer {
 
     this.isInitialized = false;
     this.currentModel = null;
+    this.currentLoadResult = null;
+    this.currentCapabilities = null;
     
     // Диспетчируем событие освобождения ресурсов
     this._dispatchEvent('disposed', { viewer: this });
+  }
+
+  /**
+   * Извлекает кэш последней модели без её dispose.
+   * @returns {ModelCache|null}
+   */
+  extractModelCache() {
+    if (!this.viewer || !this.currentModel) return null;
+    const object3D = this.viewer.detachActiveModel({ dispose: false });
+    if (!object3D) return null;
+
+    const ifcService = (this.currentCapabilities?.kind === 'ifc') ? this.currentCapabilities?.ifcService : null;
+    const metadata = {
+      name: '',
+      format: '',
+      modelID: '',
+    };
+
+    try {
+      if (ifcService) {
+        const info = ifcService.getLastInfo();
+        metadata.name = info?.name || '';
+        metadata.modelID = info?.modelID || '';
+      } else if (this.currentLoadResult) {
+        metadata.name = this.currentLoadResult.name || '';
+      }
+      metadata.format = this.currentLoadResult?.format || '';
+    } catch (_) {}
+
+    this.currentModel = null;
+    return {
+      object3D,
+      capabilities: this.currentCapabilities,
+      loadResult: this.currentLoadResult,
+      ifcService,
+      metadata,
+    };
+  }
+
+  /**
+   * Присоединяет кэш последней модели к текущему viewer.
+   * @param {ModelCache} cache
+   * @param {{ recenter?: boolean }} [options]
+   */
+  async attachModelCache(cache, { recenter = true } = {}) {
+    if (!cache?.object3D || !this.viewer) return;
+
+    if (cache.ifcService) {
+      cache.ifcService.rebindViewer(this.viewer);
+    }
+
+    this.viewer.replaceWithModel(cache.object3D, { disposePrevious: true, recenter });
+    this.currentModel = cache.object3D;
+    this.currentCapabilities = cache.capabilities || null;
+    this.currentLoadResult = cache.loadResult || null;
+    this._syncIfcOnlyControls();
+
+    await this._updateTreeView(cache.object3D);
+    this._updateInfoPanel();
   }
 
   /**
