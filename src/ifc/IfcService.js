@@ -217,8 +217,11 @@ export class IfcService {
    */
   async getSpatialStructure(modelID) {
     if (!this.loader) this.init();
-    const mgr = this.loader.ifcManager;
+    const mgr = this.loader?.ifcManager;
     if (!mgr) return null;
+    if (typeof mgr.getSpatialStructure !== 'function') return null;
+    const ifcApi = mgr.ifcAPI || mgr;
+    if (typeof ifcApi?.GetLineIDsWithType !== 'function') return null;
     try {
       // Определим корректный modelID надёжно
       const id = modelID != null ? modelID : (this.lastModel?.modelID);

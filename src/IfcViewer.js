@@ -41,6 +41,7 @@ import './style.css';
  * @property {Object|null} capabilities
  * @property {Object|null} loadResult
  * @property {IfcService|null} ifcService
+ * @property {boolean} hasSpatialStructure
  * @property {{ name?: string, format?: string, modelID?: string }} metadata
  */
 
@@ -374,6 +375,7 @@ export class IfcViewer {
     if (!object3D) return null;
 
     const ifcService = (this.currentCapabilities?.kind === 'ifc') ? this.currentCapabilities?.ifcService : null;
+    const hasSpatialStructure = !!(ifcService?.loader?.ifcManager);
     const metadata = {
       name: '',
       format: '',
@@ -397,6 +399,7 @@ export class IfcViewer {
       capabilities: this.currentCapabilities,
       loadResult: this.currentLoadResult,
       ifcService,
+      hasSpatialStructure,
       metadata,
     };
   }
@@ -404,9 +407,12 @@ export class IfcViewer {
   /**
    * Присоединяет кэш последней модели к текущему viewer.
    * @param {ModelCache} cache
-   * @param {{ recenter?: boolean }} [options]
+   * @param {{ updateTreeView?: boolean, updateInfoPanel?: boolean, recenter?: boolean }} [options]
    */
-  async attachModelCache(cache, { recenter = true } = {}) {
+  async attachModelCache(
+    cache,
+    { updateTreeView = false, updateInfoPanel = true, recenter = true } = {}
+  ) {
     if (!cache?.object3D || !this.viewer) return;
 
     if (cache.ifcService) {
@@ -419,8 +425,26 @@ export class IfcViewer {
     this.currentLoadResult = cache.loadResult || null;
     this._syncIfcOnlyControls();
 
-    await this._updateTreeView(cache.object3D);
-    this._updateInfoPanel();
+    if (updateTreeView) {
+      try {
+        await this._updateTreeView(cache.object3D);
+      } catch (error) {
+        const mgr = cache.ifcService?.loader?.ifcManager;
+        const ifcApi = mgr?.ifcAPI || mgr;
+        // eslint-disable-next-line no-console
+        console.warn('IfcViewer: attachModelCache tree update failed', {
+          message: error?.message || String(error),
+          hasIfcService: !!cache.ifcService,
+          hasLoader: !!cache.ifcService?.loader,
+          hasIfcManager: !!mgr,
+          hasGetSpatialStructure: typeof mgr?.getSpatialStructure === 'function',
+          hasGetLineIDsWithType: typeof ifcApi?.GetLineIDsWithType === 'function',
+        });
+      }
+    }
+    if (updateInfoPanel) {
+      this._updateInfoPanel();
+    }
   }
 
   /**
