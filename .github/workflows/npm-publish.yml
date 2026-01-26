@@ -30,8 +30,8 @@ jobs:
         run: npm run build --if-present
 
       - name: Bump unique version (no commit)
-        # Делает уникальную версию на каждый запуск (пример: 0.1.1-ci.123.0)
-        run: npm version prerelease --preid=ci.${{ github.run_number }} --no-git-tag-version
+        # Делает уникальную версию на каждый запуск (пример: 0.1.1-ci.20260126.1215)
+        run: npm version prerelease --preid=ci.$(date -u +%Y%m%d.%H%M) --no-git-tag-version
 
       - name: Publish to npm (latest)
         env:
