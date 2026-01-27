@@ -33,6 +33,7 @@ import { StlModelLoader } from "./model-loading/loaders/StlModelLoader.js";
 import { DaeModelLoader } from "./model-loading/loaders/DaeModelLoader.js";
 import { ThreeDmModelLoader } from "./model-loading/loaders/ThreeDmModelLoader.js";
 import { LabelPlacementController } from "./ui/LabelPlacementController.js";
+import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
 import './style.css';
 
 /**
@@ -448,6 +449,69 @@ export class IfcViewer {
   }
 
   /**
+   * Загружает модель с использованием персистентного кэша (IndexedDB).
+   * @param {string} url
+   * @param {{ cacheKey?: string, autoSave?: boolean }} [options]
+   * @returns {Promise<Object|null>}
+   */
+  async loadModelWithCache(url, { cacheKey = null, autoSave = true } = {}) {
+    const key = cacheKey || this._buildCacheKey(url);
+    let cached = null;
+    try {
+      cached = await this._cacheGet(key);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn('IfcViewer: cache read failed', e);
+    }
+
+    if (cached?.blob) {
+      const file = new File([cached.blob], 'cached.glb', { type: 'model/gltf-binary' });
+      return this.loadModel(file);
+    }
+
+    const model = await this.loadModel(url);
+    if (model && autoSave) {
+      try {
+        await this.saveModelToCache(model, { cacheKey: key });
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn('IfcViewer: cache save failed', e);
+      }
+    }
+    return model;
+  }
+
+  /**
+   * Сохраняет текущую модель в персистентный кэш (IndexedDB).
+   * @param {import('three').Object3D} object3D
+   * @param {{ cacheKey?: string, metadata?: object }} [options]
+   * @returns {Promise<boolean>}
+   */
+  async saveModelToCache(object3D, { cacheKey = null, metadata = null } = {}) {
+    const key = cacheKey || this._buildCacheKey(this.currentLoadResult?.name || '');
+    const blob = await this._exportToGlb(object3D);
+    await this._cacheSet({
+      key,
+      blob,
+      createdAt: new Date().toISOString(),
+      metadata: metadata || null,
+    });
+    return true;
+  }
+
+  /**
+   * Удаляет запись из кэша по ключу или URL.
+   * @param {{ cacheKey?: string, url?: string }} [options]
+   * @returns {Promise<boolean>}
+   */
+  async clearModelCache({ cacheKey = null, url = null } = {}) {
+    const key = cacheKey || this._buildCacheKey(url);
+    if (!key) return false;
+    await this._cacheDelete(key);
+    return true;
+  }
+
+  /**
    * Получает информацию о текущей модели
    * @returns {Object|null} Информация о модели или null
    */
@@ -472,6 +536,87 @@ export class IfcViewer {
    */
   getIfcService() {
     return this.ifcService;
+  }
+
+  _buildCacheKey(url) {
+    const u = String(url || '');
+    if (!u) return '';
+    return `ifc:${encodeURI(u)}`;
+  }
+
+  async _exportToGlb(object3D) {
+    const exporter = new GLTFExporter();
+    return new Promise((resolve, reject) => {
+      exporter.parse(
+        object3D,
+        (result) => {
+          if (result instanceof ArrayBuffer) {
+            resolve(new Blob([result], { type: 'model/gltf-binary' }));
+          } else {
+            resolve(new Blob([JSON.stringify(result)], { type: 'model/gltf+json' }));
+          }
+        },
+        (error) => reject(error),
+        { binary: true, onlyVisible: true, truncateDrawRange: true }
+      );
+    });
+  }
+
+  _openCacheDb() {
+    return new Promise((resolve, reject) => {
+      if (typeof indexedDB === 'undefined') {
+        reject(new Error('IndexedDB is not available'));
+        return;
+      }
+      const req = indexedDB.open('ifc-viewer-cache', 1);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains('models')) {
+          db.createObjectStore('models', { keyPath: 'key' });
+        }
+      };
+      req.onerror = () => reject(req.error);
+      req.onsuccess = () => resolve(req.result);
+    });
+  }
+
+  async _withStore(mode, fn) {
+    const db = await this._openCacheDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('models', mode);
+      const store = tx.objectStore('models');
+      const result = fn(store);
+      tx.oncomplete = () => resolve(result);
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    });
+  }
+
+  async _cacheGet(key) {
+    if (!key) return null;
+    return this._withStore('readonly', (store) => new Promise((resolve, reject) => {
+      const req = store.get(key);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    }));
+  }
+
+  async _cacheSet(record) {
+    if (!record?.key) return false;
+    return this._withStore('readwrite', (store) => new Promise((resolve, reject) => {
+      const req = store.put(record);
+      req.onsuccess = () => resolve(true);
+      req.onerror = () => reject(req.error);
+    }));
+  }
+
+  async _cacheDelete(key) {
+    if (!key) return false;
+    return this._withStore('readwrite', (store) => new Promise((resolve, reject) => {
+      const req = store.delete(key);
+      req.onsuccess = () => resolve(true);
+      req.onerror = () => reject(req.error);
+    }));
   }
 
   /**

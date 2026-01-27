@@ -265,6 +265,13 @@ await viewer.init()
 await viewer.loadModel('/path/to/model.ifc')  // по URL
 await viewer.loadModel(fileObject)            // File объект
 
+// Быстрая повторная загрузка (персистентный кэш GLB в IndexedDB)
+await viewer.loadModelWithCache('/path/to/model.ifc')
+
+// Явное управление кэшем
+await viewer.saveModelToCache(viewer.getViewer().activeModel, { cacheKey: 'my-model' })
+await viewer.clearModelCache({ cacheKey: 'my-model' })
+
 // Управление интерфейсом
 viewer.setSidebarVisible(true)
 viewer.setTheme('dark')
@@ -277,6 +284,34 @@ const ifcService = viewer.getIfcService()
 // Освобождение ресурсов
 viewer.dispose()
 ```
+
+### Персистентный кэш модели (мгновенный повторный запуск)
+
+Пакет поддерживает сохранение последней модели в **GLB** и хранение её в **IndexedDB**.  
+При повторном открытии модель загружается **значительно быстрее**, чем исходный IFC.
+
+```javascript
+import { IfcViewer } from '@sequent-org/ifc-viewer'
+
+const viewer = new IfcViewer({ container: '#viewer', autoLoad: false })
+await viewer.init()
+
+// Первый запуск: загрузит IFC и сохранит GLB в IndexedDB
+await viewer.loadModelWithCache('/models/building.ifc')
+
+// Повторный запуск: возьмёт GLB из кэша
+await viewer.loadModelWithCache('/models/building.ifc')
+```
+
+**Публичные методы кэша:**
+- `loadModelWithCache(url, { cacheKey?, autoSave? })`
+- `saveModelToCache(object3D, { cacheKey?, metadata? })`
+- `clearModelCache({ cacheKey?, url? })`
+
+**Примечания:**
+- IndexedDB доступен только в браузере.
+- Кэш работает между перезагрузками страницы.
+- Ключ по умолчанию строится из URL.
 
 ## 📡 События
 
