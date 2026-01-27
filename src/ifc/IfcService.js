@@ -298,8 +298,14 @@ export class IfcService {
       }
       
       const url = URL.createObjectURL(file);
+      const t0 = this._perfNow();
+      // eslint-disable-next-line no-console
+      console.log('[Perf] ifc:loadFile:start', { name: file?.name || '', size: file?.size || 0 });
       try {
         const model = await this._loadModelWithFallback(url);
+        const t1 = this._perfNow();
+        // eslint-disable-next-line no-console
+        console.log('[Perf] ifc:loadFile:end', { ms: Math.round((t1 - t0) * 100) / 100, modelID: model?.modelID ?? null });
         // Показать модель вместо демо-куба
         if (this.viewer.replaceWithModel) this.viewer.replaceWithModel(model);
         this.lastModel = model;
@@ -325,8 +331,14 @@ export class IfcService {
     try {
       if (!this.loader) this.init();
       if (!url) return null;
-      
+      const t0 = this._perfNow();
+      // eslint-disable-next-line no-console
+      console.log('[Perf] ifc:loadUrl:start', { url });
+
       const model = await this._loadModelWithFallback(url);
+      const t1 = this._perfNow();
+      // eslint-disable-next-line no-console
+      console.log('[Perf] ifc:loadUrl:end', { ms: Math.round((t1 - t0) * 100) / 100, modelID: model?.modelID ?? null });
       if (!model || !model.geometry) throw new Error('IFC model returned without geometry');
       
       if (this.viewer.replaceWithModel) this.viewer.replaceWithModel(model);
@@ -440,17 +452,34 @@ export class IfcService {
    */
   async _loadModelWithFallback(url) {
     try {
-      return await this.loader.loadAsync(url);
+      return await this._loadAsyncTimed(url, 1);
     } catch (error) {
       // Проверяем, связана ли ошибка с WASM
       if (this._isWasmError(error)) {
         console.warn('IfcService: обнаружена ошибка WASM, пытаемся переинициализировать...');
         await this._reinitializeWithFallback();
         // Повторная попытка загрузки
-        return await this.loader.loadAsync(url);
+        return await this._loadAsyncTimed(url, 2);
       }
       throw error;
     }
+  }
+
+  _loadAsyncTimed(url, attempt) {
+    const t0 = this._perfNow();
+    // eslint-disable-next-line no-console
+    console.log('[Perf] ifc:loadAsync:start', { url, attempt });
+    return this.loader.loadAsync(url).then((model) => {
+      const t1 = this._perfNow();
+      // eslint-disable-next-line no-console
+      console.log('[Perf] ifc:loadAsync:end', { ms: Math.round((t1 - t0) * 100) / 100, attempt, modelID: model?.modelID ?? null });
+      return model;
+    });
+  }
+
+  _perfNow() {
+    if (typeof performance !== 'undefined' && performance.now) return performance.now();
+    return Date.now();
   }
 
   /**

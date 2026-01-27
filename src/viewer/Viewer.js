@@ -1461,6 +1461,9 @@ export class Viewer {
   // Заменяет демо-куб на реальную модель и отключает автоповорот
   replaceWithModel(object3D, { disposePrevious = true, recenter = true } = {}) {
     if (!object3D) return;
+    const t0 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    // eslint-disable-next-line no-console
+    console.log('[Perf] replaceWithModel:start', { uuid: object3D?.uuid || null });
     // Удалить предыдущую модель
     if (this.activeModel) {
       this.scene.remove(this.activeModel);
@@ -1478,6 +1481,9 @@ export class Viewer {
     this.autoRotateDemo = false;
     this.activeModel = object3D;
     this.scene.add(object3D);
+    const tAdded = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    // eslint-disable-next-line no-console
+    console.log('[Perf] replaceWithModel:added', { ms: Math.round((tAdded - t0) * 100) / 100 });
 
     // Сброс MMB-pan (viewOffset) при загрузке новой модели:
     // иначе экранный сдвиг может "унести" модель из кадра даже при корректном кадрировании по bbox.
@@ -1487,8 +1493,11 @@ export class Viewer {
     this.#updateShadowReceiverFromModel(object3D);
 
     // Подчеркнуть грани: полигон оффсет + контуры
+    let meshCount = 0;
+    const tTraverse0 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
     object3D.traverse?.((node) => {
       if (node.isMesh) {
+        meshCount++;
         // Тени управляются единообразно через setShadowsEnabled()
         node.castShadow = !!this.shadowsEnabled;
         // Самозатенение: в тест-пресете ИЛИ при активном сечении
@@ -1503,15 +1512,26 @@ export class Viewer {
         this.#attachEdgesToMesh(node, this.edgesVisible);
       }
     });
+    const tTraverse1 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    // eslint-disable-next-line no-console
+    console.log('[Perf] replaceWithModel:traverse', { ms: Math.round((tTraverse1 - tTraverse0) * 100) / 100, meshes: meshCount });
 
     // Материальный пресет (если выбран не original)
+    const tMat0 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
     this.#applyMaterialStyleToModel(object3D);
     // Синхронизируем "сечение → shadow-pass" для материалов после назначения пресета
     this.#applyClipShadowsToModelMaterials();
+    const tMat1 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    // eslint-disable-next-line no-console
+    console.log('[Perf] replaceWithModel:materials', { ms: Math.round((tMat1 - tMat0) * 100) / 100 });
 
     // Настроим пределы зума под габариты модели (кадрирование делаем отдельно ниже, на следующем кадре).
     // Здесь важно в первую очередь "оздоровить" near/far под размер модели.
+    const tZoom0 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
     this.applyAdaptiveZoomLimits(object3D, { padding: 2.1, slack: 2.5, minRatio: 0.05, recenter: false });
+    const tZoom1 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    // eslint-disable-next-line no-console
+    console.log('[Perf] replaceWithModel:zoomLimits', { ms: Math.round((tZoom1 - tZoom0) * 100) / 100 });
 
     // Если "Тест" активен, сразу применим его к только что загруженной модели (самозатенение + shadow camera по bbox)
     if (this._testPreset?.enabled) {
@@ -1523,6 +1543,9 @@ export class Viewer {
       try {
         requestAnimationFrame(() => {
           if (!this.camera || !this.controls) return;
+          const t1 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+          // eslint-disable-next-line no-console
+          console.log('[Perf] replaceWithModel:raf', { ms: Math.round((t1 - t0) * 100) / 100 });
           // Логирование включается через ?frameDebug=1
           let log = false;
           try {
@@ -1839,6 +1862,8 @@ export class Viewer {
     if (!mesh.geometry) return;
     // Не дублировать
     if (mesh.userData.__edgesAttached) return;
+    // Лениво создаём рёбра только когда они реально нужны
+    if (!visible) return;
     const geom = new THREE.EdgesGeometry(mesh.geometry, 30); // thresholdAngle=30°
     const mat = new THREE.LineBasicMaterial({ color: 0x111111, depthTest: true });
     const lines = new THREE.LineSegments(geom, mat);
@@ -1846,7 +1871,7 @@ export class Viewer {
     lines.renderOrder = 999;
     mesh.add(lines);
     mesh.userData.__edgesAttached = true;
-    lines.visible = !!visible;
+    lines.visible = true;
   }
 
   // Публичные методы управления качеством и стилем
@@ -1855,6 +1880,9 @@ export class Viewer {
     const apply = (obj) => {
       obj.traverse?.((node) => {
         if (node.isMesh) {
+          if (this.edgesVisible && !node.userData.__edgesAttached) {
+            this.#attachEdgesToMesh(node, true);
+          }
           node.children?.forEach((c) => {
             if (c.name === 'edges-overlay') c.visible = !!visible;
           });

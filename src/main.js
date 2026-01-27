@@ -10,6 +10,7 @@ import { TdsModelLoader } from "./model-loading/loaders/TdsModelLoader.js";
 import { StlModelLoader } from "./model-loading/loaders/StlModelLoader.js";
 import { DaeModelLoader } from "./model-loading/loaders/DaeModelLoader.js";
 import { ThreeDmModelLoader } from "./model-loading/loaders/ThreeDmModelLoader.js";
+import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
 
 // Инициализация Viewer через публичный API IfcViewer
 const app = document.getElementById("app");
@@ -39,6 +40,99 @@ if (app) {
     wasmUrl: wasmOverride,
     rhino3dmLibraryPath: '/wasm/rhino3dm/',
   });
+  const perfNow = () => (typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now());
+  const IFC_CACHE_DB = 'ifc-viewer-cache';
+  const IFC_CACHE_STORE = 'models';
+  const IFC_CACHE_VERSION = 1;
+  const getCacheKeyForUrl = (url) => `ifc:${encodeURI(url || '')}`;
+  const openCacheDb = () => {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(IFC_CACHE_DB, IFC_CACHE_VERSION);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains(IFC_CACHE_STORE)) {
+          db.createObjectStore(IFC_CACHE_STORE, { keyPath: 'key' });
+        }
+      };
+      req.onerror = () => reject(req.error);
+      req.onsuccess = () => resolve(req.result);
+    });
+  };
+  const withStore = async (mode, fn) => {
+    const db = await openCacheDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(IFC_CACHE_STORE, mode);
+      const store = tx.objectStore(IFC_CACHE_STORE);
+      const result = fn(store);
+      tx.oncomplete = () => resolve(result);
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    });
+  };
+  const cacheGet = async (key) => {
+    return withStore('readonly', (store) => new Promise((resolve, reject) => {
+      const req = store.get(key);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    }));
+  };
+  const cacheSet = async (record) => {
+    return withStore('readwrite', (store) => new Promise((resolve, reject) => {
+      const req = store.put(record);
+      req.onsuccess = () => resolve(true);
+      req.onerror = () => reject(req.error);
+    }));
+  };
+  const exportToGlb = async (object3D) => {
+    const exporter = new GLTFExporter();
+    const t0 = perfNow();
+    // eslint-disable-next-line no-console
+    console.log('[Perf] glb:export:start');
+    return new Promise((resolve, reject) => {
+      exporter.parse(
+        object3D,
+        (result) => {
+          const t1 = perfNow();
+          const arrayBuffer = result instanceof ArrayBuffer ? result : null;
+          const blob = arrayBuffer
+            ? new Blob([arrayBuffer], { type: 'model/gltf-binary' })
+            : new Blob([JSON.stringify(result)], { type: 'model/gltf+json' });
+          // eslint-disable-next-line no-console
+          console.log('[Perf] glb:export:end', { ms: Math.round((t1 - t0) * 100) / 100, bytes: blob.size });
+          resolve(blob);
+        },
+        (error) => reject(error),
+        { binary: true, onlyVisible: true, truncateDrawRange: true }
+      );
+    });
+  };
+  const logResourceTiming = (rawUrl, label) => {
+    try {
+      if (typeof performance === 'undefined' || !performance.getEntriesByName) return;
+      const url = new URL(rawUrl, location.origin).href;
+      const entries = performance.getEntriesByName(url, 'resource');
+      if (!entries || !entries.length) {
+        // eslint-disable-next-line no-console
+        console.log(`[Perf] resource:${label}:none`, { url });
+        return;
+      }
+      const entry = entries[entries.length - 1];
+      // eslint-disable-next-line no-console
+      console.log(`[Perf] resource:${label}`, {
+        url,
+        duration: Math.round(entry.duration * 100) / 100,
+        transferSize: entry.transferSize,
+        encodedBodySize: entry.encodedBodySize,
+        decodedBodySize: entry.decodedBodySize,
+        nextHopProtocol: entry.nextHopProtocol,
+        initiatorType: entry.initiatorType,
+      });
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.log(`[Perf] resource:${label}:error`, { message: e?.message || String(e) });
+    }
+  };
+  const perfLoad = { urlStart: null };
   await ifcViewer.init();
 
   const viewer = ifcViewer.getViewer();
@@ -527,7 +621,14 @@ if (app) {
       const files = Array.from(e.target.files || []).filter(Boolean);
       if (!files.length) return;
       try {
+        const t0 = perfNow();
+        perfLoad.urlStart = t0;
+        // eslint-disable-next-line no-console
+        console.log('[Perf] loadModel:file:start', { count: files.length });
         await ifcViewer.loadModel(files);
+        const t1 = perfNow();
+        // eslint-disable-next-line no-console
+        console.log('[Perf] loadModel:file:end', { ms: Math.round((t1 - t0) * 100) / 100 });
       } catch (err) {
         console.error('Model load error', err);
       }
@@ -715,6 +816,11 @@ if (app) {
   // Скрывать прелоадер, когда модель реально загружена (страховка от гонок)
   document.addEventListener('ifc:model-loaded', () => {
     hidePreloader();
+    if (perfLoad.urlStart) {
+      const t = perfNow();
+      // eslint-disable-next-line no-console
+      console.log('[Perf] ifc:model-loaded', { ms: Math.round((t - perfLoad.urlStart) * 100) / 100 });
+    }
   }, { once: true });
 
   // Автозагрузка IFC: используем образец по умолчанию, параметр ?ifc= может переопределить
@@ -723,7 +829,51 @@ if (app) {
     const params = new URLSearchParams(location.search);
     const ifcUrlParam = params.get('ifc');
     const ifcUrl = ifcUrlParam || DEFAULT_IFC_URL;
-    const loaded = await ifcViewer.loadModel(encodeURI(ifcUrl));
+    const cacheKey = getCacheKeyForUrl(ifcUrl);
+    const t0 = perfNow();
+    perfLoad.urlStart = t0;
+    // eslint-disable-next-line no-console
+    console.log('[Perf] loadModel:url:start', { url: ifcUrl });
+    let loaded = null;
+    let cached = null;
+    try {
+      cached = await cacheGet(cacheKey);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn('[Cache] read error', e);
+    }
+    if (cached?.blob) {
+      const cachedUrl = URL.createObjectURL(cached.blob);
+      try {
+        // eslint-disable-next-line no-console
+        console.log('[Cache] hit', { key: cacheKey, bytes: cached.blob.size, createdAt: cached.createdAt });
+        loaded = await ifcViewer.loadModel(cachedUrl);
+      } finally {
+        URL.revokeObjectURL(cachedUrl);
+      }
+    } else {
+      loaded = await ifcViewer.loadModel(encodeURI(ifcUrl));
+      if (loaded) {
+        try {
+          const glb = await exportToGlb(loaded);
+          await cacheSet({
+            key: cacheKey,
+            blob: glb,
+            createdAt: new Date().toISOString(),
+            sourceUrl: ifcUrl,
+          });
+          // eslint-disable-next-line no-console
+          console.log('[Cache] saved', { key: cacheKey, bytes: glb.size });
+        } catch (e) {
+          // eslint-disable-next-line no-console
+          console.warn('[Cache] save failed', e);
+        }
+      }
+    }
+    const t1 = perfNow();
+    // eslint-disable-next-line no-console
+    console.log('[Perf] loadModel:url:end', { ms: Math.round((t1 - t0) * 100) / 100, loaded: !!loaded });
+    setTimeout(() => logResourceTiming(encodeURI(ifcUrl), 'ifc'), 0);
     if (loaded) {
       // Не открываем панель автоматически при автозагрузке
       hidePreloader();

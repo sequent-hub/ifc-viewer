@@ -37,18 +37,30 @@ export class GltfModelLoader {
     const logger = ctx?.logger || console;
     const name = file?.name || '';
     const lower = name.toLowerCase();
+    const t0 = this._perfNow();
 
     logger?.log?.('[GltfModelLoader] loadFile', { name, size: file?.size });
 
     // GLB: parse ArrayBuffer
     if (lower.endsWith('.glb')) {
+      const tBuf0 = this._perfNow();
       const buf = await file.arrayBuffer();
+      const tBuf1 = this._perfNow();
+      logger?.log?.('[Perf] gltf:file:arrayBuffer', { ms: Math.round((tBuf1 - tBuf0) * 100) / 100, bytes: buf?.byteLength || 0 });
       const preJson = this._tryReadJsonFromGlb(buf, logger);
       await this._autoConfigureDecoders(preJson, ctx, logger);
+      const tParse0 = this._perfNow();
       const gltf = await this._parse(buf, '');
+      const tParse1 = this._perfNow();
+      logger?.log?.('[Perf] gltf:parse', { ms: Math.round((tParse1 - tParse0) * 100) / 100, source: 'glb' });
       this._logExtensions(gltf, logger);
+      const tCompat0 = this._perfNow();
       await this._applyPbrSpecGlossCompat(gltf, logger);
+      const tCompat1 = this._perfNow();
+      logger?.log?.('[Perf] gltf:compat', { ms: Math.round((tCompat1 - tCompat0) * 100) / 100 });
       this._logSummary(gltf, logger, name);
+      const t1 = this._perfNow();
+      logger?.log?.('[Perf] gltf:loadFile', { ms: Math.round((t1 - t0) * 100) / 100, name });
       return {
         object3D: gltf.scene,
         format: this.id,
@@ -61,14 +73,25 @@ export class GltfModelLoader {
     // GLTF: parse JSON string (external resources likely missing for File input)
     if (lower.endsWith('.gltf')) {
       logger?.warn?.('[GltfModelLoader] .gltf selected from disk: external .bin/textures may be missing (consider loading via URL from /public/).');
+      const tText0 = this._perfNow();
       const text = await file.text();
+      const tText1 = this._perfNow();
+      logger?.log?.('[Perf] gltf:file:text', { ms: Math.round((tText1 - tText0) * 100) / 100, bytes: text?.length || 0 });
       let preJson = null;
       try { preJson = JSON.parse(text); } catch (_) { preJson = null; }
       await this._autoConfigureDecoders(preJson, ctx, logger);
+      const tParse0 = this._perfNow();
       const gltf = await this._parse(text, '');
+      const tParse1 = this._perfNow();
+      logger?.log?.('[Perf] gltf:parse', { ms: Math.round((tParse1 - tParse0) * 100) / 100, source: 'gltf' });
       this._logExtensions(gltf, logger);
+      const tCompat0 = this._perfNow();
       await this._applyPbrSpecGlossCompat(gltf, logger);
+      const tCompat1 = this._perfNow();
+      logger?.log?.('[Perf] gltf:compat', { ms: Math.round((tCompat1 - tCompat0) * 100) / 100 });
       this._logSummary(gltf, logger, name);
+      const t1 = this._perfNow();
+      logger?.log?.('[Perf] gltf:loadFile', { ms: Math.round((t1 - t0) * 100) / 100, name });
       return {
         object3D: gltf.scene,
         format: this.id,
@@ -87,14 +110,23 @@ export class GltfModelLoader {
    */
   async loadUrl(url, ctx) {
     const logger = ctx?.logger || console;
+    const t0 = this._perfNow();
     logger?.log?.('[GltfModelLoader] loadUrl', { url });
     // For URL we usually can't cheaply pre-read JSON without double fetching.
     // Configure decoders "optimistically" (KTX2/Meshopt) so needed extensions work.
     await this._autoConfigureDecoders(null, ctx, logger);
+    const tLoad0 = this._perfNow();
     const gltf = await this._loader.loadAsync(url);
+    const tLoad1 = this._perfNow();
+    logger?.log?.('[Perf] gltf:loadAsync', { ms: Math.round((tLoad1 - tLoad0) * 100) / 100, url });
     this._logExtensions(gltf, logger);
+    const tCompat0 = this._perfNow();
     await this._applyPbrSpecGlossCompat(gltf, logger);
+    const tCompat1 = this._perfNow();
+    logger?.log?.('[Perf] gltf:compat', { ms: Math.round((tCompat1 - tCompat0) * 100) / 100 });
     this._logSummary(gltf, logger, String(url || ''));
+    const t1 = this._perfNow();
+    logger?.log?.('[Perf] gltf:loadUrl', { ms: Math.round((t1 - t0) * 100) / 100, url });
     return {
       object3D: gltf.scene,
       format: this.id,
@@ -127,6 +159,11 @@ export class GltfModelLoader {
         animations: Array.isArray(gltf?.animations) ? gltf.animations.length : 0,
       });
     } catch (_) {}
+  }
+
+  _perfNow() {
+    if (typeof performance !== 'undefined' && performance.now) return performance.now();
+    return Date.now();
   }
 
   _logExtensions(gltf, logger) {
