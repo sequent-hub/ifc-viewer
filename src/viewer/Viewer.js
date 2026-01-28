@@ -2430,7 +2430,9 @@ export class Viewer {
   }
 
   #updateInteriorAssist(force = false) {
-    if (!this._sectionClippingActive) {
+    // Цель: при активном сечении не допускать "скачков" освещённости при зуме.
+    // Поэтому "interior" режим держим стабильным на всём протяжении активного сечения.
+    if (!this._sectionClippingActive || !this.activeModel) {
       if (this._interiorAssist.enabled || force) {
         this._interiorAssist.enabled = false;
         if (this._interiorAssist.light) this._interiorAssist.light.visible = false;
@@ -2440,15 +2442,15 @@ export class Viewer {
     }
 
     this.#ensureInteriorAssistLight();
-    const inside = this.#isCameraInsideModelBox();
-    if (inside !== this._interiorAssist.enabled || force) {
-      this._interiorAssist.enabled = inside;
-      if (this._interiorAssist.light) this._interiorAssist.light.visible = inside;
-      if (inside) this.#applyInteriorPost();
+    const enabled = true;
+    if (enabled !== this._interiorAssist.enabled || force) {
+      this._interiorAssist.enabled = enabled;
+      if (this._interiorAssist.light) this._interiorAssist.light.visible = enabled;
+      if (enabled) this.#applyInteriorPost();
       else this.#restoreInteriorPost();
     }
-    // Следуем за камерой, если активны
-    if (inside && this._interiorAssist.light) {
+    // Следуем за камерой
+    if (this._interiorAssist.light) {
       try { this._interiorAssist.light.position.copy(this.camera.position); } catch (_) {}
     }
   }
