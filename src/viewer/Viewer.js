@@ -356,6 +356,21 @@ export class Viewer {
     // Порог: чтобы не дергать pivot от микросдвигов зума
     if (dist2 < 1e-6) return;
 
+    // Защита: если смена pivot немедленно нарушает ограничения OrbitControls (min/maxDistance),
+    // то controls.update() начнёт "исправлять" дистанцию (clamp) и сдвигать камеру.
+    // Это выглядит как "уехал ракурс/наклон" при дальнейших действиях (особенно после сильного зума/прохода внутрь).
+    // В таком случае pivot НЕ ребейзим — пусть вращение будет вокруг текущего target.
+    try {
+      const distToDesired = this.camera.position.distanceTo(desired);
+      const minD = Number(this.controls.minDistance ?? 0);
+      const maxD = Number(this.controls.maxDistance ?? Infinity);
+      const minOk = !(Number.isFinite(minD) && distToDesired < (minD - 1e-6));
+      const maxOk = !(Number.isFinite(maxD) && distToDesired > (maxD + 1e-6));
+      if (!minOk || !maxOk) {
+        return;
+      }
+    } catch (_) {}
+
     // Важно: нельзя "двигать модель к оси" визуально. Поэтому:
     // 1) запоминаем положение старого target на экране
     // 2) меняем pivot (controls.target) на центр модели
@@ -368,7 +383,23 @@ export class Viewer {
 
     const oldTarget = this.controls.target.clone();
     let p0 = null;
-    if (canProject) {
+    // Важно: viewOffset даёт off-axis проекцию. Если его не было до ребейза pivot,
+    // то включение viewOffset ради "компенсации" часто воспринимается как искажение/наклон.
+    // Поэтому применяем viewOffset-компенсацию только если viewOffset УЖЕ активен (например, пользователь реально панорамировал MMB).
+    const hadViewOffset = (() => {
+      try {
+        const v = this.camera?.view;
+        if (!v?.enabled) return false;
+        const ox = Math.round(Number(v.offsetX) || 0);
+        const oy = Math.round(Number(v.offsetY) || 0);
+        // считаем, что "реально активен" только если смещение ненулевое
+        return !(ox === 0 && oy === 0);
+      } catch (_) {
+        return false;
+      }
+    })();
+
+    if (canProject && hadViewOffset) {
       try { this.camera.updateMatrixWorld?.(true); } catch (_) {}
       try { p0 = oldTarget.clone().project(this.camera); } catch (_) { p0 = null; }
     }
@@ -376,7 +407,7 @@ export class Viewer {
     try { this.controls.target.copy(desired); } catch (_) {}
     try { this.controls.update(); } catch (_) {}
 
-    if (canProject && p0) {
+    if (canProject && hadViewOffset && p0) {
       let p1 = null;
       try { this.camera.updateMatrixWorld?.(true); } catch (_) {}
       try { p1 = oldTarget.clone().project(this.camera); } catch (_) { p1 = null; }
@@ -386,6 +417,9 @@ export class Viewer {
         const dNdcY = (p1.y - p0.y);
         const dxPx = dNdcX * (w / 2);
         const dyPx = -dNdcY * (h / 2);
+        // Защита от аномальных значений (они приводят к гигантскому viewOffset и визуальному "наклону").
+        // Если компенсация требует сдвига больше пары размеров экрана — пропускаем.
+        if (Math.abs(dxPx) > (w * 2) || Math.abs(dyPx) > (h * 2)) return;
         try { this._mmbPan?.controller?.addOffsetPx?.(dxPx, dyPx); } catch (_) {}
       }
     }

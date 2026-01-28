@@ -209,6 +209,14 @@ export class MiddleMousePanController {
     const ox = Math.round(this._offsetPx.x);
     const oy = Math.round(this._offsetPx.y);
     try {
+      // Важно: camera.setViewOffset(...) всегда включает viewOffset (off-axis), даже если ox/oy == 0.
+      // Это может визуально восприниматься как "наклон/искажение" при дальнейших операциях.
+      // Поэтому при нулевом смещении стараемся отключать viewOffset полностью.
+      if (ox === 0 && oy === 0 && typeof camera.clearViewOffset === "function") {
+        camera.clearViewOffset();
+        camera.updateProjectionMatrix();
+        return;
+      }
       // fullWidth/fullHeight == width/height => off-axis shift (без "подматриц")
       camera.setViewOffset(w, h, ox, oy, w, h);
       camera.updateProjectionMatrix();

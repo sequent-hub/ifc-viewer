@@ -65,7 +65,7 @@
               style="width:100%;"
             />
             <div style="font-size:11px; opacity:0.65; margin-top:4px;">
-              Базовый коэффициент damping во время вращения.
+              Во время вращения: меньше — «вязко» и с инерцией, больше — «резко» и точно за мышью.
             </div>
 
             <div style="height:8px;"></div>
@@ -82,7 +82,7 @@
               style="width:100%;"
             />
             <div style="font-size:11px; opacity:0.65; margin-top:4px;">
-              Величина damping в фазе «затухания» после отпускания.
+              После отпускания: меньше — плавное затухание, больше — быстрое «дотухание».
             </div>
 
             <div style="height:8px;"></div>
@@ -93,13 +93,18 @@
               id="dampingSettleMs"
               type="range"
               min="0"
-              max="2000"
-              step="10"
+              max="3000"
+              step="50"
               value="0"
               style="width:100%;"
             />
             <div style="font-size:11px; opacity:0.65; margin-top:4px;">
-              Длительность фазы «затухания», мс.
+              Длительность «хвоста» после отпускания. Если 0 — фаза почти незаметна.
+            </div>
+
+            <div style="height:10px;"></div>
+            <div style="font-size:11px; opacity:0.7;">
+              Текущее: factor <span id="dampingFactorValue">—</span>, phase <span id="dampingPhaseValue">—</span>
             </div>
           </div>
 
