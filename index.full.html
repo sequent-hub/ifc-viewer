@@ -7,6 +7,11 @@
     <title>3D </title>
   </head>
   <body class="h-full flex flex-col overflow-hidden bg-base-100 text-base-content">
+    <!--
+      ВАЖНО: CSS пакета заскоуплен под .ifc-viewer-container.
+      Поэтому демо-разметка, которая использует классы пакета, должна быть внутри контейнера.
+    -->
+    <div class="ifc-viewer-container" style="height:100%;">
     <div class="navbar bg-neutral text-neutral-content shrink-0">
       <div class="navbar-start">
         <div class="dropdown">
@@ -97,6 +102,7 @@
       </div>
     </div>
     <script type="module" src="/src/main.js"></script>
+    </div>
   </body>
 </html>
 

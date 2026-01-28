@@ -8,6 +8,12 @@
   </head>
   <body class="bg-base-100 text-base-content" style="height:100%; margin:0; overflow:hidden;">
     <!--
+      ВАЖНО: CSS пакета заскоуплен под .ifc-viewer-container.
+      Поэтому демо-разметку, которая использует утилити-классы пакета (.btn/.join/.flex/.gap-*)
+      нужно держать внутри контейнера.
+    -->
+    <div class="ifc-viewer-container" style="height:100%;">
+    <!--
       Чистый полноэкранный контейнер для трёхмерного просмотрщика.
       Вся логика (инициализация Viewer, IfcService и автозагрузка IFC)
       реализована в файле src/main.js.
@@ -295,6 +301,7 @@
 
     <!-- Точка входа приложения -->
     <script type="module" src="/src/main.js"></script>
+    </div>
   </body>
 </html>
 
