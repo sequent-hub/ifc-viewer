@@ -177,6 +177,7 @@ export class LabelPlacementController {
 
     try { this._ui?.ghost?.remove?.(); } catch (_) {}
     try { this._ui?.dragGhost?.remove?.(); } catch (_) {}
+    try { this._ui?.dragGhostHost?.remove?.(); } catch (_) {}
     try { this._ui?.actions?.remove?.(); } catch (_) {}
     try { this._ui?.menu?.remove?.(); } catch (_) {}
     try { this._ui?.canvasMenu?.remove?.(); } catch (_) {}
@@ -713,7 +714,19 @@ export class LabelPlacementController {
 
     canvasMenu.appendChild(menuAdd);
 
-    return { actions, btn, hideBtn, ghost, dot, num, dragGhost, dragNum, menu, canvasMenu, menuAdd };
+    // dragGhostHost нужен, чтобы заскоупленные CSS-стили работали даже когда dragGhost живёт в document.body.
+    // (CSS скоплен под .ifc-viewer-container, поэтому в body добавляем "хост" с этим классом.)
+    const dragGhostHost = document.createElement("div");
+    dragGhostHost.className = "ifc-viewer-container";
+    // Не должен влиять на layout страницы
+    dragGhostHost.style.position = "fixed";
+    dragGhostHost.style.left = "0";
+    dragGhostHost.style.top = "0";
+    dragGhostHost.style.width = "0";
+    dragGhostHost.style.height = "0";
+    dragGhostHost.style.pointerEvents = "none";
+
+    return { actions, btn, hideBtn, ghost, dot, num, dragGhost, dragGhostHost, dragNum, menu, canvasMenu, menuAdd };
   }
 
   #attachUi() {
@@ -722,7 +735,8 @@ export class LabelPlacementController {
     this.container.appendChild(this._ui.ghost);
     // Призрак перетаскивания добавляем в body, чтобы не обрезался overflow контейнера
     if (document?.body) {
-      document.body.appendChild(this._ui.dragGhost);
+      try { document.body.appendChild(this._ui.dragGhostHost); } catch (_) {}
+      try { this._ui.dragGhostHost.appendChild(this._ui.dragGhost); } catch (_) {}
       this._labelDrag.ghostInBody = true;
     } else {
       this.container.appendChild(this._ui.dragGhost);

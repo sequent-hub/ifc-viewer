@@ -34,7 +34,6 @@ import { DaeModelLoader } from "./model-loading/loaders/DaeModelLoader.js";
 import { ThreeDmModelLoader } from "./model-loading/loaders/ThreeDmModelLoader.js";
 import { LabelPlacementController } from "./ui/LabelPlacementController.js";
 import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
-import './style.css';
 
 /**
  * @typedef {Object} ModelCache

@@ -4,6 +4,8 @@ IFC 3D model viewer component for web applications. Основан на Three.js
 
 **✨ Полностью автономный пакет** - не требует внешних CSS фреймворков (Tailwind, Bootstrap и т.д.).
 
+**Важно про стили:** CSS пакета **заскоплен под контейнер** `.ifc-viewer-container`, поэтому подключение viewer **не влияет на внешний сайт** (Bootstrap/глобальные reset'ы не ломаются).
+
 ## ⚡ Быстрый старт для интеграции
 
 ### Минимальная настройка
@@ -26,6 +28,15 @@ IFC 3D model viewer component for web applications. Основан на Three.js
    ```
 
 **Готово!** Пакет полностью автоматический - никаких дополнительных настроек не требуется.
+
+### Режим без авто-подключения CSS (опционально)
+
+Если нужно подключать стили вручную (например, для SSR/Node, или если вы хотите полностью контролировать загрузку CSS):
+
+```javascript
+import { IfcViewer } from '@sequent-org/ifc-viewer/no-style'
+import '@sequent-org/ifc-viewer/src/style.css'
+```
 
 ### Дефолтный пресет визуала (важно)
 

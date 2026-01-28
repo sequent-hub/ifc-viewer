@@ -1,10 +1,6 @@
-// Основная точка входа пакета @sequent-org/ifc-viewer
-// Автоматически подключает стили и экспортирует API
-
-// CSS подключаем на entrypoint, чтобы:
-// - стили были подключены ровно один раз при импорте пакета
-// - можно было сделать альтернативный entry без стилей (./no-style)
-import "./style.css";
+// Альтернативный entrypoint без авто-подключения CSS.
+// Использование:
+//   import { IfcViewer } from "@sequent-org/ifc-viewer/no-style";
 
 // Экспортируем основной класс
 export { IfcViewer } from "./IfcViewer.js";
@@ -24,3 +20,4 @@ export { TdsModelLoader } from "./model-loading/loaders/TdsModelLoader.js";
 export { StlModelLoader } from "./model-loading/loaders/StlModelLoader.js";
 export { DaeModelLoader } from "./model-loading/loaders/DaeModelLoader.js";
 export { ThreeDmModelLoader } from "./model-loading/loaders/ThreeDmModelLoader.js";
+

@@ -9,6 +9,9 @@
   "exports": {
     ".": {
       "import": "./src/index.js"
+    },
+    "./no-style": {
+      "import": "./src/index.no-style.js"
     }
   },
   "files": [
