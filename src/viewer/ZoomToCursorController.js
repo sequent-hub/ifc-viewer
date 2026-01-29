@@ -17,6 +17,7 @@ export class ZoomToCursorController {
    * @param {() => (import('three/examples/jsm/controls/OrbitControls').OrbitControls|null)} deps.getControls
    * @param {() => (THREE.Object3D|null)} deps.getPickRoot
    * @param {(force?: boolean) => void} [deps.onZoomChanged]
+   * @param {() => boolean} [deps.shouldMoveTarget]
    * @param {() => boolean} [deps.isEnabled]
    * @param {() => boolean} [deps.isDebug]
    */
@@ -26,6 +27,7 @@ export class ZoomToCursorController {
     this.getControls = deps.getControls;
     this.getPickRoot = deps.getPickRoot;
     this.onZoomChanged = deps.onZoomChanged || null;
+    this.shouldMoveTarget = deps.shouldMoveTarget || (() => true);
     this.isEnabled = deps.isEnabled || (() => true);
     this.isDebug = deps.isDebug || (() => false);
 
@@ -153,7 +155,9 @@ export class ZoomToCursorController {
       okBefore = this._raycaster.ray.intersectPlane(this._plane, this._vBefore);
     }
 
-    const canCompensate = !!okBefore;
+    // ВАЖНО: режим fly-target (пролёт внутрь при упоре в minDistance) может давать большой сдвиг target,
+    // который потом выглядит как "отскок" при следующем вращении. Поэтому в fly-target компенсацию выключаем.
+    const canCompensate = !!okBefore && source !== "fly-target";
 
     // Диагностика: посчитаем дрейф anchor в пикселях (до/после) — то, что вы визуально наблюдаете
     let debugPayload = null;
@@ -241,7 +245,9 @@ export class ZoomToCursorController {
       if (okAfter) {
         const delta = this._vC.copy(this._vBefore).sub(this._vAfter);
         camera.position.add(delta);
-        controls.target.add(delta);
+        // Двигаем pivot (target) только если реально попали по модели.
+        // Иначе удерживаем pivot стабильным, чтобы не было "отскока" при последующем rotate.
+        if (source === "model-hit" && this.shouldMoveTarget()) controls.target.add(delta);
         didCompensate = true;
       } else {
         // Нельзя компенсировать на этом шаге (например, камера пересекла плоскость) —

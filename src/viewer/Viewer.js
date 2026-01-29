@@ -188,6 +188,11 @@ export class Viewer {
     this._smoothedAxis = null;
     this._recentPointerDelta = 0;
     this._pointerPxThreshold = 2; // минимальный экранный сдвиг
+    // Чтобы не было "отскока" при простом клике: ребейз pivot делаем только на реальном drag-вращении.
+    this._didRebaseRotatePivotThisDrag = false;
+    // Анти-рывок: после зума даём камере "успокоиться" и не ребейзим pivot сразу.
+    this._lastZoomAt = 0;
+    this._rebaseAfterZoomDelayMs = 250;
     this._rotAngleEps = 0.01;     // ~0.57° минимальный угловой сдвиг
     this._axisEmaAlpha = 0.15;    // коэффициент сглаживания оси
 
@@ -211,8 +216,10 @@ export class Viewer {
     this._zoomToCursor = {
       enabled: true,
       debug: false,
+      moveTarget: false,
       controller: null,
     };
+
 
     // MMB-pan (wheel-click drag): включено по умолчанию, debug выключен
     this._mmbPan = {
@@ -252,11 +259,24 @@ export class Viewer {
   }
 
   /**
+   * Разрешает/запрещает смещение pivot (controls.target) при zoom-to-cursor.
+   * @param {boolean} enabled
+   */
+  setZoomToCursorMoveTarget(enabled) {
+    if (!this._zoomToCursor) return;
+    this._zoomToCursor.moveTarget = !!enabled;
+  }
+
+  /**
    * Возвращает текущие флаги zoom-to-cursor (для диагностики).
    */
   getZoomToCursorState() {
     if (!this._zoomToCursor) return { enabled: false, debug: false };
-    return { enabled: !!this._zoomToCursor.enabled, debug: !!this._zoomToCursor.debug };
+    return {
+      enabled: !!this._zoomToCursor.enabled,
+      debug: !!this._zoomToCursor.debug,
+      moveTarget: !!this._zoomToCursor.moveTarget,
+    };
   }
 
   /**
@@ -323,6 +343,7 @@ export class Viewer {
     }
   }
 
+
   /**
    * Возвращает целевой pivot для ЛКМ-вращения:
    * - если модель двигали ПКМ, используем фиксированную ось (pivotAnchor)
@@ -371,58 +392,16 @@ export class Viewer {
       }
     } catch (_) {}
 
-    // Важно: нельзя "двигать модель к оси" визуально. Поэтому:
-    // 1) запоминаем положение старого target на экране
-    // 2) меняем pivot (controls.target) на центр модели
-    // 3) компенсируем экранный сдвиг через viewOffset (MMB-pan controller), чтобы картинка не дернулась
-    const dom = this.renderer?.domElement;
-    const rect = dom?.getBoundingClientRect?.();
-    const w = rect?.width || 0;
-    const h = rect?.height || 0;
-    const canProject = w > 1 && h > 1;
-
     const oldTarget = this.controls.target.clone();
-    let p0 = null;
-    // Важно: viewOffset даёт off-axis проекцию. Если его не было до ребейза pivot,
-    // то включение viewOffset ради "компенсации" часто воспринимается как искажение/наклон.
-    // Поэтому применяем viewOffset-компенсацию только если viewOffset УЖЕ активен (например, пользователь реально панорамировал MMB).
-    const hadViewOffset = (() => {
-      try {
-        const v = this.camera?.view;
-        if (!v?.enabled) return false;
-        const ox = Math.round(Number(v.offsetX) || 0);
-        const oy = Math.round(Number(v.offsetY) || 0);
-        // считаем, что "реально активен" только если смещение ненулевое
-        return !(ox === 0 && oy === 0);
-      } catch (_) {
-        return false;
-      }
-    })();
-
-    if (canProject && hadViewOffset) {
-      try { this.camera.updateMatrixWorld?.(true); } catch (_) {}
-      try { p0 = oldTarget.clone().project(this.camera); } catch (_) { p0 = null; }
-    }
-
-    try { this.controls.target.copy(desired); } catch (_) {}
-    try { this.controls.update(); } catch (_) {}
-
-    if (canProject && hadViewOffset && p0) {
-      let p1 = null;
-      try { this.camera.updateMatrixWorld?.(true); } catch (_) {}
-      try { p1 = oldTarget.clone().project(this.camera); } catch (_) { p1 = null; }
-      if (p1) {
-        // NDC -> px. Y: NDC вверх, а viewOffset.y увеличением поднимает картинку (см. MMB-pan).
-        const dNdcX = (p1.x - p0.x);
-        const dNdcY = (p1.y - p0.y);
-        const dxPx = dNdcX * (w / 2);
-        const dyPx = -dNdcY * (h / 2);
-        // Защита от аномальных значений (они приводят к гигантскому viewOffset и визуальному "наклону").
-        // Если компенсация требует сдвига больше пары размеров экрана — пропускаем.
-        if (Math.abs(dxPx) > (w * 2) || Math.abs(dyPx) > (h * 2)) return;
-        try { this._mmbPan?.controller?.addOffsetPx?.(dxPx, dyPx); } catch (_) {}
-      }
-    }
+    // Без "отскока": двигаем target И камеру на один и тот же delta.
+    // Тогда относительный вектор камера->pivot не меняется, и кадр остаётся стабильным.
+    try {
+      const delta = desired.clone().sub(oldTarget);
+      this.camera.position.add(delta);
+      this.camera.updateMatrixWorld?.(true);
+      this.controls.target.copy(desired);
+      this.controls.update();
+    } catch (_) {}
   }
 
   /**
@@ -605,6 +584,7 @@ export class Viewer {
         getControls: () => this.controls,
         getPickRoot: () => this.activeModel,
         onZoomChanged: (force) => this._notifyZoomIfChanged(force),
+        shouldMoveTarget: () => !!this._zoomToCursor.moveTarget,
         isEnabled: () => !!this._zoomToCursor.enabled,
         isDebug: () => !!this._zoomToCursor.debug,
       });
@@ -760,12 +740,22 @@ export class Viewer {
     // Визуальная ось вращения: события мыши и контролов
     this._onPointerDown = (e) => {
       this._lastPointerDownButton = e?.button;
-      if (e.button === 0) this._isLmbDown = true;
+      if (e.button === 0) {
+        this._isLmbDown = true;
+        this._didRebaseRotatePivotThisDrag = false;
+        // Сбросим порог движения именно для текущего жеста, чтобы клик не считался "движением".
+        this._recentPointerDelta = 0;
+        this._lastPointer = { x: e.clientX, y: e.clientY };
+      }
     };
     this._onPointerUp = (e) => {
       // Сбросим "последнюю кнопку" на отпускании, чтобы не использовать устаревшее значение.
       this._lastPointerDownButton = null;
-      if (e.button === 0) { this._isLmbDown = false; this.#hideRotationAxisLine(); }
+      if (e.button === 0) {
+        this._isLmbDown = false;
+        this._didRebaseRotatePivotThisDrag = false;
+        this.#hideRotationAxisLine();
+      }
     };
     this._onPointerMove = (e) => {
       const rect = this.renderer?.domElement?.getBoundingClientRect?.();
@@ -786,9 +776,8 @@ export class Viewer {
     this._onControlsStart = () => {
       // Инициализируем предыдущий вектор направления вида
       if (!this.camera || !this.controls) return;
-      // Если стартовали вращение ЛКМ после zoom-to-cursor, то target мог сместиться к "углу".
-      // Возвращаем pivot к центру модели (как при загрузке), сохраняя кадр.
-      if (this._lastPointerDownButton === 0) this.#rebaseRotatePivotToModelCenterIfNeeded();
+      // ВАЖНО: не ребейзим pivot на start, иначе будет "отскок" даже от простого клика.
+      // Ребейз выполняем только при реальном drag (см. _onControlsChange + порог движения).
       const dir = this.camera.position.clone().sub(this.controls.target).normalize();
       this._prevViewDir = dir;
       this._smoothedAxis = null;
@@ -801,6 +790,24 @@ export class Viewer {
     this._onControlsChange = () => {
       // Обновляем ось только при зажатой ЛКМ (вращение)
       if (!this._isLmbDown) return;
+      // Если стартовали вращение ЛКМ после zoom-to-cursor, то target мог сместиться к "углу".
+      // Возвращаем pivot к центру модели (как при загрузке), но только если это реальный drag.
+      if (
+        this._lastPointerDownButton === 0 &&
+        !this._didRebaseRotatePivotThisDrag &&
+        this._recentPointerDelta >= this._pointerPxThreshold
+      ) {
+        // После зума OrbitControls/камера могли слегка "сдвинуться" (wheel -> rotate),
+        // чтобы избежать рывка в начале вращения, не ребейзим pivot сразу.
+        try {
+          const now = (performance?.now?.() ?? Date.now());
+          const dt = now - (this._lastZoomAt || 0);
+          if (dt < (this._rebaseAfterZoomDelayMs || 0)) return;
+        } catch (_) {}
+        // Защита от повторного входа: ребейз может вызвать дополнительный controls.update()/change.
+        this._didRebaseRotatePivotThisDrag = true;
+        try { this.#rebaseRotatePivotToModelCenterIfNeeded(); } catch (_) {}
+      }
       this.#updateRotationAxisLine();
     };
     this._onControlsEnd = () => {
@@ -1328,6 +1335,8 @@ export class Viewer {
     const rounded = Math.round(p);
     if (force || this.lastZoomPercent !== rounded) {
       this.lastZoomPercent = rounded;
+      // Запомним время последнего зума (для анти-рывка при последующем вращении).
+      try { this._lastZoomAt = (performance?.now?.() ?? Date.now()); } catch (_) { this._lastZoomAt = Date.now(); }
       this.zoomListeners.forEach((fn) => {
         try { fn(rounded); } catch (_) {}
       });
