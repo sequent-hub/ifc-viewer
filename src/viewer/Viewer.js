@@ -813,7 +813,7 @@ export class Viewer {
     } catch (_) {}
 
     // Свет
-    const amb = new THREE.AmbientLight(0xffffff, 0.6);
+    const amb = new THREE.AmbientLight(0xffffff, 0.7);
     this.scene.add(amb);
     this.ambientLight = amb;
     const dir = new THREE.DirectionalLight(0xffffff, 0.8);
@@ -2975,7 +2975,7 @@ export class Viewer {
     // 7) Lights: directional + ambient (как в примере)
     if (this.ambientLight) {
       this.ambientLight.visible = true;
-      this.ambientLight.intensity = 0.4;
+      this.ambientLight.intensity = 0.7;
     }
     if (this.sunLight) {
       this.sunLight.visible = true;
