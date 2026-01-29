@@ -156,6 +156,7 @@ export class Viewer {
     this._sectionOriginalMaterial = new WeakMap();
     // Локальная подсветка "внутри": без теней, с малой дальностью (чтобы не пересвечивать фасад/внешнюю тень)
     this._interiorAssist = { light: null, box: null, enabled: false, lastBoxAt: 0 };
+    this._interiorAssistFade = { current: 0.0, target: 0.0, speed: 0.12 };
     // Пост-эффекты только "внутри": AO OFF (убирает "сетку"), чуть контраста (без глобального пересвета)
     this._interiorPost = { snapshot: null, contrast: 0.12 };
 
@@ -235,6 +236,8 @@ export class Viewer {
       controller: null,
       pivotAnchor: null, // THREE.Vector3|null (фиксированная ось после ПКМ)
     };
+    // Диагностика освещения при сечении
+    this._sectionLightingDebug = { enabled: false, postFrame: true };
 
     this.handleResize = this.handleResize.bind(this);
     this.animate = this.animate.bind(this);
@@ -428,6 +431,129 @@ export class Viewer {
   getMiddleMousePanState() {
     if (!this._mmbPan) return { enabled: false, debug: false };
     return { enabled: !!this._mmbPan.enabled, debug: !!this._mmbPan.debug };
+  }
+
+  /**
+   * Включает/выключает диагностическое логирование освещения при сечении.
+   * @param {boolean} enabled
+   * @param {{postFrame?: boolean}} [opts]
+   */
+  setSectionLightingDebug(enabled, opts = {}) {
+    if (!this._sectionLightingDebug) return;
+    this._sectionLightingDebug.enabled = !!enabled;
+    if (Object.prototype.hasOwnProperty.call(opts, 'postFrame')) {
+      this._sectionLightingDebug.postFrame = !!opts.postFrame;
+    }
+  }
+
+  #computeLumaFromPixels(pixels) {
+    if (!pixels || !pixels.length) return null;
+    let sumLuma = 0;
+    let sumR = 0;
+    let sumG = 0;
+    let sumB = 0;
+    const count = pixels.length / 4;
+    for (let i = 0; i < pixels.length; i += 4) {
+      const r = pixels[i];
+      const g = pixels[i + 1];
+      const b = pixels[i + 2];
+      sumR += r;
+      sumG += g;
+      sumB += b;
+      // Rec.709 luma
+      sumLuma += (0.2126 * r + 0.7152 * g + 0.0722 * b);
+    }
+    return {
+      avgLuma: (sumLuma / count) / 255,
+      avgRgb: {
+        r: (sumR / count) / 255,
+        g: (sumG / count) / 255,
+        b: (sumB / count) / 255,
+      },
+    };
+  }
+
+  /**
+   * Возвращает усредненную яркость области экрана (по текущему framebuffer).
+   * @param {{ size?: number }} [opts]
+   */
+  getFrameLuminance(opts = {}) {
+    const renderer = this.renderer;
+    const canvas = renderer?.domElement;
+    const gl = renderer?.getContext?.();
+    if (!renderer || !canvas || !gl || typeof gl.readPixels !== 'function') return null;
+    const sizeRaw = Number(opts.size ?? 32);
+    const size = Math.max(4, Math.min(256, Math.floor(sizeRaw)));
+    const w = canvas.width || 0;
+    const h = canvas.height || 0;
+    if (!w || !h) return null;
+    const x = Math.max(0, Math.floor(w / 2 - size / 2));
+    const y = Math.max(0, Math.floor(h / 2 - size / 2));
+    const pixels = new Uint8Array(size * size * 4);
+    try {
+      gl.readPixels(x, y, size, size, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    } catch (_) {
+      return null;
+    }
+    const stats = this.#computeLumaFromPixels(pixels);
+    if (!stats) return null;
+    return { size, x, y, width: w, height: h, ...stats };
+  }
+
+  /**
+   * Сетка измерений яркости по кадру (grid x grid).
+   * @param {{ size?: number, grid?: number }} [opts]
+   */
+  getFrameLuminanceGrid(opts = {}) {
+    const renderer = this.renderer;
+    const canvas = renderer?.domElement;
+    const gl = renderer?.getContext?.();
+    if (!renderer || !canvas || !gl || typeof gl.readPixels !== 'function') return null;
+    const sizeRaw = Number(opts.size ?? 64);
+    const size = Math.max(4, Math.min(256, Math.floor(sizeRaw)));
+    const gridRaw = Number(opts.grid ?? 3);
+    const grid = Math.max(2, Math.min(6, Math.floor(gridRaw)));
+    const w = canvas.width || 0;
+    const h = canvas.height || 0;
+    if (!w || !h) return null;
+
+    const results = [];
+    const xStep = w / (grid + 1);
+    const yStep = h / (grid + 1);
+    for (let gy = 1; gy <= grid; gy++) {
+      for (let gx = 1; gx <= grid; gx++) {
+        const cx = Math.floor(gx * xStep);
+        const cy = Math.floor(gy * yStep);
+        const x = Math.max(0, Math.floor(cx - size / 2));
+        const y = Math.max(0, Math.floor(cy - size / 2));
+        const pixels = new Uint8Array(size * size * 4);
+        try {
+          gl.readPixels(x, y, size, size, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+        } catch (_) {
+          results.push({ gx, gy, x, y, size, avgLuma: null, avgRgb: null });
+          continue;
+        }
+        const stats = this.#computeLumaFromPixels(pixels);
+        results.push({ gx, gy, x, y, size, ...(stats || {}) });
+      }
+    }
+    return { grid, size, width: w, height: h, cells: results };
+  }
+
+  /**
+   * Печатает яркость в консоль (после следующего кадра).
+   * @param {string} label
+   * @param {{ size?: number }} [opts]
+   */
+  dumpFrameLuminance(label = '', opts = {}) {
+    const tag = label ? ` ${label}` : '';
+    try {
+      requestAnimationFrame(() => {
+        const l = this.getFrameLuminance(opts);
+        // eslint-disable-next-line no-console
+        console.log(`[Viewer][FrameLuma]${tag}`, l);
+      });
+    } catch (_) {}
   }
 
   /**
@@ -2373,6 +2499,10 @@ export class Viewer {
     const active = this.clipping?.planes?.some((p) => p && isFinite(p.constant));
     const next = !!active;
     if (next === this._sectionClippingActive) return;
+    const actionLabel = next ? 'enable' : 'disable';
+    if (this._sectionLightingDebug?.enabled) {
+      this.#dumpSectionLightingDebug(`before ${actionLabel}`);
+    }
     this._sectionClippingActive = next;
 
     // Важно: никаких глобальных усилений света/яркости на само включение сечения.
@@ -2396,6 +2526,118 @@ export class Viewer {
     // 3) форсируем апдейт теней
     try { if (this.sunLight?.shadow) this.sunLight.shadow.needsUpdate = true; } catch (_) {}
     try { if (this.renderer?.shadowMap) this.renderer.shadowMap.needsUpdate = true; } catch (_) {}
+
+    if (this._sectionLightingDebug?.enabled) {
+      this.#dumpSectionLightingDebug(`after ${actionLabel}`);
+      if (this._sectionLightingDebug?.postFrame) {
+        try {
+          requestAnimationFrame(() => {
+            if (!this._sectionLightingDebug?.enabled) return;
+            this.#dumpSectionLightingDebug(`post-frame ${actionLabel}`);
+          });
+        } catch (_) {}
+      }
+    }
+  }
+
+  #dumpSectionLightingDebug(label = '') {
+    if (!this._sectionLightingDebug?.enabled) return;
+    const r = this.renderer;
+    const sun = this.sunLight;
+    const amb = this.ambientLight;
+    const hemi = this.hemiLight;
+    const model = this.activeModel || this.demoCube;
+
+    let meshCount = 0;
+    let castOn = 0;
+    let recvOn = 0;
+    const matTypes = new Map();
+    model?.traverse?.((n) => {
+      if (!n?.isMesh) return;
+      meshCount++;
+      if (n.castShadow) castOn++;
+      if (n.receiveShadow) recvOn++;
+      const m = n.material;
+      const arr = Array.isArray(m) ? m : [m];
+      for (const mi of arr) {
+        if (!mi) continue;
+        const t = mi.type || 'UnknownMaterial';
+        matTypes.set(t, (matTypes.get(t) || 0) + 1);
+      }
+    });
+
+    const clipPlanes = (this.clipping?.planes || []).map((p) => {
+      if (!p) return null;
+      return {
+        constant: p.constant,
+        normal: { x: p.normal.x, y: p.normal.y, z: p.normal.z },
+      };
+    });
+
+    const interiorLight = this._interiorAssist?.light;
+    const interiorInfo = interiorLight ? {
+      enabled: !!this._interiorAssist?.enabled,
+      visible: !!interiorLight.visible,
+      intensity: interiorLight.intensity,
+      distance: interiorLight.distance,
+      decay: interiorLight.decay,
+      position: { x: interiorLight.position.x, y: interiorLight.position.y, z: interiorLight.position.z },
+    } : { enabled: !!this._interiorAssist?.enabled };
+    const frameLuma = this.getFrameLuminance({ size: 32 });
+    const frameLumaGrid = this.getFrameLuminanceGrid({ size: 64, grid: 3 });
+
+    // eslint-disable-next-line no-console
+    console.groupCollapsed(`[Viewer][SectionLighting] ${label}`.trim());
+    // eslint-disable-next-line no-console
+    console.log('sectionActive', this._sectionClippingActive);
+    // eslint-disable-next-line no-console
+    console.log('clipPlanes', clipPlanes);
+    // eslint-disable-next-line no-console
+    console.log('lights', {
+      sun: sun ? {
+        intensity: sun.intensity,
+        position: { x: sun.position.x, y: sun.position.y, z: sun.position.z },
+      } : null,
+      ambient: amb ? {
+        intensity: amb.intensity,
+        color: amb.color ? `#${amb.color.getHexString?.()}` : undefined,
+      } : null,
+      hemi: hemi ? {
+        intensity: hemi.intensity,
+        skyColor: hemi.color ? `#${hemi.color.getHexString?.()}` : undefined,
+        groundColor: hemi.groundColor ? `#${hemi.groundColor.getHexString?.()}` : undefined,
+      } : null,
+      interiorAssist: interiorInfo,
+    });
+    // eslint-disable-next-line no-console
+    console.log('visual', {
+      environment: this.visual.environment,
+      tone: this.visual.tone,
+      ao: this.visual.ao,
+      color: this.visual.color,
+    });
+    // eslint-disable-next-line no-console
+    console.log('renderer', {
+      outputColorSpace: r?.outputColorSpace,
+      outputEncoding: r?.outputEncoding,
+      toneMapping: r?.toneMapping,
+      exposure: r?.toneMappingExposure,
+    });
+    // eslint-disable-next-line no-console
+    console.log('interiorPost', {
+      active: !!this._interiorPost?.snapshot,
+      contrast: this._interiorPost?.contrast ?? null,
+    });
+    // eslint-disable-next-line no-console
+    console.log('modelMeshes', { meshCount, castOn, recvOn });
+    // eslint-disable-next-line no-console
+    console.log('materials.types', Object.fromEntries(matTypes.entries()));
+    // eslint-disable-next-line no-console
+    console.log('frameLuma', frameLuma);
+    // eslint-disable-next-line no-console
+    console.log('frameLumaGrid', frameLumaGrid);
+    // eslint-disable-next-line no-console
+    console.groupEnd();
   }
 
   #ensureInteriorAssistLight() {
@@ -2403,7 +2645,7 @@ export class Viewer {
     if (this._interiorAssist.light) return;
     try {
       // Небольшой "fill light" около камеры. Без теней, чтобы не ломать внешнюю тень.
-      const light = new THREE.PointLight(0xffffff, 0.9, 6.5, 2.0);
+      const light = new THREE.PointLight(0xffffff, 0.0, 6.5, 2.0);
       light.castShadow = false;
       light.visible = false;
       light.name = 'interior-assist-light';
@@ -2439,29 +2681,43 @@ export class Viewer {
   }
 
   #updateInteriorAssist(force = false) {
-    // Цель: при активном сечении не допускать "скачков" освещённости при зуме.
-    // Поэтому "interior" режим держим стабильным на всём протяжении активного сечения.
-    if (!this._sectionClippingActive || !this.activeModel) {
-      if (this._interiorAssist.enabled || force) {
-        this._interiorAssist.enabled = false;
-        if (this._interiorAssist.light) this._interiorAssist.light.visible = false;
-        this.#restoreInteriorPost();
-      }
-      return;
+    // Цель: убрать резкий "скачок" — делаем плавное включение/выключение локальной подсветки.
+    const shouldBeOn = !!this._sectionClippingActive && !!this.activeModel;
+    const fade = this._interiorAssistFade || { current: 0, target: 0, speed: 0.12 };
+    const target = shouldBeOn ? 0.9 : 0.0;
+    fade.target = target;
+
+    if (shouldBeOn || fade.current > 0.001 || force) {
+      this.#ensureInteriorAssistLight();
     }
 
-    this.#ensureInteriorAssistLight();
-    const enabled = true;
-    if (enabled !== this._interiorAssist.enabled || force) {
-      this._interiorAssist.enabled = enabled;
-      if (this._interiorAssist.light) this._interiorAssist.light.visible = enabled;
-      if (enabled) this.#applyInteriorPost();
-      else this.#restoreInteriorPost();
+    // Плавный переход яркости
+    const speed = Number.isFinite(fade.speed) ? fade.speed : 0.12;
+    fade.current = fade.current + (fade.target - fade.current) * speed;
+    if (!Number.isFinite(fade.current)) fade.current = fade.target;
+
+    const light = this._interiorAssist.light;
+    const isOn = fade.current > 0.01;
+    this._interiorAssist.enabled = isOn;
+    if (light) {
+      light.visible = isOn;
+      light.intensity = Math.max(0, fade.current);
     }
+
+    // Пост-эффекты больше не переключаем, чтобы избежать скачка яркости.
+
     // Следуем за камерой
-    if (this._interiorAssist.light) {
-      try { this._interiorAssist.light.position.copy(this.camera.position); } catch (_) {}
+    if (light && this.camera) {
+      try { light.position.copy(this.camera.position); } catch (_) {}
     }
+
+    // Если полностью выключено — фиксируем ноль и скрываем свет
+    if (!shouldBeOn && fade.current < 0.001) {
+      fade.current = 0.0;
+      if (light) light.visible = false;
+    }
+
+    this._interiorAssistFade = fade;
   }
 
   #applyInteriorPost() {
