@@ -45,6 +45,7 @@
     "vite": "^7.1.2"
   },
   "dependencies": {
+    "fflate": "^0.8.2",
     "rhino3dm": "8.4.0",
     "three": "^0.149.0",
     "web-ifc": "^0.0.74"

@@ -2,6 +2,7 @@
 // Требует three@^0.149 и web-ifc-three совместимой версии
 
 import { IFCLoader } from "../compat/IFCLoader.js";
+import { unzip } from "fflate";
 // Примечание: IFCWorker не используется, так как мы отключаем Web Workers
 // для стабильности работы в различных окружениях
 
@@ -296,26 +297,37 @@ export class IfcService {
       if (!isIFC && !isIFS && !isZIP) {
         throw new Error("Формат не поддерживается. Используйте .ifc, .ifs или .ifczip");
       }
-      
-      const url = URL.createObjectURL(file);
+
       const t0 = this._perfNow();
       // eslint-disable-next-line no-console
       console.log('[Perf] ifc:loadFile:start', { name: file?.name || '', size: file?.size || 0 });
-      try {
-        const model = await this._loadModelWithFallback(url);
-        const t1 = this._perfNow();
+
+      let model = null;
+      if (isZIP) {
+        const zipBuf = await file.arrayBuffer();
+        const { ifcBuffer, innerName } = await this._extractIfcFromZipStrict(zipBuf, file?.name || 'model.ifczip');
         // eslint-disable-next-line no-console
-        console.log('[Perf] ifc:loadFile:end', { ms: Math.round((t1 - t0) * 100) / 100, modelID: model?.modelID ?? null });
-        // Показать модель вместо демо-куба
-        if (this.viewer.replaceWithModel) this.viewer.replaceWithModel(model);
-        this.lastModel = model;
-        this.lastFileName = file?.name || null;
-        // Сообщим, что модель загружена
-        this._dispatchModelLoaded(model);
-        return model;
-      } finally {
-        URL.revokeObjectURL(url);
+        console.log('[IfcService] ifczip extracted', { archive: file?.name || '', innerName, bytes: ifcBuffer?.byteLength || 0 });
+        model = await this._loadBufferWithFallback(ifcBuffer, innerName || file?.name || 'model.ifc');
+      } else {
+        const url = URL.createObjectURL(file);
+        try {
+          model = await this._loadModelWithFallback(url);
+        } finally {
+          URL.revokeObjectURL(url);
+        }
       }
+
+      const t1 = this._perfNow();
+      // eslint-disable-next-line no-console
+      console.log('[Perf] ifc:loadFile:end', { ms: Math.round((t1 - t0) * 100) / 100, modelID: model?.modelID ?? null });
+      // Показать модель вместо демо-куба
+      if (this.viewer.replaceWithModel) this.viewer.replaceWithModel(model);
+      this.lastModel = model;
+      this.lastFileName = file?.name || null;
+      // Сообщим, что модель загружена
+      this._dispatchModelLoaded(model);
+      return model;
     } catch (err) {
       console.error("IFC load error:", err);
       this._handleLoadError(err, 'loadFile');
@@ -335,7 +347,17 @@ export class IfcService {
       // eslint-disable-next-line no-console
       console.log('[Perf] ifc:loadUrl:start', { url });
 
-      const model = await this._loadModelWithFallback(url);
+      const isZip = await this._isZipUrl(url);
+      let model = null;
+      if (isZip) {
+        const zipBuf = await this._fetchArrayBuffer(url);
+        const { ifcBuffer, innerName } = await this._extractIfcFromZipStrict(zipBuf, url);
+        // eslint-disable-next-line no-console
+        console.log('[IfcService] ifczip extracted (url)', { url, innerName, bytes: ifcBuffer?.byteLength || 0 });
+        model = await this._loadBufferWithFallback(ifcBuffer, innerName || String(url || 'model.ifc'));
+      } else {
+        model = await this._loadModelWithFallback(url);
+      }
       const t1 = this._perfNow();
       // eslint-disable-next-line no-console
       console.log('[Perf] ifc:loadUrl:end', { ms: Math.round((t1 - t0) * 100) / 100, modelID: model?.modelID ?? null });
@@ -465,6 +487,26 @@ export class IfcService {
     }
   }
 
+  /**
+   * Загружает IFC из ArrayBuffer с fallback обработкой ошибок WASM.
+   * Важно для распаковки IFCZIP, где у нас нет URL-лоадера.
+   * @private
+   * @param {ArrayBuffer} buffer
+   * @param {string} [sourceName]
+   */
+  async _loadBufferWithFallback(buffer, sourceName = 'buffer.ifc') {
+    try {
+      return await this._parseTimed(buffer, 1, sourceName);
+    } catch (error) {
+      if (this._isWasmError(error)) {
+        console.warn('IfcService: обнаружена ошибка WASM (buffer), пытаемся переинициализировать...');
+        await this._reinitializeWithFallback();
+        return await this._parseTimed(buffer, 2, sourceName);
+      }
+      throw error;
+    }
+  }
+
   _loadAsyncTimed(url, attempt) {
     const t0 = this._perfNow();
     // eslint-disable-next-line no-console
@@ -477,9 +519,134 @@ export class IfcService {
     });
   }
 
+  _parseTimed(buffer, attempt, sourceName) {
+    const t0 = this._perfNow();
+    // eslint-disable-next-line no-console
+    console.log('[Perf] ifc:parse:start', { source: sourceName || '', attempt, bytes: buffer?.byteLength || 0 });
+    // ifcManager.parse may be sync or async depending on implementation; Promise.resolve normalizes.
+    return Promise.resolve(this.loader.parse(buffer)).then((model) => {
+      const t1 = this._perfNow();
+      // eslint-disable-next-line no-console
+      console.log('[Perf] ifc:parse:end', { ms: Math.round((t1 - t0) * 100) / 100, attempt, modelID: model?.modelID ?? null });
+      return model;
+    });
+  }
+
   _perfNow() {
     if (typeof performance !== 'undefined' && performance.now) return performance.now();
     return Date.now();
+  }
+
+  _unzipAsync(zipBytes) {
+    return new Promise((resolve, reject) => {
+      try {
+        unzip(zipBytes, (err, data) => {
+          if (err) reject(err);
+          else resolve(data);
+        });
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+
+  _toArrayBuffer(u8) {
+    if (!u8) return new ArrayBuffer(0);
+    if (u8 instanceof ArrayBuffer) return u8;
+    const arr = /** @type {Uint8Array} */ (u8);
+    return arr.buffer.slice(arr.byteOffset, arr.byteOffset + arr.byteLength);
+  }
+
+  _formatZipEntries(entries) {
+    try {
+      const list = (entries || []).map((x) => `- ${x}`).join('\n');
+      return list || '(empty)';
+    } catch (_) {
+      return '(unavailable)';
+    }
+  }
+
+  /**
+   * Strict IFCZIP extraction:
+   * - zip must contain exactly ONE file
+   * - that file must have .ifc extension
+   * @private
+   * @param {ArrayBuffer} zipBuffer
+   * @param {string} sourceName
+   * @returns {Promise<{ ifcBuffer: ArrayBuffer, innerName: string }>}
+   */
+  async _extractIfcFromZipStrict(zipBuffer, sourceName) {
+    const bytes = new Uint8Array(zipBuffer || new ArrayBuffer(0));
+    const files = await this._unzipAsync(bytes);
+    const namesAll = Object.keys(files || {}).sort();
+    const names = namesAll.filter((n) => n && !String(n).endsWith('/'));
+
+    if (names.length !== 1) {
+      throw new Error(
+        `IFCZIP должен содержать ровно 1 файл .ifc. Источник: ${sourceName}\n` +
+        `Найдено файлов: ${names.length}\n` +
+        this._formatZipEntries(names)
+      );
+    }
+
+    const innerName = String(names[0] || '');
+    if (!innerName.toLowerCase().endsWith('.ifc')) {
+      throw new Error(
+        `IFCZIP должен содержать файл с расширением .ifc. Источник: ${sourceName}\n` +
+        `Найдено: ${innerName}`
+      );
+    }
+
+    const u8 = files[innerName];
+    if (!u8 || !u8.length) {
+      throw new Error(`Пустой IFC внутри архива. Источник: ${sourceName}\nФайл: ${innerName}`);
+    }
+
+    return { ifcBuffer: this._toArrayBuffer(u8), innerName };
+  }
+
+  _looksLikeZipSignature(prefixBytes) {
+    try {
+      const b = prefixBytes || new Uint8Array();
+      return b.length >= 2 && b[0] === 0x50 && b[1] === 0x4b; // 'P''K'
+    } catch (_) {
+      return false;
+    }
+  }
+
+  async _fetchArrayBuffer(url) {
+    const u = String(url || '');
+    if (!u) throw new Error('Empty URL');
+    if (typeof fetch !== 'function') throw new Error('fetch is not available');
+    const res = await fetch(u, { method: 'GET' });
+    if (!res || !res.ok) throw new Error(`Failed to fetch: ${res?.status || 'unknown'}`);
+    return await res.arrayBuffer();
+  }
+
+  async _fetchPrefix(url, maxBytes = 4) {
+    const u = String(url || '');
+    if (!u) return new Uint8Array();
+    if (typeof fetch !== 'function') return new Uint8Array();
+    const n = Math.max(1, Number(maxBytes) || 4);
+    const headers = {};
+    try { headers.Range = `bytes=0-${n - 1}`; } catch (_) {}
+    const res = await fetch(u, { method: 'GET', headers });
+    if (!res || !res.ok) return new Uint8Array();
+    const buf = new Uint8Array(await res.arrayBuffer());
+    return buf.slice(0, n);
+  }
+
+  async _isZipUrl(url) {
+    const u = String(url || '');
+    const lower = u.toLowerCase();
+    if (lower.endsWith('.ifczip') || lower.endsWith('.zip')) return true;
+    // For extensionless URLs (e.g. CDN endpoints), sniff signature.
+    try {
+      const prefix = await this._fetchPrefix(u, 4);
+      return this._looksLikeZipSignature(prefix);
+    } catch (_) {
+      return false;
+    }
   }
 
   /**
