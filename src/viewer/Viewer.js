@@ -993,8 +993,6 @@ export class Viewer {
       if (e.button === 0) {
         this._isLmbDown = true;
         this._didRebaseRotatePivotThisDrag = false;
-        this._orbitDebugFirstMoveLogged = false;
-        this._orbitDebugAfterFrameLogged = false;
         // Сбросим порог движения именно для текущего жеста, чтобы клик не считался "движением".
         this._recentPointerDelta = 0;
         this._lastPointer = { x: e.clientX, y: e.clientY };
@@ -1006,7 +1004,6 @@ export class Viewer {
       if (e.button === 0) {
         this._isLmbDown = false;
         this._didRebaseRotatePivotThisDrag = false;
-        this._orbitDebugAfterFrameLogged = false;
         this.#hideRotationAxisLine();
       }
     };
@@ -1047,58 +1044,8 @@ export class Viewer {
             // если не прошло окно после зума — не ребейзим сейчас
           } else {
             this._didRebaseRotatePivotThisDrag = true;
-            this.#orbitDebugLog("rebase:pointermove", { recentPointerDelta: this._recentPointerDelta });
             try { this.#rebaseRotatePivotToModelCenterIfNeeded(); } catch (_) {}
           }
-        } catch (_) {}
-      }
-
-      // Диагностика порядка событий: фиксируем первое движение во время LMB drag
-      if (this._orbitDebug?.enabled && this._isLmbDown && !this._orbitDebugFirstMoveLogged) {
-        this._orbitDebugFirstMoveLogged = true;
-        try {
-          const tNow = (performance?.now?.() ?? Date.now());
-          const start = this._orbitDebugLastStart || null;
-          const dtSinceStart = start?.ts ? Math.round(tNow - start.ts) : null;
-          const camPos = this.camera?.position ? this.camera.position.clone() : null;
-          const target = this.controls?.target ? this.controls.target.clone() : null;
-          const driftCam = (start?.camPos && camPos) ? camPos.clone().sub(start.camPos) : null;
-          const driftTarget = (start?.target && target) ? target.clone().sub(start.target) : null;
-          const desired = this.#getDesiredPivotForRotate?.() || null;
-          const desiredPx = desired ? this.#worldToScreenPx(desired, this.camera, rect) : null;
-          this.#orbitDebugLog("pointermove:first", {
-            eventPhase: e?.eventPhase ?? null,
-            eventTarget: e?.target ? (e.target.nodeName || typeof e.target) : null,
-            dtSinceStartMs: dtSinceStart,
-            recentPointerDelta: this._recentPointerDelta,
-            camPos: camPos ? this.#fmtV3(camPos) : null,
-            target: target ? this.#fmtV3(target) : null,
-            driftCamFromStart: driftCam ? this.#fmtV3(driftCam) : null,
-            driftTargetFromStart: driftTarget ? this.#fmtV3(driftTarget) : null,
-            desiredPx: this.#fmtPx(desiredPx),
-            cursorPx: `(${Math.round(e.clientX)}, ${Math.round(e.clientY)})`,
-          });
-        } catch (_) {}
-      }
-
-      // Снимок "после кадра": поможет понять, что меняется к моменту визуального рывка
-      if (this._orbitDebug?.enabled && this._isLmbDown && this._orbitDebugFirstMoveLogged && !this._orbitDebugAfterFrameLogged) {
-        this._orbitDebugAfterFrameLogged = true;
-        try {
-          requestAnimationFrame(() => {
-            try {
-              if (!this.camera || !this.controls) return;
-              const r = this.renderer?.domElement?.getBoundingClientRect?.();
-              const desired = this.#getDesiredPivotForRotate?.() || null;
-              const desiredPx = (r && desired) ? this.#worldToScreenPx(desired, this.camera, r) : null;
-              this.#orbitDebugLog("frame:after-first-move", {
-                camPos: this.#fmtV3(this.camera.position),
-                target: this.#fmtV3(this.controls.target),
-                dist: +this.camera.position.distanceTo(this.controls.target).toFixed(4),
-                desiredPx: this.#fmtPx(desiredPx),
-              });
-            } catch (_) {}
-          });
         } catch (_) {}
       }
     };
@@ -1117,22 +1064,6 @@ export class Viewer {
       const dir = this.camera.position.clone().sub(this.controls.target).normalize();
       this._prevViewDir = dir;
       this._smoothedAxis = null;
-      try {
-        this._orbitDebugLastStart = {
-          ts: (performance?.now?.() ?? Date.now()),
-          camPos: this.camera.position.clone(),
-          target: this.controls.target.clone(),
-        };
-      } catch (_) {
-        this._orbitDebugLastStart = null;
-      }
-      this.#orbitDebugLog("controls:start", {
-        isLmbDown: !!this._isLmbDown,
-        lastPointerDownButton: this._lastPointerDownButton,
-        target: this.#fmtV3(this.controls.target),
-        camPos: this.#fmtV3(this.camera.position),
-        dist: +this.camera.position.distanceTo(this.controls.target).toFixed(4),
-      });
       if (this._damping.dynamic) {
         this.controls.dampingFactor = this._damping.base;
         this._damping.isSettling = false;
@@ -1149,20 +1080,6 @@ export class Viewer {
         !this._didRebaseRotatePivotThisDrag &&
         this._recentPointerDelta >= this._pointerPxThreshold
       ) {
-        // Диагностика: фиксируем условия первой попытки ребейза
-        try {
-          const now = (performance?.now?.() ?? Date.now());
-          const dt = now - (this._lastZoomAt || 0);
-          this.#orbitDebugLog("rebase:check", {
-            recentPointerDelta: this._recentPointerDelta,
-            pointerPxThreshold: this._pointerPxThreshold,
-            dtSinceZoomMs: Math.round(dt),
-            rebaseAfterZoomDelayMs: this._rebaseAfterZoomDelayMs || 0,
-            willSkipByDelay: dt < (this._rebaseAfterZoomDelayMs || 0),
-            target: this.controls ? this.#fmtV3(this.controls.target) : null,
-            camPos: this.camera ? this.#fmtV3(this.camera.position) : null,
-          });
-        } catch (_) {}
         // После зума OrbitControls/камера могли слегка "сдвинуться" (wheel -> rotate),
         // чтобы избежать рывка в начале вращения, не ребейзим pivot сразу.
         try {
