@@ -221,6 +221,11 @@ export class Viewer {
       controller: null,
     };
 
+    // Orbit/rotate pivot rebase debug: выключено по умолчанию
+    this._orbitDebug = {
+      enabled: false,
+    };
+
 
     // MMB-pan (wheel-click drag): включено по умолчанию, debug выключен
     this._mmbPan = {
@@ -259,6 +264,23 @@ export class Viewer {
   setZoomToCursorDebug(debug) {
     if (!this._zoomToCursor) return;
     this._zoomToCursor.debug = !!debug;
+  }
+
+  /**
+   * Включает/выключает диагностическое логирование Orbit/ребейза pivot.
+   * @param {boolean} enabled
+   */
+  setOrbitDebugEnabled(enabled) {
+    if (!this._orbitDebug) this._orbitDebug = { enabled: false };
+    this._orbitDebug.enabled = !!enabled;
+  }
+
+  /**
+   * Возвращает текущие флаги Orbit debug (для диагностики).
+   */
+  getOrbitDebugState() {
+    if (!this._orbitDebug) return { enabled: false };
+    return { enabled: !!this._orbitDebug.enabled };
   }
 
   /**
@@ -361,6 +383,39 @@ export class Viewer {
     return this.#getDefaultPivotForActiveModel();
   }
 
+  #orbitDebugLog(event, payload = {}) {
+    if (!this._orbitDebug?.enabled) return;
+    try {
+      // eslint-disable-next-line no-console
+      console.log("[OrbitDebug]", { event, ...payload });
+    } catch (_) {}
+  }
+
+  #fmtV3(v) {
+    const x = +Number(v?.x || 0).toFixed(3);
+    const y = +Number(v?.y || 0).toFixed(3);
+    const z = +Number(v?.z || 0).toFixed(3);
+    // Строка читается в консоли лучше, чем вложенный Object (часто схлопывается).
+    return `(${x}, ${y}, ${z})`;
+  }
+
+  #worldToScreenPx(world, camera, rect) {
+    try {
+      if (!world || !camera || !rect) return null;
+      const v = world.clone().project(camera); // NDC [-1..1]
+      const x = rect.left + (v.x + 1) * 0.5 * rect.width;
+      const y = rect.top + (-v.y + 1) * 0.5 * rect.height;
+      return { x: Math.round(x), y: Math.round(y), z: +Number(v.z).toFixed(4) };
+    } catch (_) {
+      return null;
+    }
+  }
+
+  #fmtPx(p) {
+    if (!p) return null;
+    return `(${p.x}, ${p.y}, z=${p.z})`;
+  }
+
   /**
    * После zoom-to-cursor target может сместиться к точке под курсором (например, к углу),
    * и вращение начнёт происходить вокруг этой точки.
@@ -369,8 +424,12 @@ export class Viewer {
    */
   #rebaseRotatePivotToModelCenterIfNeeded() {
     if (!this.camera || !this.controls) return;
+    const now = (performance?.now?.() ?? Date.now());
     const desired = this.#getDesiredPivotForRotate();
-    if (!desired) return;
+    if (!desired) {
+      this.#orbitDebugLog("rebase:skip", { reason: "no-desired-pivot" });
+      return;
+    }
 
     const current = this.controls.target;
     const dx = desired.x - current.x;
@@ -378,7 +437,10 @@ export class Viewer {
     const dz = desired.z - current.z;
     const dist2 = dx * dx + dy * dy + dz * dz;
     // Порог: чтобы не дергать pivot от микросдвигов зума
-    if (dist2 < 1e-6) return;
+    if (dist2 < 1e-6) {
+      this.#orbitDebugLog("rebase:skip", { reason: "tiny-delta", dist2: +dist2.toExponential(2) });
+      return;
+    }
 
     // Защита: если смена pivot немедленно нарушает ограничения OrbitControls (min/maxDistance),
     // то controls.update() начнёт "исправлять" дистанцию (clamp) и сдвигать камеру.
@@ -391,11 +453,32 @@ export class Viewer {
       const minOk = !(Number.isFinite(minD) && distToDesired < (minD - 1e-6));
       const maxOk = !(Number.isFinite(maxD) && distToDesired > (maxD + 1e-6));
       if (!minOk || !maxOk) {
+        this.#orbitDebugLog("rebase:skip", {
+          reason: "minmax-distance",
+          distToDesired: +distToDesired.toFixed(4),
+          minD,
+          maxD,
+        });
         return;
       }
     } catch (_) {}
 
     const oldTarget = this.controls.target.clone();
+    const camBefore = this.camera.position.clone();
+    const dtSinceZoom = now - (this._lastZoomAt || 0);
+    const rect = this.renderer?.domElement?.getBoundingClientRect?.();
+    const desiredPxBefore = rect ? this.#worldToScreenPx(desired, this.camera, rect) : null;
+    const targetPxBefore = rect ? this.#worldToScreenPx(oldTarget, this.camera, rect) : null;
+    this.#orbitDebugLog("rebase:before", {
+      dtSinceZoomMs: Math.round(dtSinceZoom),
+      desired: this.#fmtV3(desired),
+      targetBefore: this.#fmtV3(oldTarget),
+      camPosBefore: this.#fmtV3(camBefore),
+      desiredPxBefore: this.#fmtPx(desiredPxBefore),
+      targetPxBefore: this.#fmtPx(targetPxBefore),
+      distCamToTargetBefore: +camBefore.distanceTo(oldTarget).toFixed(4),
+      distCamToDesiredBefore: +camBefore.distanceTo(desired).toFixed(4),
+    });
     // Без "отскока": двигаем target И камеру на один и тот же delta.
     // Тогда относительный вектор камера->pivot не меняется, и кадр остаётся стабильным.
     try {
@@ -404,6 +487,47 @@ export class Viewer {
       this.camera.updateMatrixWorld?.(true);
       this.controls.target.copy(desired);
       this.controls.update();
+    } catch (_) {}
+
+    try {
+      const camAfter = this.camera.position.clone();
+      const targetAfter = this.controls.target.clone();
+      const rect2 = this.renderer?.domElement?.getBoundingClientRect?.();
+      const desiredPxAfter0 = rect2 ? this.#worldToScreenPx(desired, this.camera, rect2) : null;
+      const targetPxAfter0 = rect2 ? this.#worldToScreenPx(targetAfter, this.camera, rect2) : null;
+
+      // Компенсация "скачка" в пикселях через viewOffset (MMB-pan).
+      // Идея: ребейз меняет кадр (в пикселях). Мы добавляем screen-space offset,
+      // чтобы world-пойнт desired остался на том же месте на экране.
+      // Знак: addOffsetPx использует координаты viewOffset; чтобы отменить смещение desired на экране,
+      // добавляем разницу "после - до".
+      let appliedOffset = null;
+      try {
+        const mmb = this._mmbPan?.controller;
+        if (mmb && typeof mmb.addOffsetPx === "function" && desiredPxBefore && desiredPxAfter0) {
+          const dx = (desiredPxAfter0.x - desiredPxBefore.x);
+          const dy = (desiredPxAfter0.y - desiredPxBefore.y);
+          if (dx !== 0 || dy !== 0) {
+            mmb.addOffsetPx(dx, dy);
+            appliedOffset = { dx, dy };
+          }
+        }
+      } catch (_) {}
+
+      const rect3 = this.renderer?.domElement?.getBoundingClientRect?.();
+      const desiredPxAfter1 = rect3 ? this.#worldToScreenPx(desired, this.camera, rect3) : null;
+      const targetPxAfter1 = rect3 ? this.#worldToScreenPx(targetAfter, this.camera, rect3) : null;
+      this.#orbitDebugLog("rebase:after", {
+        targetAfter: this.#fmtV3(targetAfter),
+        camPosAfter: this.#fmtV3(camAfter),
+        desiredPxAfter: this.#fmtPx(desiredPxAfter1),
+        targetPxAfter: this.#fmtPx(targetPxAfter1),
+        desiredPxAfterRaw: this.#fmtPx(desiredPxAfter0),
+        targetPxAfterRaw: this.#fmtPx(targetPxAfter0),
+        appliedViewOffset: appliedOffset ? `(${appliedOffset.dx}, ${appliedOffset.dy})` : null,
+        distCamToTargetAfter: +camAfter.distanceTo(targetAfter).toFixed(4),
+        distCamToDesiredAfter: +camAfter.distanceTo(desired).toFixed(4),
+      });
     } catch (_) {}
   }
 
@@ -869,6 +993,8 @@ export class Viewer {
       if (e.button === 0) {
         this._isLmbDown = true;
         this._didRebaseRotatePivotThisDrag = false;
+        this._orbitDebugFirstMoveLogged = false;
+        this._orbitDebugAfterFrameLogged = false;
         // Сбросим порог движения именно для текущего жеста, чтобы клик не считался "движением".
         this._recentPointerDelta = 0;
         this._lastPointer = { x: e.clientX, y: e.clientY };
@@ -880,12 +1006,25 @@ export class Viewer {
       if (e.button === 0) {
         this._isLmbDown = false;
         this._didRebaseRotatePivotThisDrag = false;
+        this._orbitDebugAfterFrameLogged = false;
         this.#hideRotationAxisLine();
       }
     };
     this._onPointerMove = (e) => {
       const rect = this.renderer?.domElement?.getBoundingClientRect?.();
       if (!rect) return;
+      // Обрабатываем только движения над canvas (иначе будем ребейзить от движений по UI).
+      try {
+        const el = this.renderer?.domElement;
+        if (!el) return;
+        const path = (typeof e?.composedPath === 'function') ? e.composedPath() : null;
+        if (Array.isArray(path) && path.length) {
+          if (!path.includes(el)) return;
+        } else {
+          const t = e?.target;
+          if (!t || (t !== el && !el.contains(t))) return;
+        }
+      } catch (_) {}
       // Копим абсолютный сдвиг курсора для простого порога
       const now = { x: e.clientX, y: e.clientY };
       if (!this._lastPointer) this._lastPointer = now;
@@ -893,11 +1032,82 @@ export class Viewer {
       const dy = Math.abs(now.y - this._lastPointer.y);
       this._recentPointerDelta = dx + dy;
       this._lastPointer = now;
+
+      // Ребейз pivot выполняем на ПЕРВОМ pointermove после LMB down (если allowed),
+      // чтобы OrbitControls не успел провернуть камеру вокруг "старого" target даже на 1px.
+      if (
+        this._lastPointerDownButton === 0 &&
+        this._isLmbDown &&
+        !this._didRebaseRotatePivotThisDrag
+      ) {
+        try {
+          const tNow = (performance?.now?.() ?? Date.now());
+          const dt = tNow - (this._lastZoomAt || 0);
+          if (dt < (this._rebaseAfterZoomDelayMs || 0)) {
+            // если не прошло окно после зума — не ребейзим сейчас
+          } else {
+            this._didRebaseRotatePivotThisDrag = true;
+            this.#orbitDebugLog("rebase:pointermove", { recentPointerDelta: this._recentPointerDelta });
+            try { this.#rebaseRotatePivotToModelCenterIfNeeded(); } catch (_) {}
+          }
+        } catch (_) {}
+      }
+
+      // Диагностика порядка событий: фиксируем первое движение во время LMB drag
+      if (this._orbitDebug?.enabled && this._isLmbDown && !this._orbitDebugFirstMoveLogged) {
+        this._orbitDebugFirstMoveLogged = true;
+        try {
+          const tNow = (performance?.now?.() ?? Date.now());
+          const start = this._orbitDebugLastStart || null;
+          const dtSinceStart = start?.ts ? Math.round(tNow - start.ts) : null;
+          const camPos = this.camera?.position ? this.camera.position.clone() : null;
+          const target = this.controls?.target ? this.controls.target.clone() : null;
+          const driftCam = (start?.camPos && camPos) ? camPos.clone().sub(start.camPos) : null;
+          const driftTarget = (start?.target && target) ? target.clone().sub(start.target) : null;
+          const desired = this.#getDesiredPivotForRotate?.() || null;
+          const desiredPx = desired ? this.#worldToScreenPx(desired, this.camera, rect) : null;
+          this.#orbitDebugLog("pointermove:first", {
+            eventPhase: e?.eventPhase ?? null,
+            eventTarget: e?.target ? (e.target.nodeName || typeof e.target) : null,
+            dtSinceStartMs: dtSinceStart,
+            recentPointerDelta: this._recentPointerDelta,
+            camPos: camPos ? this.#fmtV3(camPos) : null,
+            target: target ? this.#fmtV3(target) : null,
+            driftCamFromStart: driftCam ? this.#fmtV3(driftCam) : null,
+            driftTargetFromStart: driftTarget ? this.#fmtV3(driftTarget) : null,
+            desiredPx: this.#fmtPx(desiredPx),
+            cursorPx: `(${Math.round(e.clientX)}, ${Math.round(e.clientY)})`,
+          });
+        } catch (_) {}
+      }
+
+      // Снимок "после кадра": поможет понять, что меняется к моменту визуального рывка
+      if (this._orbitDebug?.enabled && this._isLmbDown && this._orbitDebugFirstMoveLogged && !this._orbitDebugAfterFrameLogged) {
+        this._orbitDebugAfterFrameLogged = true;
+        try {
+          requestAnimationFrame(() => {
+            try {
+              if (!this.camera || !this.controls) return;
+              const r = this.renderer?.domElement?.getBoundingClientRect?.();
+              const desired = this.#getDesiredPivotForRotate?.() || null;
+              const desiredPx = (r && desired) ? this.#worldToScreenPx(desired, this.camera, r) : null;
+              this.#orbitDebugLog("frame:after-first-move", {
+                camPos: this.#fmtV3(this.camera.position),
+                target: this.#fmtV3(this.controls.target),
+                dist: +this.camera.position.distanceTo(this.controls.target).toFixed(4),
+                desiredPx: this.#fmtPx(desiredPx),
+              });
+            } catch (_) {}
+          });
+        } catch (_) {}
+      }
     };
     // Capture-phase: чтобы успеть выставить флаги до OrbitControls (его start может прийти раньше bubble pointerdown)
     this.renderer.domElement.addEventListener('pointerdown', this._onPointerDown, { capture: true, passive: true });
     this.renderer.domElement.addEventListener('pointerup', this._onPointerUp, { passive: true });
-    this.renderer.domElement.addEventListener('pointermove', this._onPointerMove, { passive: true });
+    // Документ в capture-phase: OrbitControls слушает pointermove на document, поэтому
+    // так мы гарантированно успеваем выполнить ребейз ДО его обработчика первого движения.
+    document.addEventListener('pointermove', this._onPointerMove, { capture: true, passive: true });
 
     this._onControlsStart = () => {
       // Инициализируем предыдущий вектор направления вида
@@ -907,6 +1117,22 @@ export class Viewer {
       const dir = this.camera.position.clone().sub(this.controls.target).normalize();
       this._prevViewDir = dir;
       this._smoothedAxis = null;
+      try {
+        this._orbitDebugLastStart = {
+          ts: (performance?.now?.() ?? Date.now()),
+          camPos: this.camera.position.clone(),
+          target: this.controls.target.clone(),
+        };
+      } catch (_) {
+        this._orbitDebugLastStart = null;
+      }
+      this.#orbitDebugLog("controls:start", {
+        isLmbDown: !!this._isLmbDown,
+        lastPointerDownButton: this._lastPointerDownButton,
+        target: this.#fmtV3(this.controls.target),
+        camPos: this.#fmtV3(this.camera.position),
+        dist: +this.camera.position.distanceTo(this.controls.target).toFixed(4),
+      });
       if (this._damping.dynamic) {
         this.controls.dampingFactor = this._damping.base;
         this._damping.isSettling = false;
@@ -923,6 +1149,20 @@ export class Viewer {
         !this._didRebaseRotatePivotThisDrag &&
         this._recentPointerDelta >= this._pointerPxThreshold
       ) {
+        // Диагностика: фиксируем условия первой попытки ребейза
+        try {
+          const now = (performance?.now?.() ?? Date.now());
+          const dt = now - (this._lastZoomAt || 0);
+          this.#orbitDebugLog("rebase:check", {
+            recentPointerDelta: this._recentPointerDelta,
+            pointerPxThreshold: this._pointerPxThreshold,
+            dtSinceZoomMs: Math.round(dt),
+            rebaseAfterZoomDelayMs: this._rebaseAfterZoomDelayMs || 0,
+            willSkipByDelay: dt < (this._rebaseAfterZoomDelayMs || 0),
+            target: this.controls ? this.#fmtV3(this.controls.target) : null,
+            camPos: this.camera ? this.#fmtV3(this.camera.position) : null,
+          });
+        } catch (_) {}
         // После зума OrbitControls/камера могли слегка "сдвинуться" (wheel -> rotate),
         // чтобы избежать рывка в начале вращения, не ребейзим pivot сразу.
         try {
@@ -1083,7 +1323,8 @@ export class Viewer {
     if (this.renderer?.domElement) {
       try { this.renderer.domElement.removeEventListener('pointerdown', this._onPointerDown); } catch(_) {}
       try { this.renderer.domElement.removeEventListener('pointerup', this._onPointerUp); } catch(_) {}
-      try { this.renderer.domElement.removeEventListener('pointermove', this._onPointerMove); } catch(_) {}
+      try { document.removeEventListener('pointermove', this._onPointerMove, { capture: true }); } catch(_) {}
+      try { document.removeEventListener('pointermove', this._onPointerMove); } catch(_) {}
     }
     // Снимем wheel zoom-to-cursor
     try { this._zoomToCursor?.controller?.dispose?.(); } catch (_) {}

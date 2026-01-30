@@ -173,6 +173,11 @@ if (app) {
       // eslint-disable-next-line no-console
       console.log("[Viewer] zoom-to-cursor debug enabled");
     }
+    if (params.get("orbitDebug") === "1") {
+      viewer.setOrbitDebugEnabled?.(true);
+      // eslint-disable-next-line no-console
+      console.log("[Viewer] orbit debug enabled");
+    }
     if (params.get("zoomCursor") === "0") {
       viewer.setZoomToCursorEnabled?.(false);
       // eslint-disable-next-line no-console
@@ -193,8 +198,6 @@ if (app) {
   const dampingSettleValue = document.getElementById("dampingSettleValue");
   const dampingSettleMs = document.getElementById("dampingSettleMs");
   const dampingSettleMsValue = document.getElementById("dampingSettleMsValue");
-  const dampingFactorValue = document.getElementById("dampingFactorValue");
-  const dampingPhaseValue = document.getElementById("dampingPhaseValue");
 
   const testPresetToggle = document.getElementById("testPresetToggle");
   // Шаг 1 (Tone mapping): в текущей версии он входит в пресет "Тест", но exposure можно подстроить.
@@ -272,23 +275,6 @@ if (app) {
     }
   };
   initDampingUi();
-
-  // Лёгкий мониторинг текущего damping (визуальная обратная связь)
-  let dampingStatusRaf = 0;
-  const updateDampingStatus = () => {
-    try {
-      const factor = viewer?.controls?.dampingFactor;
-      const isSettling = viewer?._damping?.isSettling;
-      if (dampingFactorValue) {
-        dampingFactorValue.textContent = Number.isFinite(factor) ? Number(factor).toFixed(2) : "—";
-      }
-      if (dampingPhaseValue) {
-        dampingPhaseValue.textContent = isSettling ? "settle" : "base";
-      }
-    } catch (_) {}
-    dampingStatusRaf = requestAnimationFrame(updateDampingStatus);
-  };
-  updateDampingStatus();
 
   const setStep1UiEnabled = (enabled) => {
     const on = !!enabled;
@@ -918,7 +904,6 @@ if (app) {
   if (import.meta.hot) {
     import.meta.hot.dispose(() => {
       ifcViewer.dispose();
-      if (dampingStatusRaf) cancelAnimationFrame(dampingStatusRaf);
     });
   }
 }
